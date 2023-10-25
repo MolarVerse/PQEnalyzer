@@ -3,7 +3,8 @@ name = "Enalyzer"
 version = "0.0.1"
 authors = [
     {name="Josef M. Gallmetzer", email="gallmetzer.josef@gmail.com"},
-    {name="Leo Christanell", email="leochristanell@gmail.com"}
+    {name="Leo Christanell", email="leochristanell@gmail.com"},
+    {name="Jakob Gamper", email="97gamjak@gmail.com"}
 ]
 description = "A package that help analyze PIMD-QMCF trajectories."
 readme = "README.md"
