@@ -1,9 +1,6 @@
-import tkinter
-import tkinter.messagebox
 import customtkinter
 
-customtkinter.set_appearance_mode("System")
-customtkinter.set_default_color_theme("blue")
+from PQEnalyzer.custom_theme import default_theme
 
 class App(customtkinter.CTk):
     """
@@ -13,11 +10,12 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Enalyzer - MolarVerse")
+        default_theme()
+
+        self.title("PQEnalyzer - MolarVerse")
+        
         
 
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-        
-

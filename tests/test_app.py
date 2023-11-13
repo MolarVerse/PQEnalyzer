@@ -13,6 +13,6 @@ class TestApp:
         assert isinstance(self.app, tkinter.Tk)
     
     def test_title(self):
-        assert self.app.title() == "Enalyzer - MolarVerse"
+        assert self.app.title() == "PQEnalyzer - MolarVerse"
         
 
