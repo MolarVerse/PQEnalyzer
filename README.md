@@ -1,2 +1,2 @@
-# Enalyzer
-Analyzation of Molecular Dynamic Trajectories - PQ
+# PQEnalyzer
+Energy and Parameter Analyzer of Molecular Dynamic Trajectories - PIMD-QMCF
