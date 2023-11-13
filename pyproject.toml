@@ -1,14 +1,14 @@
 [project]
-name = "Enalyzer"
+name = "PQEnalyzer"
 version = "0.0.1"
 authors = [
     {name="Josef M. Gallmetzer", email="gallmetzer.josef@gmail.com"},
     {name="Leo Christanell", email="leochristanell@gmail.com"},
     {name="Jakob Gamper", email="97gamjak@gmail.com"}
 ]
-description = "A package that help analyze PIMD-QMCF trajectories."
+description = "A package that help analyze PIMD-QMCF trajectoriy energy and parameter."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
