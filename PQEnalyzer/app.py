@@ -1,10 +1,28 @@
+"""
+A module containing the App class.
+
+...
+
+Classes
+-------
+App
+    A class for the main window of the PQEnalyzer application.
+"""
+
+
 import customtkinter
 
 from PQEnalyzer.custom_theme import default_theme
 
 class App(customtkinter.CTk):
     """
-    The main application class for the Enalyzer application. This class inherits from the CTK class.
+    The main application class for the PQEnalyzer application. This class inherits from the CTK class.
+
+    ...
+
+    Attributes
+    ----------
+    None
     """
 
     def __init__(self):
@@ -13,9 +31,4 @@ class App(customtkinter.CTk):
         default_theme()
 
         self.title("PQEnalyzer - MolarVerse")
-        
-        
 
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
