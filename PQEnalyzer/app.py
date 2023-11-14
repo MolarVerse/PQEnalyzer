@@ -12,7 +12,7 @@ App
 
 import customtkinter
 
-from PQEnalyzer.custom_theme import default_theme
+from .custom_theme import default_theme
 
 class App(customtkinter.CTk):
     """

@@ -2,7 +2,7 @@
 This is the main file of the PQEnalyzer project.
 """
 
-from PQEnalyzer.app import App
+from .app import App
 
 def main():
     """
