@@ -9,8 +9,9 @@ App
     A class for the main window of the PQEnalyzer application.
 """
 
-
 import customtkinter
+import tkinter as tk
+import os
 
 from .custom_theme import default_theme
 
@@ -31,4 +32,8 @@ class App(customtkinter.CTk):
         default_theme()
 
         self.title("PQEnalyzer - MolarVerse")
+        self.geometry("800x600")
+        self.resizable(False, False)
+        # load icon photo
+        self.iconphoto(True, tk.PhotoImage(file=os.path.join(os.path.dirname(__file__), "icons", "icon.png")))
 
