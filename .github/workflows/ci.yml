@@ -27,6 +27,8 @@ jobs:
 
     - name: Generate coverage report
       run: |
+        export DISPLAY=:0
+        echo "DISPLAY set to $DISPLAY"
         pip install pytest
         pip install pytest-cov
         python -m pytest --cov=PQEnalyzer --cov-report=xml
