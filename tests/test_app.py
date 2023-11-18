@@ -5,6 +5,10 @@ import tkinter
 from PQEnalyzer.app import App
 
 class TestApp:
+    """
+    Test the App class.
+    """
+
     app = App()
 
     def test_instance(self):
@@ -14,5 +18,4 @@ class TestApp:
     
     def test_title(self):
         assert self.app.title() == "PQEnalyzer - MolarVerse"
-        
 
