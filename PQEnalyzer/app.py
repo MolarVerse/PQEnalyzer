@@ -29,7 +29,7 @@ class App(customtkinter.CTk):
 
     def __init__(self, filenames):
 
-        self.read(filenames)
+        self.__read(filenames)
 
         super().__init__()
 
@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
         
 
 
-    def read(self, filenames):
+    def __read(self, filenames):
         """
         Reads the data from the specified files.
 
