@@ -52,5 +52,8 @@ class App(customtkinter.CTk):
         filenames : list of str
             The names of the files to read the data from.
         """
-
-        self.data = read_energy_files(filenames)
+        try:
+            self.data = read_energy_files(filenames)
+        except ValueError as error:
+            print(error)
+            exit(1)
