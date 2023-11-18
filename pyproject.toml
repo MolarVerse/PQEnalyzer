@@ -1,6 +1,12 @@
+[build-system]
+requires = ["setuptools>=42", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "PQEnalyzer"
-version = "0.0.2"
+dynamic = [
+    "version"
+]
 authors = [
     {name="Josef M. Gallmetzer", email="gallmetzer.josef@gmail.com"},
     {name="Leo Christanell", email="leochristanell@gmail.com"},
@@ -19,3 +25,6 @@ dependencies = [
     "PQAnalysis",
     "customtkinter"
 ]
+
+[tool.setuptools_scm]
+version_file = "PQAnalysis/__version__.py"
