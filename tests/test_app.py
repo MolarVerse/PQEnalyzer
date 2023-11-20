@@ -2,7 +2,7 @@ import pytest
 import customtkinter
 import tkinter
 
-from PQEnalyzer.app import App
+from PQEnalyzer.classes.app import App
 
 class TestApp:
     """

@@ -1,8 +1,9 @@
 import pytest
 import os
-from PQEnalyzer.read_files import read_energy_files, check_info_length
+from PQEnalyzer.classes.reader import Reader
+from PQAnalysis.traj.formats import MDEngineFormat
 
-class TestReadFiles:
+class TestReader:
     """
     Test the read_energy_files function.
     """
@@ -22,24 +23,19 @@ class TestReadFiles:
     def test_single_input(self, example_dir):
         list_filenames = [example_dir + "md-01.en"]
 
-        energy_files = read_energy_files(list_filenames)
-
-        assert len(energy_files) == 1
-
-        energy = energy_files[0]
+        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        assert len(reader.data) == 1
+        energy = reader.data[0]
         assert len(energy.info) == 10
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_multiple_inputs(self, example_dir):
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
 
-        energy_files = read_energy_files(list_filenames)
-
+        energy_files = Reader(list_filenames, MDEngineFormat.PIMD_QMCF).data
         assert len(energy_files) == 2
-
         energy = energy_files[0]
         assert len(energy.info) == 12
-
         energy = energy_files[1]
         assert len(energy.info) == 12
 
@@ -48,17 +44,17 @@ class TestReadFiles:
         list_filenames = [example_dir + "md-01.en", example_dir + "md-02.en"]
 
         with pytest.raises(ValueError):
-            read_energy_files(list_filenames)
+            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
 
     def test_empty_input(self):
         list_filenames = []
 
         with pytest.raises(ValueError):
-            read_energy_files(list_filenames)
+            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_empty_file(self, example_dir):
         list_filenames = [example_dir + "empty.en"]
 
         with pytest.raises(ValueError):
-            read_energy_files(list_filenames)
+            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
