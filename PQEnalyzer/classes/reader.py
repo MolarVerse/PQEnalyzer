@@ -1,5 +1,4 @@
 from PQAnalysis.io.energyFileReader import EnergyFileReader
-from PQAnalysis.traj.formats import MDEngineFormat
 
 class Reader:
 
