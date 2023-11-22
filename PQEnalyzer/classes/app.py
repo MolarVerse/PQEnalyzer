@@ -74,11 +74,6 @@ class App(customtkinter.CTk):
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],
                                                                        command=self.change_appearance_mode_event)
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
-        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
-        self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],
-                                                               command=self.change_scaling_event)
-        self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
         # create main entry and button
         self.entry = customtkinter.CTkEntry(self, placeholder_text="CTkEntry")
@@ -171,7 +166,6 @@ class App(customtkinter.CTk):
         self.scrollable_frame_switches[4].select()
         self.radio_button_3.configure(state="disabled")
         self.appearance_mode_optionemenu.set("Dark")
-        self.scaling_optionemenu.set("100%")
         self.optionmenu_1.set("CTkOptionmenu")
         self.combobox_1.set("CTkComboBox")
         self.slider_1.configure(command=self.progressbar_2.set)
@@ -188,10 +182,6 @@ class App(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
-
-    def change_scaling_event(self, new_scaling: str):
-        new_scaling_float = int(new_scaling.replace("%", "")) / 100
-        customtkinter.set_widget_scaling(new_scaling_float)
 
     def sidebar_button_event(self):
         print("sidebar_button click")
