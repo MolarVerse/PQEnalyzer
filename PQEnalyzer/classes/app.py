@@ -40,6 +40,7 @@ class App(ctk.CTk):
         
         # set reader
         self.reader = reader
+        self.data = reader.data
 
         # configure grid layout (3x3)
         self.grid_rowconfigure(0, weight=0)
@@ -54,6 +55,8 @@ class App(ctk.CTk):
         self.__build_sidebar()
         # build main window
         self.__build_main_window()
+        # build info option menu
+        self.__build_info_option_menu()
     
     def __default_theme(self):
         """
@@ -95,8 +98,21 @@ class App(ctk.CTk):
         self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot",)
         self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
+    def __build_info_option_menu(self):
+        """
+        Build the info selection window.
+        """
+        self.info_label = ctk.CTkLabel(self, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
+        self.info_label.grid(row=0, column=1, padx=20, pady=(10, 0))
+        self.info_optionmenu = ctk.CTkOptionMenu(self, values=list(self.data[0].info.keys())[1:], command=self.__change_info_event, width=20)
+        self.info_optionmenu.grid(row=1, column=1, padx=20, pady=(10, 10))
+
+
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         ctk.set_appearance_mode(new_appearance_mode)
+    
+    def __change_info_event(self, new_info: str):
+        self.__selected_info = new_info
 
 
 
