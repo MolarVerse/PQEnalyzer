@@ -49,7 +49,7 @@ class App(ctk.CTk):
         self.__build_info_option_menu()
 
         # set plot object
-        self.plot = Plot(self, self.info, self.reader.data)
+        self.plot = Plot(self, self.reader.data)
     
     def __default_theme(self):
         """
@@ -102,7 +102,7 @@ class App(ctk.CTk):
 
         self.info_label = ctk.CTkLabel(self.info_frame, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
         self.info_label.grid(row=0, column=1, padx=20, pady=10)
-        self.info_optionmenu = ctk.CTkOptionMenu(self.info_frame, values=self.info, command=self.__change_info_event, width=20)
+        self.info_optionmenu = ctk.CTkOptionMenu(self.info_frame, values=self.info, command=self.__change_info_event, width=150, anchor="c")
         self.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
         self.__change_info_event(self.info[0]) # set the default info parameter to the first one
 
@@ -114,7 +114,7 @@ class App(ctk.CTk):
 
     def __plot_button_event(self):
         print("Plotting... ", self.__selected_info)
-        self.plot.plot(self.reader.data, self.__selected_info)
+        self.plot.plot(self.__selected_info)
 
 
 
