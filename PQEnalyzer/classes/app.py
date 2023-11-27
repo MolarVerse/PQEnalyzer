@@ -34,28 +34,17 @@ class App(ctk.CTk):
         super().__init__()
         self.__default_theme()
         self.title("PQEnalyzer - MolarVerse")
-        self.geometry(f"{1100}x{580}")
+        self.resizable(False, False)
         # load icon photo
         self.iconphoto(True, tkinter.PhotoImage(file=os.path.join(BASE_PROJECT_PATH, "..", "icons", "icon.png")))
         
         # set reader
         self.reader = reader
-        self.data = reader.data
+        self.info = [*self.reader.data[0].info] # get list of info parameters from first data object
 
-        # configure grid layout (3x3)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=1)
-        self.grid_columnconfigure(3, weight=1)
-        
-        # build sidebar
+        # build window
         self.__build_sidebar()
-        # build main window
         self.__build_main_window()
-        # build info option menu
         self.__build_info_option_menu()
     
     def __default_theme(self):
@@ -69,7 +58,6 @@ class App(ctk.CTk):
         """
         Build the main window.
         """
-
         # sidebar frame
         self.sidebar_frame = ctk.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
@@ -95,24 +83,32 @@ class App(ctk.CTk):
         Build the main window.
         """
         # create main frame with widgets
-        self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot",)
+        self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot", command=self.__plot_button_event)
         self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
     def __build_info_option_menu(self):
         """
         Build the info selection window.
         """
-        self.info_label = ctk.CTkLabel(self, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
-        self.info_label.grid(row=0, column=1, padx=20, pady=(10, 0))
-        self.info_optionmenu = ctk.CTkOptionMenu(self, values=list(self.data[0].info.keys())[1:], command=self.__change_info_event, width=20)
-        self.info_optionmenu.grid(row=1, column=1, padx=20, pady=(10, 10))
+        self.info_frame = ctk.CTkFrame(self, width=140)
+        self.info_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 20), pady=(20, 20))
+        self.info_frame.grid_rowconfigure(1, weight=1)
+        self.info_frame.grid_columnconfigure(0, weight=1)
 
+        self.info_label = ctk.CTkLabel(self.info_frame, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
+        self.info_label.grid(row=0, column=1, padx=20, pady=10)
+        self.info_optionmenu = ctk.CTkOptionMenu(self.info_frame, values=self.info, command=self.__change_info_event, width=20)
+        self.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
+        self.__change_info_event(self.info[0]) # set the default info parameter to the first one
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         ctk.set_appearance_mode(new_appearance_mode)
     
     def __change_info_event(self, new_info: str):
         self.__selected_info = new_info
+
+    def __plot_button_event(self):
+        print("Plotting... ", self.__selected_info)
 
 
 
