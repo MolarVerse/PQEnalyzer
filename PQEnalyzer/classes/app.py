@@ -15,6 +15,7 @@ import os
 from PIL import Image
 
 from ..config import BASE_PROJECT_PATH
+from .plot import Plot
 
 class App(ctk.CTk):
     """
@@ -34,18 +35,21 @@ class App(ctk.CTk):
         super().__init__()
         self.__default_theme()
         self.title("PQEnalyzer - MolarVerse")
-        self.resizable(False, False)
+
         # load icon photo
         self.iconphoto(True, tkinter.PhotoImage(file=os.path.join(BASE_PROJECT_PATH, "..", "icons", "icon.png")))
         
         # set reader
         self.reader = reader
-        self.info = [*self.reader.data[0].info] # get list of info parameters from first data object
+        self.info = [*self.reader.data[0].info][1:] # get list of info parameters from first data object
 
         # build window
         self.__build_sidebar()
         self.__build_main_window()
         self.__build_info_option_menu()
+
+        # set plot object
+        self.plot = Plot(self, self.info, self.reader.data)
     
     def __default_theme(self):
         """
@@ -62,6 +66,7 @@ class App(ctk.CTk):
         self.sidebar_frame = ctk.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
+        self.sidebar_frame.grid_columnconfigure(0, weight=1)
 
         # logo
         self.logo = ctk.CTkImage(Image.open(os.path.join(BASE_PROJECT_PATH, "..", "icons", "icon.png")), size=(100, 100))
@@ -109,6 +114,7 @@ class App(ctk.CTk):
 
     def __plot_button_event(self):
         print("Plotting... ", self.__selected_info)
+        self.plot.plot(self.reader.data, self.__selected_info)
 
 
 
