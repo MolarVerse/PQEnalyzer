@@ -41,7 +41,7 @@ class App(ctk.CTk):
         
         # set reader
         self.reader = reader
-        self.info = [*self.reader.data[0].info][1:] # get list of info parameters from first data object
+        self.info = [*self.reader.energies[0].info][1:] # get list of info parameters from first data object
 
         # build window
         self.__build_sidebar()
@@ -49,7 +49,7 @@ class App(ctk.CTk):
         self.__build_info_option_menu()
 
         # set plot object
-        self.plot = Plot(self, self.reader.data)
+        self.plot = Plot(self, self.reader)
     
     def __default_theme(self):
         """

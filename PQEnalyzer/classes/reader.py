@@ -5,7 +5,8 @@ class Reader:
     def __init__(self, filenames, md_format):
         """
         Constructs all the necessary attributes for the Reader object.
-        """    
+        """
+        self.energies = []
         self.__filenames = filenames
         self.__md_format = md_format
         self.read()
@@ -30,7 +31,7 @@ class Reader:
         if not self.__check_info_length(read_energy_files):
             raise ValueError("The energy files do not have the same length of info.")      
 
-        self.data = read_energy_files
+        self.energies = read_energy_files
 
     def __check_info_length(self, read_energy_files):
         """
@@ -45,11 +46,11 @@ class Reader:
         else:
             return False
         
-    def get_data(self):
+    def get_energies(self):
         """
-        Return the data.
+        Return the energies.
         """
-        return self.data
+        return self.energies
     
     def get_filenames(self):
         """
