@@ -17,10 +17,10 @@ class Plot:
         """
         Build the plot.
         """
-        self.figure = Figure(figsize=(5, 4), dpi=100)
+        self.figure = Figure(figsize=(10, 5), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.parent)
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=0, column=3, sticky="nsew")
+        self.canvas.get_tk_widget().grid(row=0, column=3, rowspan=3, columnspan=2, sticky="nsew")
     
     def plot(self, info_parameter: str):
         """

@@ -47,6 +47,7 @@ class App(ctk.CTk):
         self.__build_sidebar()
         self.__build_main_window()
         self.__build_info_option_menu()
+        self.__build_settings_window()
 
         # set plot object
         self.plot = Plot(self, self.reader)
@@ -89,7 +90,9 @@ class App(ctk.CTk):
         """
         # create main frame with widgets
         self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot", command=self.__plot_button_event)
-        self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.main_button_1.grid(row=3, column=4, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.main_button_2 = ctk.CTkCheckBox(master=self, border_width=2, text="Follow")
+        self.main_button_2.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
     def __build_info_option_menu(self):
         """
@@ -97,7 +100,7 @@ class App(ctk.CTk):
         """
         self.info_frame = ctk.CTkFrame(self, width=140)
         self.info_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 20), pady=(20, 20))
-        self.info_frame.grid_rowconfigure(1, weight=1)
+        self.info_frame.grid_rowconfigure(2, weight=1)
         self.info_frame.grid_columnconfigure(0, weight=1)
 
         self.info_label = ctk.CTkLabel(self.info_frame, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
@@ -105,6 +108,19 @@ class App(ctk.CTk):
         self.info_optionmenu = ctk.CTkOptionMenu(self.info_frame, values=self.info, command=self.__change_info_event, width=150, anchor="c")
         self.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
         self.__change_info_event(self.info[0]) # set the default info parameter to the first one
+
+    def __build_settings_window(self):
+        """
+        Build the settings window.
+        """
+        self.settings_frame = ctk.CTkFrame(self, width=140)
+        self.settings_frame.grid(row=1, column=2, sticky="nsew", padx=(20, 20), pady=(20, 20))
+        self.settings_frame.grid_rowconfigure(2, weight=1)
+        self.settings_frame.grid_columnconfigure(0, weight=1)
+
+        self.settings_label = ctk.CTkLabel(self.settings_frame, text="Settings:",font=ctk.CTkFont(size=15, weight="bold"))
+        self.settings_label.grid(row=0, column=0, padx=20, pady=10)
+
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         ctk.set_appearance_mode(new_appearance_mode)
