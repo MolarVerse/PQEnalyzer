@@ -91,7 +91,9 @@ class App(ctk.CTk):
         # create main frame with widgets
         self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot", command=self.__plot_button_event)
         self.main_button_1.grid(row=3, column=4, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.main_button_2 = ctk.CTkCheckBox(master=self, border_width=2, text="Follow")
+
+        self.__follow = tkinter.BooleanVar()
+        self.main_button_2 = ctk.CTkCheckBox(master=self, border_width=2, text="Follow", variable=self.__follow)
         self.main_button_2.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
     def __build_info_option_menu(self):
@@ -129,6 +131,7 @@ class App(ctk.CTk):
         self.__selected_info = new_info
 
     def __plot_button_event(self):
+        print("Follow: ", self.__follow.get())
         print("Plotting... ", self.__selected_info)
         self.plot.plot(self.__selected_info)
 
