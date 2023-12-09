@@ -31,7 +31,7 @@ def main():
     # create the reader
     try:
         reader = Reader(filenames, md_format)
-    except ValueError as e:
+    except Exception as e:
         print(e)
         exit(1)
 
