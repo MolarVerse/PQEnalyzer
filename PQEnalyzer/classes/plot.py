@@ -30,9 +30,7 @@ class Plot:
         ax = self.figure.add_subplot(111)
         for i, energy in enumerate(self.reader.energies):
             basename = os.path.basename(self.reader.get_filenames()[i])
-            ax.plot(energy.data[0], energy.data[energy.info[info_parameter]], label=basename)
-            # somehow not the same -> why? 
-            # ax.plot(energy.simulation_time, energy.data[energy.info[info_parameter]], label=basename)
+            ax.plot(energy.simulation_time, energy.data[energy.info[info_parameter]], label=basename)
 
         ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
         ax.set_ylabel(f'{info_parameter} / {self.reader.energies[0].units[info_parameter]}')

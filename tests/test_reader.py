@@ -2,6 +2,7 @@ import pytest
 import os
 from PQEnalyzer.classes.reader import Reader
 from PQAnalysis.traj.formats import MDEngineFormat
+from PQAnalysis.physicalData.exceptions import EnergyError
 
 class TestReader:
     """
@@ -24,15 +25,15 @@ class TestReader:
         list_filenames = [example_dir + "md-01.en"]
 
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
-        assert len(reader.data) == 1
-        energy = reader.data[0]
+        assert len(reader.energies) == 1
+        energy = reader.energies[0]
         assert len(energy.info) == 10
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_multiple_inputs(self, example_dir):
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
 
-        energy_files = Reader(list_filenames, MDEngineFormat.PIMD_QMCF).data
+        energy_files = Reader(list_filenames, MDEngineFormat.PIMD_QMCF).energies
         assert len(energy_files) == 2
         energy = energy_files[0]
         assert len(energy.info) == 12
@@ -56,5 +57,5 @@ class TestReader:
     def test_empty_file(self, example_dir):
         list_filenames = [example_dir + "empty.en"]
 
-        with pytest.raises(ValueError):
+        with pytest.raises(EnergyError):
             Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
