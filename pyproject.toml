@@ -18,6 +18,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
 dependencies = [
     "PQAnalysis",
     "customtkinter"
@@ -31,4 +32,4 @@ test = [
 ]
 
 [tool.setuptools_scm]
-version_file = "PQEnalyzer/__version__.py"
+version_file = "PQEnalyzer/__version__.py
