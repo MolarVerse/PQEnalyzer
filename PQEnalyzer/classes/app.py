@@ -37,7 +37,7 @@ class App(ctk.CTk):
         self.title("PQEnalyzer - MolarVerse")
 
         # load icon photo
-        self.iconphoto(True, tkinter.PhotoImage(file=os.path.join(BASE_PROJECT_PATH, "..", "icons", "icon.png")))
+        self.iconphoto(True, tkinter.PhotoImage(file=os.path.join(BASE_PROJECT_PATH, "icons", "icon.png")))
         
         # set reader
         self.reader = reader

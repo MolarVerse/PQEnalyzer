@@ -32,4 +32,5 @@ test = [
 ]
 
 [tool.setuptools_scm]
-version_file = "PQEnalyzer/__version__.py
+version_file = "PQEnalyzer/__version__.py"
+
