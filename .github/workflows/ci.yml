@@ -23,7 +23,6 @@ jobs:
     - name: Generate coverage report
       run: |
         sudo apt-get install xvfb
-        pip install --upgrade pip
         pip install pytest
         pip install pytest-cov
         xvfb-run python -m pytest --cov=PQEnalyzer --cov-report=xml
