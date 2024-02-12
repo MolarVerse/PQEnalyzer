@@ -2,6 +2,11 @@
 requires = ["setuptools>=42", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+py-modules = [
+    "PQEnalyzer"
+]
+
 [project]
 name = "PQEnalyzer"
 dynamic = ["version"]
