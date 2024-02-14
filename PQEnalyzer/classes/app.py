@@ -70,7 +70,7 @@ class App(ctk.CTk):
         self.sidebar_frame.grid_columnconfigure(0, weight=1)
 
         # logo
-        self.logo = ctk.CTkImage(Image.open(os.path.join(BASE_PROJECT_PATH, "..", "icons", "icon.png")), size=(100, 100))
+        self.logo = ctk.CTkImage(Image.open(os.path.join(BASE_PROJECT_PATH, "icons", "icon.png")), size=(100, 100))
         self.sidebar_image_label = ctk.CTkLabel(self.sidebar_frame, image=self.logo, text="")
         self.sidebar_image_label.grid(row=0, column=0, pady=10, padx=10)
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="PQEnalyzer", font=ctk.CTkFont(size=20, weight="bold"))
