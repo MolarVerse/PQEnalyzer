@@ -100,13 +100,13 @@ class App(ctk.CTk):
         """
         Build the info selection window.
         """
-        self.info_frame = ctk.CTkFrame(self, width=140)
-        self.info_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 20), pady=(20, 20))
+        self.info_frame = ctk.CTkFrame(self, width=200)
+        self.info_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 20), pady=(10, 10))
         self.info_frame.grid_rowconfigure(2, weight=1)
         self.info_frame.grid_columnconfigure(0, weight=1)
 
-        self.info_label = ctk.CTkLabel(self.info_frame, text="Infofile Parameters:",font=ctk.CTkFont(size=15, weight="bold"))
-        self.info_label.grid(row=0, column=1, padx=20, pady=10)
+        self.info_label = ctk.CTkLabel(self.info_frame, text="Parameter:",font=ctk.CTkFont(size=15, weight="bold"))
+        self.info_label.grid(row=0, column=1, padx=20, pady=10, sticky="w")
         self.info_optionmenu = ctk.CTkOptionMenu(self.info_frame, values=self.info, command=self.__change_info_event, width=150, anchor="c")
         self.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
         self.__change_info_event(self.info[0]) # set the default info parameter to the first one
@@ -115,14 +115,42 @@ class App(ctk.CTk):
         """
         Build the settings window.
         """
-        self.settings_frame = ctk.CTkFrame(self, width=140)
-        self.settings_frame.grid(row=1, column=2, sticky="nsew", padx=(20, 20), pady=(20, 20))
-        self.settings_frame.grid_rowconfigure(2, weight=1)
+        self.settings_frame = ctk.CTkFrame(self, width=200)
+        self.settings_frame.grid(row=1, column=2, sticky="nsew", padx=(20, 20), pady=(10, 10))
+        self.settings_frame.grid_rowconfigure(7, weight=1)
         self.settings_frame.grid_columnconfigure(0, weight=1)
 
-        self.settings_label = ctk.CTkLabel(self.settings_frame, text="Settings:",font=ctk.CTkFont(size=15, weight="bold"))
-        self.settings_label.grid(row=0, column=0, padx=20, pady=10)
+        self.settings_label = ctk.CTkLabel(self.settings_frame, text="Statistics:",font=ctk.CTkFont(size=15, weight="bold"))
+        self.settings_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.mean = ctk.CTkCheckBox(self.settings_frame, text="Mean")
+        self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.cummulative_average = ctk.CTkCheckBox(self.settings_frame, text="Cummulative Average")
+        self.cummulative_average.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.auto_correlation = ctk.CTkCheckBox(self.settings_frame, text="Auto Correlation")
+        self.auto_correlation.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
+        def validate_number(value):
+            """
+            Validate if the input is a number.
+            """
+            return value.isdigit() or value == ""
+        
+        def toggle_entry_state():
+            """
+            Toggle the state of the entry.
+            """
+            if self.running_average.get():
+                self.window_size.configure(state='normal')
+            else:
+                self.window_size.configure(state='disabled')
+
+        self.running_average = ctk.CTkCheckBox(self.settings_frame, text="Running Average", command=toggle_entry_state)
+        self.running_average.grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        self.running_average_window_size_label = ctk.CTkLabel(self.settings_frame, text="Run Avg. Window:", anchor="w")
+        self.running_average_window_size_label.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        self.window_size = ctk.CTkEntry(self.settings_frame, width=10, validate="key", validatecommand=(self.register(validate_number), "%P"))
+        self.window_size.grid(row=6, column=0, padx=10, pady=5, sticky="we")
+        self.window_size.configure(state='disabled')  # Initially disabled
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         ctk.set_appearance_mode(new_appearance_mode)
@@ -131,8 +159,9 @@ class App(ctk.CTk):
         self.__selected_info = new_info
 
     def __plot_button_event(self):
-        print("Follow: ", self.__follow.get())
-        print("Plotting... ", self.__selected_info)
+        """
+        Plot the data.
+        """
         self.plot.plot(self.__selected_info)
 
 
