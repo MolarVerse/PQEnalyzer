@@ -43,14 +43,14 @@ class Plot:
 
     def __statistics(self, ax, info_parameter: str):
         if self.parent.mean.get():
-            ax.plot(*self.__mean(info_parameter), label="Mean", linestyle="--", color="blue")
+            ax.plot(*self.__mean(info_parameter), label="Mean", linestyle="--")
         if self.parent.cummulative_average.get():
-            ax.plot(*self.__cummulative_average(info_parameter), label="Cummulative Average", linestyle="--", color="red")
+            ax.plot(*self.__cummulative_average(info_parameter), label="Cummulative Average", linestyle="--")
         if self.parent.auto_correlation.get():
-            ax.plot(*self.__auto_correlation(info_parameter), label="Auto Correlation", linestyle="--", color="orange")
+            ax.plot(*self.__auto_correlation(info_parameter), label="Auto Correlation", linestyle="--")
         if self.parent.running_average.get():
             window_size = self.parent.window_size.get()
-            ax.plot(*self.__running_average(info_parameter,  window_size), label='Running Average (' + str(window_size) + ')', linestyle="--", color="green")
+            ax.plot(*self.__running_average(info_parameter,  window_size), label='Running Average (' + str(window_size) + ')', linestyle="--")
         return ax
         
     def __mean(self, info_parameter):
