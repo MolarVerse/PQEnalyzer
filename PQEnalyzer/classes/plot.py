@@ -59,7 +59,6 @@ class Plot:
         """
         time = np.concatenate([energy.simulation_time for energy in self.reader.energies])
         data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
-        print(time, data)
         mean = np.mean(data)
         return [time[0], time[-1]], [mean, mean]
 
