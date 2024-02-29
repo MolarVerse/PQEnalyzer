@@ -45,12 +45,9 @@ class App(ctk.CTk):
 
         # build window
         self.__build_sidebar()
-        self.__build_main_window()
+        self.__build_button_menu()
         self.__build_info_option_menu()
-        self.__build_settings_window()
-
-        # set plot object
-        self.plot = Plot(self, self.reader)
+        self.__build_settings_menu()
     
     def __default_theme(self):
         """
@@ -84,26 +81,36 @@ class App(ctk.CTk):
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
         self.appearance_mode_optionemenu.set("System") # set the default appearance mode to System
 
-    def __build_main_window(self):
+    def __build_button_menu(self):
         """
         Build the main window.
         """
-        # create main frame with widgets
-        self.main_button_1 = ctk.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot", command=self.__plot_button_event)
-        self.main_button_1.grid(row=3, column=4, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.plot_frame = ctk.CTkFrame(self, width=200)
+        self.plot_frame.grid(row=2, column=1, sticky="nsew", padx=(20, 20), pady=(10, 10))
+        self.plot_frame.grid_rowconfigure(2, weight=1)
+        self.plot_frame.grid_columnconfigure(2, weight=1)
 
-        self.__follow = tkinter.BooleanVar()
-        self.main_button_2 = ctk.CTkCheckBox(master=self, border_width=2, text="Follow", variable=self.__follow)
-        self.main_button_2.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.follow = tkinter.BooleanVar()
+        self.main_button_2 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Follow", variable=self.follow)
+        self.main_button_2.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+
+        self.plot_main_data = tkinter.BooleanVar()
+        self.main_button_3 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Plot Main Data", variable=self.plot_main_data)
+        self.main_button_3.grid(row=1, column=2, padx=(20, 20), pady=(20, 20), sticky="nsew")
+
+        # create main frame with widgets
+        self.main_button_1 = ctk.CTkButton(master=self.plot_frame, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"), text="Plot", command=self.__plot_button_event)
+        self.main_button_1.grid(row=2, column=1, columnspan=2, padx=(20, 20), pady=(20, 20), sticky="nsew")
+
 
     def __build_info_option_menu(self):
         """
         Build the info selection window.
         """
         self.info_frame = ctk.CTkFrame(self, width=200)
-        self.info_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 20), pady=(10, 10))
+        self.info_frame.grid(row=0, column=1, sticky="nsew", padx=(20, 20), pady=(10, 10))
         self.info_frame.grid_rowconfigure(2, weight=1)
-        self.info_frame.grid_columnconfigure(0, weight=1)
+        self.info_frame.grid_columnconfigure(1, weight=1)
 
         self.info_label = ctk.CTkLabel(self.info_frame, text="Parameter:",font=ctk.CTkFont(size=15, weight="bold"))
         self.info_label.grid(row=0, column=1, padx=20, pady=10, sticky="w")
@@ -111,12 +118,12 @@ class App(ctk.CTk):
         self.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
         self.__change_info_event(self.info[0]) # set the default info parameter to the first one
 
-    def __build_settings_window(self):
+    def __build_settings_menu(self):
         """
         Build the settings window.
         """
         self.settings_frame = ctk.CTkFrame(self, width=200)
-        self.settings_frame.grid(row=1, column=2, sticky="nsew", padx=(20, 20), pady=(10, 10))
+        self.settings_frame.grid(row=1, column=1, sticky="nsew", padx=(20, 20), pady=(10, 10))
         self.settings_frame.grid_rowconfigure(7, weight=1)
         self.settings_frame.grid_columnconfigure(0, weight=1)
 
@@ -162,7 +169,8 @@ class App(ctk.CTk):
         """
         Plot the data.
         """
-        self.plot.plot(self.__selected_info)
+        plot = Plot(self, self.reader)
+        plot.plot(self.__selected_info)
 
 
 
