@@ -26,7 +26,11 @@ classifiers = [
 
 dependencies = [
     "PQAnalysis",
-    "customtkinter"
+    "tkinter",
+    "customtkinter",
+    "matplotlib",
+    "numpy",
+    "PIL"
 ]
 
 [project.optional-dependencies]
