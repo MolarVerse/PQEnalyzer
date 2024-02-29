@@ -1,14 +1,14 @@
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import numpy as np
 import os
 
 class Plot:
 
-    def __init__(self, parent, reader):
+    def __init__(self, app, reader):
         """
         Constructs all the necessary attributes for the Plot object.
         """
-        self.parent = parent
+        self.app = app
         self.reader = reader
 
         self.__build_plot()
@@ -17,23 +17,77 @@ class Plot:
         """
         Build the plot.
         """
-        self.figure = Figure(figsize=(10, 5), dpi=100)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.parent)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=0, column=3, rowspan=3, columnspan=2, sticky="nsew")
+        self.plot_frame = plt.figure()
+        self.ax = self.plot_frame.add_subplot(111)
+
     
     def plot(self, info_parameter: str):
         """
         Plot the data.
         """
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        for i, energy in enumerate(self.reader.energies):
-            basename = os.path.basename(self.reader.get_filenames()[i])
-            ax.plot(energy.simulation_time, energy.data[energy.info[info_parameter]], label=basename)
+        # if button is not checked, plot main data
+        if not self.app.plot_main_data.get():
+            for i, energy in enumerate(self.reader.energies):
+                basename = os.path.basename(self.reader.get_filenames()[i])
+                self.ax.plot(energy.simulation_time, energy.data[energy.info[info_parameter]], label=basename)
 
-        ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
-        ax.set_ylabel(f'{info_parameter} / {self.reader.energies[0].units[info_parameter]}')
-        ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.10), ncol=3)
-        self.canvas.draw()
+        self.__statistics(info_parameter)
+
+        self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
+        self.ax.set_ylabel(f'{info_parameter} / {self.reader.energies[0].units[info_parameter]}')
+        # legend outside of plot
+        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.10), ncol=5, fancybox=True, shadow=True)
+        self.plot_frame.show()
+        
+
+    def __statistics(self, info_parameter: str):
+        if self.app.mean.get():
+            self.ax.plot(*self.__mean(info_parameter), label="Mean", linestyle="--")
+        if self.app.cummulative_average.get():
+            self.ax.plot(*self.__cummulative_average(info_parameter), label="Cummulative Average", linestyle="--")
+        if self.app.auto_correlation.get():
+            self.ax.plot(*self.__auto_correlation(info_parameter), label="Auto Correlation", linestyle="--")
+        if self.app.running_average.get():
+            window_size = self.app.window_size.get()
+            if window_size == "":
+                window_size_int = 10
+            else:
+                window_size_int = int(window_size)
+            self.ax.plot(*self.__running_average(info_parameter,  window_size_int), label='Running Average (' + str(window_size_int) + ')', linestyle="--")
+        return self.ax
+        
+    def __mean(self, info_parameter):
+        """
+        Calculate the mean of the data.
+        """
+        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])
+        data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
+        mean = np.mean(data)
+        return [time[0], time[-1]], [mean, mean]
+
+    def __cummulative_average(self, info_parameter):
+        """
+        Calculate the cummulative average of the data with a given window size.
+        """
+        data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
+        cummulative_average = np.cumsum(data)/np.arange(1, len(data)+1)
+        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])
+        return time, cummulative_average
+
+    def __auto_correlation(self, info_parameter):
+        """
+        Calculate the auto correlation of the data.
+        """
+        data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
+        auto_correlation = np.correlate(data, data, mode='same')/np.correlate(np.ones_like(data), data, mode='same')
+        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])
+        return time, auto_correlation
     
+    def __running_average(self, info_parameter, window_size):
+        """
+        Calculate the running average of the data with a given window size.
+        """        
+        data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
+        running_average = [sum(data[i:i+window_size])/window_size for i in range(len(data) - window_size + 1)]
+        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])[window_size-1:]
+        return time , running_average
