@@ -4,16 +4,14 @@ import os
 
 class Plot:
 
-    def __init__(self, app, reader):
+    def __init__(self, app):
         """
         Constructs all the necessary attributes for the Plot object.
         """
         self.app = app
-        self.reader = reader
+        self.reader = app.reader
 
-        self.__build_plot()
-
-    def __build_plot(self):
+    def build_plot(self):
         """
         Build the plot.
         """
@@ -28,7 +26,7 @@ class Plot:
         # if button is not checked, plot main data
         if not self.app.plot_main_data.get():
             for i, energy in enumerate(self.reader.energies):
-                basename = os.path.basename(self.reader.get_filenames()[i])
+                basename = os.path.basename(self.reader.filenames[i])
                 self.ax.plot(energy.simulation_time, energy.data[energy.info[info_parameter]], label=basename)
 
         self.__statistics(info_parameter)

@@ -10,4 +10,5 @@ class TestApp(unittest.TestCase):
         reader = Reader([file], MDEngineFormat.PIMD_QMCF)
         app = App(reader)
         self.assertEqual(app.title(), "PQEnalyzer - MolarVerse")
+        self.assertEqual(app.reader, reader)
     

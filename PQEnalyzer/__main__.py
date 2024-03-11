@@ -36,6 +36,7 @@ def main():
         exit(1)
 
     app = App(reader)
+    app.build()
     app.mainloop()
 
 if __name__ == "__main__":

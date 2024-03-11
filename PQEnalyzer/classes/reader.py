@@ -7,8 +7,8 @@ class Reader:
         Constructs all the necessary attributes for the Reader object.
         """
         self.energies = []
-        self.__filenames = filenames
-        self.__md_format = md_format
+        self.filenames = filenames
+        self.md_format = md_format
         self.read()
 
     def read(self):
@@ -16,12 +16,12 @@ class Reader:
         Read energy files and return a list of EnergyFileReader objects.
         """
 
-        if len(self.__filenames) == 0:
+        if len(self.filenames) == 0:
             raise ValueError("The list of filenames is empty.")
 
         energy_files = []
-        for filename in self.__filenames:
-            energy_files.append(EnergyFileReader(filename, format=self.__md_format))
+        for filename in self.filenames:
+            energy_files.append(EnergyFileReader(filename, format=self.md_format))
 
         read_energy_files = []
         for energy_file in energy_files:
@@ -45,33 +45,3 @@ class Reader:
             return True
         else:
             return False
-        
-    def get_energies(self):
-        """
-        Return the energies.
-        """
-        return self.energies
-    
-    def get_filenames(self):
-        """
-        Return the filenames.
-        """
-        return self.__filenames
-    
-    def get_md_format(self):
-        """
-        Return the md_format.
-        """
-        return self.md_format
-
-    def set_filenames(self, filenames):
-        """
-        Set the filenames.
-        """
-        self.__filenames = filenames
-
-    def set_md_format(self, md_format):
-        """
-        Set the md_format.
-        """
-        self.md_format = md_format
