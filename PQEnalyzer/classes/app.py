@@ -36,6 +36,9 @@ class App(ctk.CTk):
         self.__default_theme()
         self.title("PQEnalyzer - MolarVerse")
 
+        # load icon photo
+        self.iconphoto(True, tkinter.PhotoImage(file=os.path.join(BASE_PROJECT_PATH, "icons", "icon.png")))
+
         # set reader
         self.reader = reader
         self.info = [*self.reader.energies[0].info][1:] # get list of info parameters from first data object
