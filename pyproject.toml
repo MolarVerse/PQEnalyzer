@@ -2,11 +2,6 @@
 requires = ["setuptools>=42", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = [
-    "PQEnalyzer"
-]
-
 [project]
 name = "PQEnalyzer"
 dynamic = ["version"]
@@ -25,7 +20,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "PQAnalysis",
+    "PQAnalysis==0.5.0",
     "customtkinter",
     "matplotlib",
     "numpy",
@@ -43,3 +38,5 @@ test = [
 [tool.setuptools_scm]
 version_file = "PQEnalyzer/__version__.py"
 
+[project.scripts]
+pqenalyzer = "PQEnalyzer.__main__:main"
