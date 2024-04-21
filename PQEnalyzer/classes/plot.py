@@ -3,6 +3,23 @@ import numpy as np
 import os
 
 class Plot:
+    """
+    The plot class for the PQEnalyzer application.
+
+    ...
+
+    Attributes
+    ----------
+    app : App
+        The main application object.
+    
+    Methods
+    -------
+    build_plot()
+        Build the plot.
+    plot(info_parameter)
+        Plot the data.
+    """
 
     def __init__(self, app):
         """
@@ -39,6 +56,9 @@ class Plot:
         
 
     def __statistics(self, info_parameter: str):
+        """
+        Plot the statistics.
+        """
         if self.app.mean.get():
             self.ax.plot(*self.__mean(info_parameter), label="Mean", linestyle="--")
         if self.app.cummulative_average.get():

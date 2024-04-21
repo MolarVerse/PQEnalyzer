@@ -1,18 +1,7 @@
-"""
-A module containing the App class.
-
-...
-
-Classes
--------
-App
-    A class for the main window of the PQEnalyzer application.
-"""
-
 import customtkinter as ctk
 import tkinter
 import os
-from PIL import Image, ImageTk
+from PIL import Image
 
 from ..config import BASE_PROJECT_PATH
 from .plot import Plot
@@ -25,7 +14,13 @@ class App(ctk.CTk):
 
     Attributes
     ----------
-    None
+    reader : Reader
+        The reader object that contains the data.
+
+    Methods
+    -------
+    build()
+        Build the main window.
     """
 
     def __init__(self, reader=None):
@@ -41,7 +36,7 @@ class App(ctk.CTk):
         # self.wm_iconbitmap()
         # self.iconphoto(False, self.icon)
 
-        # set reader
+        # set reader object and info parameters
         self.reader = reader
         self.info = [*self.reader.energies[0].info][1:] # get list of info parameters from first data object
 
