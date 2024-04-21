@@ -48,7 +48,9 @@ class Plot:
 
         self.__statistics(info_parameter)
 
-        self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
+        # TODO: implement steps to ps time conversion
+        # self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
+        self.ax.set_xlabel(f'Simulation step')
         self.ax.set_ylabel(f'{info_parameter} / {self.reader.energies[0].units[info_parameter]}')
         # legend outside of plot
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.10), ncol=5, fancybox=True, shadow=True)
