@@ -10,7 +10,7 @@ authors = [
     {name="Leo Christanell", email="leochristanell@gmail.com"},
     {name="Jakob Gamper", email="97gamjak@gmail.com"}
 ]
-description = "A package that help analyze PIMD-QMCF energy and parameter output."
+description = "A package that help analyze PQ energy and parameter output."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [

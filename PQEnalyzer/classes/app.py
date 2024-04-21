@@ -96,12 +96,12 @@ class App(ctk.CTk):
         self.plot_frame.grid_rowconfigure(2, weight=1)
         self.plot_frame.grid_columnconfigure(2, weight=1)
 
-        self.follow = tkinter.BooleanVar()
-        self.main_button_2 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Follow", variable=self.follow)
-        self.main_button_2.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        # self.follow = tkinter.BooleanVar()
+        # self.main_button_2 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Follow", variable=self.follow)
+        # self.main_button_2.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         self.plot_main_data = tkinter.BooleanVar()
-        self.main_button_3 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Plot Main Data", variable=self.plot_main_data)
+        self.main_button_3 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="No Main Data", variable=self.plot_main_data)
         self.main_button_3.grid(row=1, column=2, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         # create main frame with widgets
