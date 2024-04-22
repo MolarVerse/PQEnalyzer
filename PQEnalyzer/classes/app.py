@@ -1,18 +1,7 @@
-"""
-A module containing the App class.
-
-...
-
-Classes
--------
-App
-    A class for the main window of the PQEnalyzer application.
-"""
-
 import customtkinter as ctk
 import tkinter
 import os
-from PIL import Image, ImageTk
+from PIL import Image
 
 from ..config import BASE_PROJECT_PATH
 from .plot import Plot
@@ -25,7 +14,13 @@ class App(ctk.CTk):
 
     Attributes
     ----------
-    None
+    reader : Reader
+        The reader object that contains the data.
+
+    Methods
+    -------
+    build()
+        Build the main window.
     """
 
     def __init__(self, reader=None):
@@ -41,7 +36,7 @@ class App(ctk.CTk):
         # self.wm_iconbitmap()
         # self.iconphoto(False, self.icon)
 
-        # set reader
+        # set reader object and info parameters
         self.reader = reader
         self.info = [*self.reader.energies[0].info][1:] # get list of info parameters from first data object
 
@@ -96,12 +91,12 @@ class App(ctk.CTk):
         self.plot_frame.grid_rowconfigure(2, weight=1)
         self.plot_frame.grid_columnconfigure(2, weight=1)
 
-        self.follow = tkinter.BooleanVar()
-        self.main_button_2 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Follow", variable=self.follow)
-        self.main_button_2.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        # self.follow = tkinter.BooleanVar()
+        # self.main_button_2 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Follow", variable=self.follow)
+        # self.main_button_2.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         self.plot_main_data = tkinter.BooleanVar()
-        self.main_button_3 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="Plot Main Data", variable=self.plot_main_data)
+        self.main_button_3 = ctk.CTkCheckBox(master=self.plot_frame, border_width=2, text="No Main Data", variable=self.plot_main_data)
         self.main_button_3.grid(row=1, column=2, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         # create main frame with widgets

@@ -3,6 +3,23 @@ import numpy as np
 import os
 
 class Plot:
+    """
+    The plot class for the PQEnalyzer application.
+
+    ...
+
+    Attributes
+    ----------
+    app : App
+        The main application object.
+    
+    Methods
+    -------
+    build_plot()
+        Build the plot.
+    plot(info_parameter)
+        Plot the data.
+    """
 
     def __init__(self, app):
         """
@@ -31,7 +48,9 @@ class Plot:
 
         self.__statistics(info_parameter)
 
-        self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
+        # TODO: implement steps to ps time conversion
+        # self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
+        self.ax.set_xlabel(f'Simulation step')
         self.ax.set_ylabel(f'{info_parameter} / {self.reader.energies[0].units[info_parameter]}')
         # legend outside of plot
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.10), ncol=5, fancybox=True, shadow=True)
@@ -39,6 +58,9 @@ class Plot:
         
 
     def __statistics(self, info_parameter: str):
+        """
+        Plot the statistics.
+        """
         if self.app.mean.get():
             self.ax.plot(*self.__mean(info_parameter), label="Mean", linestyle="--")
         if self.app.cummulative_average.get():

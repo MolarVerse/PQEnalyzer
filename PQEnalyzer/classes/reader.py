@@ -1,6 +1,25 @@
 from PQAnalysis.io.energyFileReader import EnergyFileReader
 
 class Reader:
+    """
+    A class for reading energy files.
+
+    ...
+
+    Attributes
+    ----------
+    energies : list
+        A list of EnergyFileReader objects.
+    filenames : list
+        A list of filenames.
+    md_format : MDEngineFormat
+        The molecular dynamics engine format.
+
+    Methods
+    -------
+    read()
+        Read energy files and return a list of EnergyFileReader objects.
+    """
 
     def __init__(self, filenames, md_format):
         """
