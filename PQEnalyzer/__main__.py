@@ -13,7 +13,6 @@ def main():
     """
     The main function of the PQEnalyzer project.
     """
-
     # parse command line arguments
     parser = argparse.ArgumentParser(description="PQEnalyzer - MolarVerse")
     parser.add_argument("filenames", metavar="filename", nargs="+", help="The name of the energy files to read the data from.")
@@ -35,6 +34,7 @@ def main():
         print(e)
         exit(1)
 
+    # create the app
     app = App(reader)
     app.build()
     app.mainloop()
