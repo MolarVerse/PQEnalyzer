@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "PQAnalysis==0.5.0",
+    "PQAnalysis==0.5.2",
     "customtkinter",
     "matplotlib",
     "numpy",
