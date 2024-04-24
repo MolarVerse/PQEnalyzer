@@ -21,6 +21,7 @@ classifiers = [
 
 dependencies = [
     "PQAnalysis==0.5.2",
+    "beartype",
     "customtkinter",
     "matplotlib",
     "numpy",
