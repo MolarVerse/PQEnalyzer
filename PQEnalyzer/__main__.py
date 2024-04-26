@@ -6,8 +6,8 @@ import argparse
 from PQAnalysis.traj.formats import MDEngineFormat
 
 from .__version__ import __version__
-from .classes.app import App
-from .classes.reader import Reader
+from .classes import App
+from .classes import Reader
 
 def main():
     """
