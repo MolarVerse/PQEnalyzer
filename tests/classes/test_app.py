@@ -1,6 +1,6 @@
 import unittest
-from PQEnalyzer.classes.app import App
-from PQEnalyzer.classes.reader import Reader
+from PQEnalyzer.classes import App
+from PQEnalyzer.classes import Reader
 from PQAnalysis.traj.formats import MDEngineFormat
 
 class TestApp(unittest.TestCase):
