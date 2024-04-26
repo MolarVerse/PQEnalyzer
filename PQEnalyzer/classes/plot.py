@@ -106,8 +106,9 @@ class Plot:
     def __running_average(self, info_parameter, window_size):
         """
         Calculate the running average of the data with a given window size.
-        """        
+        """
+        half_window = window_size // 2
         data = np.concatenate([energy.data[energy.info[info_parameter]] for energy in self.reader.energies])
         running_average = [sum(data[i:i+window_size])/window_size for i in range(len(data) - window_size + 1)]
-        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])[window_size-1:]
+        time = np.concatenate([energy.simulation_time for energy in self.reader.energies])[half_window-1:-half_window]
         return time , running_average
