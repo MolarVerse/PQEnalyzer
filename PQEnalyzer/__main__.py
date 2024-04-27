@@ -3,7 +3,7 @@ This is the main file of the PQEnalyzer project.
 """
 
 import argparse
-from PQAnalysis.traj.formats import MDEngineFormat
+from PQAnalysis.traj import MDEngineFormat
 
 from .__version__ import __version__
 from .classes import App
