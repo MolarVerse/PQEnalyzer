@@ -33,15 +33,15 @@ class Statistic:
     Examples
     --------
     >>> Statistic.mean(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 5], [1.0, 1.0])
     >>> Statistic.median(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 5], [1.0, 1.0])
     >>> Statistic.cummulative_average(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
     >>> Statistic.auto_correlation(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
-    >>> Statistic.running_average(energies, "ENERGY", 10)
-    ([0, 100], [1.0, 1.0])
+    ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
+    >>> Statistic.running_average(energies, "ENERGY", 2)
+    ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
     """
 
     def __new__(cls, *args, **kwargs):
@@ -67,7 +67,7 @@ class Statistic:
         Examples
         --------
         >>> Statistic.mean(energies, "ENERGY")
-        ([0, 100], [1.0, 1.0])
+        ([1, 5], [1.0, 1.0])
         """
 
         time = np.concatenate([energy.simulation_time for energy in energies])
@@ -79,7 +79,7 @@ class Statistic:
         mean = np.mean(data)
 
         return (np.array([time[0], time[-1]]), np.array([mean, mean]))
-    
+
     @staticmethod
     def median(energies: list, info_parameter: str) -> tuple:
         """
@@ -100,7 +100,7 @@ class Statistic:
         Examples
         --------
         >>> Statistic.median(energies, "ENERGY")
-        ([0, 100], [1.0, 1.0])
+        ([1, 5], [1.0, 1.0])
         """
 
         time = np.concatenate([energy.simulation_time for energy in energies])
@@ -133,17 +133,17 @@ class Statistic:
         Examples
         --------
         >>> Statistic.cummulative_average(energies, "ENERGY")
-        ([0, 100], [1.0, 1.0])
+        ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
         """
 
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies]
         )
-        
+
         cummulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
-        
+
         time = np.concatenate([energy.simulation_time for energy in energies])
-        
+
         return time, cummulative_average
 
     @staticmethod
@@ -166,19 +166,19 @@ class Statistic:
         Examples
         --------
         >>> Statistic.auto_correlation(energies, "ENERGY")
-        ([0, 100], [1.0, 1.0])
+        ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
         """
-        
+
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies]
         )
-        
+
         auto_correlation = np.correlate(data, data, mode="same") / np.correlate(
             np.ones_like(data), data, mode="same"
         )
 
         time = np.concatenate([energy.simulation_time for energy in energies])
-        
+
         return time, auto_correlation
 
     @staticmethod
@@ -203,23 +203,33 @@ class Statistic:
 
         Examples
         --------
-        >>> Statistic.running_average(energies, "ENERGY", 10)
-        ([0, 100], [1.0, 1.0])
+        >>> Statistic.running_average(energies, "ENERGY", 2)
+        ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
         """
 
-        half_window = window_size // 2
-        
+        if window_size == 1:
+            half_window = 1
+        else:
+            half_window = window_size // 2
+
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies]
         )
-        
+
         running_average = [
             sum(data[i : i + window_size]) / window_size
             for i in range(len(data) - window_size + 1)
         ]
-        
-        time = np.concatenate([energy.simulation_time for energy in energies])[
-            half_window - 1 : -half_window
-        ]
-        
+
+        # Centered to the middle of the window
+        time = np.mean(
+            [
+                np.concatenate([energy.simulation_time for energy in energies])[
+                    i : i + window_size
+                ]
+                for i in range(len(data) - window_size + 1)
+            ],
+            axis=1,
+        )
+
         return time, running_average
