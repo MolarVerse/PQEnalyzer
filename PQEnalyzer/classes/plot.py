@@ -88,7 +88,7 @@ class Plot:
 
     def __statistics(self, info_parameter: str) -> None:
         """
-        Plot the statistics.
+        Plot the statistics of the data on the plot frame.
 
         Parameters
         ----------
@@ -97,8 +97,7 @@ class Plot:
 
         Returns
         -------
-        plt
-            The plot object.
+        None
         """
         if self.app.mean.get():
             # calculate mean and plot
