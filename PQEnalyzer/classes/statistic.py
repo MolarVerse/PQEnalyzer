@@ -33,15 +33,15 @@ class Statistic:
     Examples
     --------
     >>> Statistic.mean(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 5], [1.0, 1.0])
     >>> Statistic.median(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 5], [1.0, 1.0])
     >>> Statistic.cummulative_average(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
     >>> Statistic.auto_correlation(energies, "ENERGY")
-    ([0, 100], [1.0, 1.0])
+    ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
     >>> Statistic.running_average(energies, "ENERGY", 10)
-    ([0, 100], [1.0, 1.0])
+    ([2, 3, 4], [1.0, 1.0, 1.0])
     """
 
     def __new__(cls, *args, **kwargs):
