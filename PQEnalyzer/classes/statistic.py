@@ -40,8 +40,8 @@ class Statistic:
     ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
     >>> Statistic.auto_correlation(energies, "ENERGY")
     ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
-    >>> Statistic.running_average(energies, "ENERGY", 10)
-    ([2, 3, 4], [1.0, 1.0, 1.0])
+    >>> Statistic.running_average(energies, "ENERGY", 2)
+    ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
     """
 
     def __new__(cls, *args, **kwargs):
@@ -204,7 +204,7 @@ class Statistic:
         Examples
         --------
         >>> Statistic.running_average(energies, "ENERGY", 2)
-        ([2, 3, 4], [1.0, 1.0, 1.0])
+        ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
         """
 
         if window_size == 1:
