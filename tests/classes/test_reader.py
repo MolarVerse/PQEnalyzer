@@ -1,8 +1,10 @@
 import pytest
 import os
-from PQEnalyzer.classes.reader import Reader
-from PQAnalysis.traj.formats import MDEngineFormat
-from PQAnalysis.physicalData.exceptions import EnergyError
+
+from PQAnalysis.traj import MDEngineFormat
+from PQAnalysis.physicalData import EnergyError
+
+from PQEnalyzer.classes import Reader
 
 class TestReader:
     """

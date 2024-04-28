@@ -125,17 +125,19 @@ class App(ctk.CTk):
         """
         self.settings_frame = ctk.CTkFrame(self, width=200)
         self.settings_frame.grid(row=1, column=1, sticky="nsew", padx=(20, 20), pady=(10, 10))
-        self.settings_frame.grid_rowconfigure(7, weight=1)
+        self.settings_frame.grid_rowconfigure(8, weight=1)
         self.settings_frame.grid_columnconfigure(0, weight=1)
 
         self.settings_label = ctk.CTkLabel(self.settings_frame, text="Statistics:",font=ctk.CTkFont(size=15, weight="bold"))
         self.settings_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.mean = ctk.CTkCheckBox(self.settings_frame, text="Mean")
         self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.median = ctk.CTkCheckBox(self.settings_frame, text="Median")
+        self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.cummulative_average = ctk.CTkCheckBox(self.settings_frame, text="Cummulative Average")
-        self.cummulative_average.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.cummulative_average.grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.auto_correlation = ctk.CTkCheckBox(self.settings_frame, text="Auto Correlation")
-        self.auto_correlation.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        self.auto_correlation.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 
         def validate_number(value):
             """
@@ -153,11 +155,11 @@ class App(ctk.CTk):
                 self.window_size.configure(state='disabled')
 
         self.running_average = ctk.CTkCheckBox(self.settings_frame, text="Running Average", command=toggle_entry_state)
-        self.running_average.grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        self.running_average.grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.running_average_window_size_label = ctk.CTkLabel(self.settings_frame, text="Run Avg. Window:", anchor="w")
-        self.running_average_window_size_label.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        self.running_average_window_size_label.grid(row=6, column=0, padx=10, pady=5, sticky="w")
         self.window_size = ctk.CTkEntry(self.settings_frame, width=10, validate="key", validatecommand=(self.register(validate_number), "%P"))
-        self.window_size.grid(row=6, column=0, padx=10, pady=5, sticky="we")
+        self.window_size.grid(row=7, column=0, padx=10, pady=5, sticky="we")
         self.window_size.configure(state='disabled')  # Initially disabled
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
