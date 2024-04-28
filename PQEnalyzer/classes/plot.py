@@ -26,6 +26,7 @@ class Plot:
     >>> plot = Plot(app)
     >>> plot.build_plot()
     >>> plot.plot("ENERGY")
+    >>> plot.live_plot("ENERGY", 1)
     """
 
     def __init__(self, app):
@@ -36,19 +37,35 @@ class Plot:
         ----------
         app : App
             The main application object.
+
+        Returns
+        -------
+        None
         """
 
         self.app = app
         self.reader = app.reader
 
+        return None
+
     def build_plot(self):
         """
-        Build the plot.
+        Build the plot. Creates a plot frame and an axis.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
 
         self.plot_frame = plt.figure()
         self.ax = self.plot_frame.add_subplot(111)
         self.plot_frame.show()
+
+        return None
 
     def plot(self, info_parameter: str) -> None:
         """
@@ -72,6 +89,8 @@ class Plot:
         self.__statistics(info_parameter)
 
         self.__labels(info_parameter)
+
+        return None
 
     def live_plot(self, info_parameter: str, interval: int) -> None:
         """
