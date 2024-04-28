@@ -90,17 +90,7 @@ class Reader:
         -------
         None
         """
-
-        if len(self.filenames) == 0:
-            raise ValueError(
-                "The list of filenames is empty. Provide a list of filenames first."
-            )
-
-        if len(self.energies) == 0:
-            raise ValueError(
-                "The list of energies is empty. Use the read() method first."
-            )
-
+        
         energy_file = EnergyFileReader(self.filenames[-1], format=self.md_format)
         self.energies[-1] = energy_file.read()
 
