@@ -67,32 +67,15 @@ class Plot:
 
         # if button is not checked, plot main data
         if not self.app.plot_main_data.get():
-            self.__plot_main_data(info_parameter)
+            self.__main_data(info_parameter)
 
         self.__statistics(info_parameter)
 
-        # TODO: implement steps to ps time conversion
-        # self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
-
-        self.ax.set_xlabel(f"Simulation step")
-
-        self.ax.set_ylabel(
-            f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
-        )
-
-        # legend outside of plot
-        self.ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.15),
-            ncol=5,
-            fancybox=True,
-            shadow=True,
-        )
+        self.__labels(info_parameter)
 
     def live_plot(self, info_parameter: str, interval: int) -> None:
         """
-        Plot the live data. If the button is not checked, plot the main data.
-        Clears the plot and replots the data at a given interval.
+        Plot the live data. Clears the plot and replots the data at a given interval.
         Exits the plot if the window is closed.
 
         Parameters
@@ -100,6 +83,7 @@ class Plot:
         info_parameter : str
             The info parameter to plot.
         interval : int
+            The interval which the plot is updated.
 
         Returns
         -------
@@ -111,16 +95,12 @@ class Plot:
             self.ax.clear()
             self.reader.read_last()
 
-            # if button is not checked, plot main data
-            if not self.app.plot_main_data.get():
-                self.__plot_main_data(info_parameter)
-
-            self.__statistics(info_parameter)
+            self.plot(info_parameter)
 
             # sleep for interval
             plt.pause(interval)
 
-    def __plot_main_data(self, info_parameter: str) -> None:
+    def __main_data(self, info_parameter: str) -> None:
         """
         Plot the main data on the plot frame.
 
@@ -141,6 +121,37 @@ class Plot:
                 energy.data[energy.info[info_parameter]],
                 label=basename,
             )
+
+        return None
+    
+    def __labels(self, info_parameter: str) -> None:
+        """
+        Set the labels of the plot frame using the info parameter.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to set the labels of the plot frame.
+
+        Returns
+        -------
+        None
+        """
+
+        self.ax.set_xlabel("Simulation step")
+
+        self.ax.set_ylabel(
+            f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
+        )
+
+        # legend outside of plot
+        self.ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.15),
+            ncol=5,
+            fancybox=True,
+            shadow=True,
+        )
 
         return None
 
