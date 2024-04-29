@@ -102,7 +102,7 @@ class Plot:
         info_parameter : str
             The info parameter to plot.
         interval : int
-            The interval which the plot is updated.
+            The interval which the plot is updated in milliseconds.
 
         Returns
         -------
@@ -117,7 +117,7 @@ class Plot:
             self.plot(info_parameter)
 
             # sleep for interval
-            plt.pause(interval)
+            plt.pause(interval/1000)
 
     def __main_data(self, info_parameter: str) -> None:
         """

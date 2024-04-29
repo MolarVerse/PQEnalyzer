@@ -137,18 +137,18 @@ class App(ctk.CTk):
             command=toggle_entry_state,
         )
         self.main_button_2.grid(
-            row=1, column=0, padx=(5, 5), pady=(5, 5), sticky="nsew"
+            row=1, column=1, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
         self.plot_main_data = tkinter.BooleanVar()
         self.main_button_3 = ctk.CTkCheckBox(
             master=self.plot_frame,
             border_width=2,
-            text="No Main Data",
+            text="No Data",
             variable=self.plot_main_data,
         )
         self.main_button_3.grid(
-            row=1, column=1, padx=(5, 5), pady=(5, 5), sticky="nsew"
+            row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
         self.interval = ctk.CTkEntry(
@@ -157,8 +157,13 @@ class App(ctk.CTk):
             validate="key",
             validatecommand=(self.register(validate_number), "%P"),
         )
-        self.interval.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="we")
+        self.interval.grid(row=2, column=1, padx=10, pady=5, sticky="we")
         self.interval.configure(state="disabled")  # Initially disabled
+
+        self.interval_label = ctk.CTkLabel(
+            self.plot_frame, text="Interval (ms):", anchor="w"
+        )
+        self.interval_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         # create main frame with widgets
         self.main_button_1 = ctk.CTkButton(
