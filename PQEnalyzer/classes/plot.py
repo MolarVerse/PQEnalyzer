@@ -92,7 +92,7 @@ class Plot:
 
         return None
 
-    def live_plot(self, info_parameter: str, interval: int) -> None:
+    def live_plot(self, info_parameter: str, interval: int = 1000) -> None:
         """
         Plot the live data. Clears the plot and replots the data at a given interval.
         Exits the plot if the window is closed.
@@ -222,7 +222,7 @@ class Plot:
             window_size = self.app.window_size.get()
 
             if window_size == "":
-                window_size_int = 100  # default window size
+                window_size_int = 1000  # default window size
             else:
                 window_size_int = int(window_size)
 
