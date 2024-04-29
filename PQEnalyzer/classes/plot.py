@@ -237,21 +237,3 @@ class Plot:
             )
 
         return None
-
-    def __del__(self):
-        """
-        Destructs the Plot object.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        plt.close(self.plot_frame)
-        del self
-
-        return None
