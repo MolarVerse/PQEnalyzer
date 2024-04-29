@@ -61,3 +61,18 @@ class TestReader:
 
         with pytest.raises(EnergyError):
             Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+
+    @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
+    def test_read_last(self, example_dir):
+        list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
+
+        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        energies = reader.energies
+        energy1, energy2 = energies
+
+        reader.read_last()
+        assert energies == reader.energies
+        assert energy1 == reader.energies[0]
+        assert energy2 != reader.energies[1]
+
+        

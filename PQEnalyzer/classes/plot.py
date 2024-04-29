@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import os
 
 from .statistic import Statistic
-
 
 class Plot:
     """
@@ -28,6 +26,7 @@ class Plot:
     >>> plot = Plot(app)
     >>> plot.build_plot()
     >>> plot.plot("ENERGY")
+    >>> plot.live_plot("ENERGY", 1)
     """
 
     def __init__(self, app):
@@ -38,44 +37,132 @@ class Plot:
         ----------
         app : App
             The main application object.
+
+        Returns
+        -------
+        None
         """
 
         self.app = app
         self.reader = app.reader
 
+        return None
+
     def build_plot(self):
         """
-        Build the plot.
+        Build the plot. Creates a plot frame and an axis.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
 
         self.plot_frame = plt.figure()
         self.ax = self.plot_frame.add_subplot(111)
+        self.plot_frame.show()
+
+        return None
 
     def plot(self, info_parameter: str) -> None:
         """
-        Plot the data.
+        Plot the data. If the button is not checked, plot the main data.
+        Checks if the statistics buttons are checked and plots the statistics, too.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+
+        Returns
+        -------
+        None
         """
+
         # if button is not checked, plot main data
         if not self.app.plot_main_data.get():
-            for i, energy in enumerate(self.reader.energies):
-                basename = os.path.basename(self.reader.filenames[i])
-                self.ax.plot(
-                    energy.simulation_time,
-                    energy.data[energy.info[info_parameter]],
-                    label=basename,
-                )
+            self.__main_data(info_parameter)
 
         self.__statistics(info_parameter)
 
-        # TODO: implement steps to ps time conversion
-        # self.ax.set_xlabel(f'Simulation time / {self.reader.energies[0].units["SIMULATION-TIME"]}')
-        
-        self.ax.set_xlabel(f"Simulation step")
-        
+        self.__labels(info_parameter)
+
+        return None
+
+    def live_plot(self, info_parameter: str, interval: int = 1000) -> None:
+        """
+        Plot the live data. Clears the plot and replots the data at a given interval.
+        Exits the plot if the window is closed.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+        interval : int
+            The interval which the plot is updated.
+
+        Returns
+        -------
+        None
+        """
+
+        while True:
+            # clear the plot
+            self.ax.clear()
+            self.reader.read_last()
+
+            self.plot(info_parameter)
+
+            # sleep for interval
+            plt.pause(interval)
+
+    def __main_data(self, info_parameter: str) -> None:
+        """
+        Plot the main data on the plot frame.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+
+        Returns
+        -------
+        None
+        """
+
+        for i, energy in enumerate(self.reader.energies):
+            basename = os.path.basename(self.reader.filenames[i])
+            self.ax.plot(
+                energy.simulation_time,
+                energy.data[energy.info[info_parameter]],
+                label=basename,
+            )
+
+        return None
+    
+    def __labels(self, info_parameter: str) -> None:
+        """
+        Set the labels of the plot frame using the info parameter.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to set the labels of the plot frame.
+
+        Returns
+        -------
+        None
+        """
+
+        self.ax.set_xlabel("Simulation step")
+
         self.ax.set_ylabel(
             f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
         )
-        
+
         # legend outside of plot
         self.ax.legend(
             loc="upper center",
@@ -84,7 +171,8 @@ class Plot:
             fancybox=True,
             shadow=True,
         )
-        self.plot_frame.show()
+
+        return None
 
     def __statistics(self, info_parameter: str) -> None:
         """
@@ -134,7 +222,7 @@ class Plot:
             window_size = self.app.window_size.get()
 
             if window_size == "":
-                window_size_int = 100  # default window size
+                window_size_int = 1000  # default window size
             else:
                 window_size_int = int(window_size)
 
@@ -147,5 +235,5 @@ class Plot:
                 label="Running Average (" + str(window_size_int) + ")",
                 linestyle="--",
             )
-    
+
         return None
