@@ -216,6 +216,10 @@ class Statistic:
             [energy.data[energy.info[info_parameter]] for energy in energies]
         )
 
+        # Check if data is smaller than window_size
+        if (len(data) < window_size):
+            raise ValueError("Window size is larger than given data point")
+
         running_average = [
             sum(data[i : i + window_size]) / window_size
             for i in range(len(data) - window_size + 1)

@@ -69,3 +69,6 @@ class TestStatistic:
         time, running_average = Statistic.running_average(energies2, "SIMULATION-TIME", 1)
         assert np.all(time == [6, 7, 8, 9, 10])
         assert np.all(running_average == [6, 7, 8, 9, 10])
+
+        with pytest.raises(ValueError):
+            Statistic.running_average(energies2, "SIMULATION-TIME", 6)
