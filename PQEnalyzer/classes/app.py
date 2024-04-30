@@ -257,7 +257,7 @@ class App(ctk.CTk):
         )
         self.running_average.grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.running_average_window_size_label = ctk.CTkLabel(
-            self.settings_frame, text="Run Avg. Window:", anchor="w"
+            self.settings_frame, text="Window Size:", anchor="w"
         )
         self.running_average_window_size_label.grid(
             row=6, column=0, padx=10, pady=5, sticky="w"
