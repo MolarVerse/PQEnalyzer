@@ -1,8 +1,10 @@
 import pytest
 import os
-from PQEnalyzer.classes.reader import Reader
-from PQEnalyzer.classes.app import App
-from PQEnalyzer.classes.plot import Plot
+
+from PQEnalyzer.classes import Reader
+from PQEnalyzer.classes import App
+from PQEnalyzer.classes import Plot
+
 from PQAnalysis.traj.formats import MDEngineFormat
 from PQAnalysis.physicalData.exceptions import EnergyError
 
