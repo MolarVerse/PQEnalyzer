@@ -201,6 +201,11 @@ class Statistic:
         tuple
             A tuple containing the time and running average of the data.
 
+        Raises
+        ------
+        ValueError
+            If the window size is larger than the given data point.
+
         Examples
         --------
         >>> Statistic.running_average(energies, "ENERGY", 2)
