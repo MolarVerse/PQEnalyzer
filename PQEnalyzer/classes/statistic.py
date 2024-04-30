@@ -207,14 +207,13 @@ class Statistic:
         ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
         """
 
-        if window_size == 1:
-            half_window = 1
-        else:
-            half_window = window_size // 2
-
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies]
         )
+
+        # Check if data is smaller than window_size
+        if (len(data) < window_size):
+            raise ValueError("Window size is larger than given data point")
 
         running_average = [
             sum(data[i : i + window_size]) / window_size
