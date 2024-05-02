@@ -4,7 +4,7 @@ import os
 from PIL import Image
 
 from ..config import BASE_PROJECT_PATH
-from .plot import Plot
+from .plot_time import PlotTime
 
 
 class App(ctk.CTk):
@@ -281,8 +281,7 @@ class App(ctk.CTk):
         """
         Plot the data and checks if the user wants to follow the plot.
         """
-        plot = Plot(self)
-        plot.build_plot()
+        plot = PlotTime(self.reader)
 
         if self.follow.get():
             plot.live_plot(self.__selected_info, int(self.interval.get()))

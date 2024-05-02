@@ -3,7 +3,7 @@ import os
 
 from PQEnalyzer.classes import Reader
 from PQEnalyzer.classes import App
-from PQEnalyzer.classes import Plot
+from PQEnalyzer.classes import PlotTime
 
 from PQAnalysis.traj.formats import MDEngineFormat
 from PQAnalysis.physicalData.exceptions import EnergyError
@@ -17,6 +17,6 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = Plot(app)
+        plot = PlotTime(app)
         assert plot.reader == reader
         assert plot.app == app
