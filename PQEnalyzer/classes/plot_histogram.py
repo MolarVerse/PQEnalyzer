@@ -4,7 +4,6 @@ from scipy.stats import gaussian_kde
 from .plot import Plot
 from .statistic import Statistic
 
-
 class PlotHistogram(Plot):
     """
     The plot the parameters dependent histogram for the PQEnalyzer application.

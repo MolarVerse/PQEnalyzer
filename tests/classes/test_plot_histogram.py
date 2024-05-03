@@ -2,7 +2,7 @@ import pytest
 
 from PQEnalyzer.classes import Reader
 from PQEnalyzer.classes import App
-from PQEnalyzer.classes import PlotTime
+from PQEnalyzer.classes import PlotHistogram
 from PQEnalyzer.classes.plot import Plot
 
 from PQAnalysis.traj.formats import MDEngineFormat
@@ -41,9 +41,9 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
-        assert isinstance(plot, PlotTime)
-        assert issubclass(PlotTime, Plot)
+        plot = PlotHistogram(app)
+        assert isinstance(plot, PlotHistogram)
+        assert issubclass(PlotHistogram, Plot)
         assert plot.reader == reader
         assert plot.app == app
         assert plot.plot_frame is not None
@@ -57,7 +57,7 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
+        plot = PlotHistogram(app)
         assert getattr(plot, "main_data", None) is not None
         assert callable(getattr(plot, "main_data"))
 
@@ -69,7 +69,7 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
+        plot = PlotHistogram(app)
         assert getattr(plot, "labels", None) is not None
         assert callable(getattr(plot, "labels"))
 
@@ -81,7 +81,7 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
+        plot = PlotHistogram(app)
         assert getattr(plot, "plot", None) is not None
         assert callable(getattr(plot, "plot"))
 
@@ -93,7 +93,7 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
+        plot = PlotHistogram(app)
         assert getattr(plot, "statistics", None) is not None
         assert callable(getattr(plot, "statistics"))
 
@@ -105,6 +105,6 @@ class TestPlot:
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
         reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
         app = App(reader)
-        plot = PlotTime(app)
+        plot = PlotHistogram(app)
         assert getattr(plot, "live_plot", None) is not None
         assert callable(getattr(plot, "live_plot"))
