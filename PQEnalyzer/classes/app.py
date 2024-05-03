@@ -112,30 +112,14 @@ class App(ctk.CTk):
         self.plot_frame.grid_rowconfigure(4, weight=1)
         self.plot_frame.grid_columnconfigure(2, weight=1)
 
-        def validate_number(value):
-            """
-            Validate if the input is a number.
-            """
-            return value.isdigit() or value == ""
-
-        def toggle_entry_state():
-            """
-            Toggle the state of the entry.
-            """
-            if self.follow.get():
-                self.interval.configure(state="normal")
-                self.interval.insert(0, "1000")
-            else:
-                self.interval.delete(0, ctk.END)
-                self.interval.configure(state="disabled")
-
         self.follow = tkinter.BooleanVar()
+        self.interval = None  # Initially None
         self.main_button_2 = ctk.CTkCheckBox(
             master=self.plot_frame,
             border_width=2,
             text="Follow",
             variable=self.follow,
-            command=toggle_entry_state,
+            command=lambda: self.toggle_entry_state(self.interval, self.follow)
         )
         self.main_button_2.grid(
             row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="nsew"
@@ -156,7 +140,7 @@ class App(ctk.CTk):
             self.plot_frame,
             width=10,
             validate="key",
-            validatecommand=(self.register(validate_number), "%P"),
+            validatecommand=(self.register(self.validate_number), "%P"),
         )
         self.interval.grid(row=1, column=1, padx=10, pady=5, sticky="we")
         self.interval.configure(state="disabled")  # Initially disabled
@@ -248,25 +232,9 @@ class App(ctk.CTk):
         )
         self.auto_correlation.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 
-        def validate_number(value):
-            """
-            Validate if the input is a number.
-            """
-            return value.isdigit() or value == ""
-
-        def toggle_entry_state():
-            """
-            Toggle the state of the entry.
-            """
-            if self.running_average.get():
-                self.window_size.configure(state="normal")
-                self.window_size.insert(0, "1000")
-            else:
-                self.window_size.delete(0, ctk.END)
-                self.window_size.configure(state="disabled")
-
+        self.window_size = None # Initially None
         self.running_average = ctk.CTkCheckBox(
-            self.settings_frame, text="Running Average", command=toggle_entry_state
+            self.settings_frame, text="Running Average", command=lambda: self.toggle_entry_state(self.running_average, self.window_size)
         )
         self.running_average.grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.running_average_window_size_label = ctk.CTkLabel(
@@ -279,10 +247,27 @@ class App(ctk.CTk):
             self.settings_frame,
             width=10,
             validate="key",
-            validatecommand=(self.register(validate_number), "%P"),
+            validatecommand=(self.register(self.validate_number), "%P"),
         )
         self.window_size.grid(row=7, column=0, padx=10, pady=5, sticky="we")
         self.window_size.configure(state="disabled")  # Initially disabled
+
+    def validate_number(self, value):
+        """
+        Validate if the input is a number.
+        """
+        return value.isdigit() or value == ""
+
+    def toggle_entry_state(self, event, entry):
+        """
+        Toggle the state of the entry.
+        """
+        if event.get():
+           entry.configure(state="normal")
+           entry.insert(0, "1000")
+        else:
+           entry.delete(0, ctk.END)
+           entry.configure(state="disabled")
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         ctk.set_appearance_mode(new_appearance_mode)
