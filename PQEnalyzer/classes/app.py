@@ -6,7 +6,6 @@ from PIL import Image
 from ..config import BASE_PROJECT_PATH
 from .plot_time import PlotTime
 
-
 class App(ctk.CTk):
     """
     The main application class for the PQEnalyzer application. This class inherits from the CTK class.
@@ -281,7 +280,7 @@ class App(ctk.CTk):
         """
         Plot the data and checks if the user wants to follow the plot.
         """
-        plot = PlotTime(self.reader)
+        plot = PlotTime(self)
 
         if self.follow.get():
             plot.live_plot(self.__selected_info, int(self.interval.get()))

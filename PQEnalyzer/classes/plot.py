@@ -1,10 +1,7 @@
 import matplotlib.pyplot as plt
-import os
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from .statistic import Statistic
-
-class Plot(ABC):
+class Plot:
     """
     The plot class for the PQEnalyzer application.
 
@@ -22,6 +19,31 @@ class Plot(ABC):
     live_plot(info_parameter, interval)
         Plot the live data at a given interval in milliseconds.
     """
+
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        """
+        Check if the subclass has the necessary methods to be a Plot object.
+
+        Parameters
+        ----------
+        subclass : class
+            The subclass to check if
+            it has the necessary methods to be a Plot object.
+
+        Returns
+        -------
+        bool
+            True if the subclass has the necessary methods to be a Plot object,
+            False otherwise.
+        """
+        return (hasattr(subclass, 'main_data') and
+                callable(subclass.main_data) and
+                hasattr(subclass, 'labels') and
+                callable(subclass.labels) and
+                hasattr(subclass, 'statistics') and
+                callable(subclass.statistics) or
+                NotImplemented)
 
     def __init__(self, app):
         """
@@ -63,11 +85,11 @@ class Plot(ABC):
 
         # if button is not checked, plot main data
         if not self.app.plot_main_data.get():
-            self.__main_data(info_parameter)
+            self.main_data(info_parameter)
 
-        self.__statistics(info_parameter)
+        self.statistics(info_parameter)
 
-        self.__labels(info_parameter)
+        self.labels(info_parameter)
 
         return None
 
@@ -99,7 +121,7 @@ class Plot(ABC):
             plt.pause(interval/1000)
 
     @abstractmethod
-    def __main_data(self, info_parameter: str) -> None:
+    def main_data(self, info_parameter: str):
         """
         Plot the main data on the plot frame.
 
@@ -108,13 +130,15 @@ class Plot(ABC):
         info_parameter : str
             The info parameter to plot.
 
-        Returns
-        -------
-        None
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in the subclass.
         """
+        raise NotImplementedError
 
     @abstractmethod
-    def __labels(self, info_parameter: str) -> None:
+    def labels(self, info_parameter: str):
         """
         Set the labels of the plot frame using the info parameter.
 
@@ -123,13 +147,15 @@ class Plot(ABC):
         info_parameter : str
             The info parameter to set the labels of the plot frame.
 
-        Returns
-        -------
-        None
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in the subclass.
         """
+        raise NotImplementedError
 
     @abstractmethod
-    def __statistics(self, info_parameter: str) -> None:
+    def statistics(self, info_parameter: str):
         """
         Plot the statistics of the data on the plot frame.
 
@@ -138,7 +164,9 @@ class Plot(ABC):
         info_parameter : str
             The info parameter to calculate the statistics of.
 
-        Returns
-        -------
-        None
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in the subclass.
         """
+        raise NotImplementedError
