@@ -114,25 +114,25 @@ class App(ctk.CTk):
 
         self.follow = tkinter.BooleanVar()
         self.interval = None  # Initially None
-        self.main_button_2 = ctk.CTkCheckBox(
+        self.check_follow = ctk.CTkCheckBox(
             master=self.plot_frame,
             border_width=2,
             text="Follow",
             variable=self.follow,
-            command=lambda: self.toggle_entry_state(self.interval, self.follow)
+            command=lambda: self.toggle_entry_state(self.check_follow, self.interval)
         )
-        self.main_button_2.grid(
+        self.check_follow.grid(
             row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
         self.plot_main_data = tkinter.BooleanVar()
-        self.main_button_3 = ctk.CTkCheckBox(
+        self.check_nodata = ctk.CTkCheckBox(
             master=self.plot_frame,
             border_width=2,
             text="No Data",
             variable=self.plot_main_data,
         )
-        self.main_button_3.grid(
+        self.check_nodata.grid(
             row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
@@ -150,7 +150,7 @@ class App(ctk.CTk):
         )
         self.interval_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
-        self.main_button_1 = ctk.CTkButton(
+        self.button_plot = ctk.CTkButton(
             master=self.plot_frame,
             fg_color="transparent",
             border_width=2,
@@ -159,11 +159,11 @@ class App(ctk.CTk):
             command=lambda: self.__plot_button_event(0),
         )
 
-        self.main_button_1.grid(
+        self.button_plot.grid(
             row=2, column=0, columnspan=2, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
-        self.main_button_2 = ctk.CTkButton(
+        self.button_hist = ctk.CTkButton(
             master=self.plot_frame,
             fg_color="transparent",
             border_width=2,
@@ -171,7 +171,7 @@ class App(ctk.CTk):
             text="Histogram",
             command=lambda: self.__plot_button_event(1),
         )
-        self.main_button_2.grid(
+        self.button_hist.grid(
             row=3, column=0, columnspan=2, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
