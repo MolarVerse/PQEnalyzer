@@ -5,6 +5,8 @@ from PIL import Image
 
 from ..config import BASE_PROJECT_PATH
 from .plot_time import PlotTime
+from .plot_histogram import PlotHistogram
+
 
 class App(ctk.CTk):
     """
@@ -107,7 +109,7 @@ class App(ctk.CTk):
         self.plot_frame.grid(
             row=2, column=1, sticky="nsew", padx=(20, 20), pady=(10, 10)
         )
-        self.plot_frame.grid_rowconfigure(3, weight=1)
+        self.plot_frame.grid_rowconfigure(4, weight=1)
         self.plot_frame.grid_columnconfigure(2, weight=1)
 
         def validate_number(value):
@@ -136,7 +138,7 @@ class App(ctk.CTk):
             command=toggle_entry_state,
         )
         self.main_button_2.grid(
-            row=1, column=1, padx=(10, 10), pady=(10, 10), sticky="nsew"
+            row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
         self.plot_main_data = tkinter.BooleanVar()
@@ -147,7 +149,7 @@ class App(ctk.CTk):
             variable=self.plot_main_data,
         )
         self.main_button_3.grid(
-            row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew"
+            row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
         self.interval = ctk.CTkEntry(
@@ -156,25 +158,37 @@ class App(ctk.CTk):
             validate="key",
             validatecommand=(self.register(validate_number), "%P"),
         )
-        self.interval.grid(row=2, column=1, padx=10, pady=5, sticky="we")
+        self.interval.grid(row=1, column=1, padx=10, pady=5, sticky="we")
         self.interval.configure(state="disabled")  # Initially disabled
 
         self.interval_label = ctk.CTkLabel(
             self.plot_frame, text="Interval (ms):", anchor="w"
         )
-        self.interval_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.interval_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
-        # create main frame with widgets
         self.main_button_1 = ctk.CTkButton(
             master=self.plot_frame,
             fg_color="transparent",
             border_width=2,
             text_color=("gray10", "#DCE4EE"),
             text="Plot",
-            command=self.__plot_button_event,
+            command=lambda: self.__plot_button_event(0),
         )
+
         self.main_button_1.grid(
-            row=3, column=0, columnspan=2, padx=(20, 20), pady=(20, 20), sticky="nsew"
+            row=2, column=0, columnspan=2, padx=(10, 10), pady=(10, 10), sticky="nsew"
+        )
+
+        self.main_button_2 = ctk.CTkButton(
+            master=self.plot_frame,
+            fg_color="transparent",
+            border_width=2,
+            text_color=("gray10", "#DCE4EE"),
+            text="Histogram",
+            command=lambda: self.__plot_button_event(1),
+        )
+        self.main_button_2.grid(
+            row=3, column=0, columnspan=2, padx=(10, 10), pady=(10, 10), sticky="nsew"
         )
 
     def __build_info_option_menu(self):
@@ -276,11 +290,14 @@ class App(ctk.CTk):
     def __change_info_event(self, new_info: str):
         self.__selected_info = new_info
 
-    def __plot_button_event(self):
+    def __plot_button_event(self, event):
         """
         Plot the data and checks if the user wants to follow the plot.
         """
-        plot = PlotTime(self)
+        if event == 0:
+            plot = PlotTime(self)
+        elif event == 1:
+            plot = PlotHistogram(self)
 
         if self.follow.get():
             plot.live_plot(self.__selected_info, int(self.interval.get()))

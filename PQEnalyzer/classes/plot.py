@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 
-class Plot:
+class Plot(metaclass=ABCMeta):
     """
     The plot class for the PQEnalyzer application.
 
@@ -19,31 +19,6 @@ class Plot:
     live_plot(info_parameter, interval)
         Plot the live data at a given interval in milliseconds.
     """
-
-    @classmethod
-    def __subclasshook__(cls, subclass):
-        """
-        Check if the subclass has the necessary methods to be a Plot object.
-
-        Parameters
-        ----------
-        subclass : class
-            The subclass to check if
-            it has the necessary methods to be a Plot object.
-
-        Returns
-        -------
-        bool
-            True if the subclass has the necessary methods to be a Plot object,
-            False otherwise.
-        """
-        return (hasattr(subclass, 'main_data') and
-                callable(subclass.main_data) and
-                hasattr(subclass, 'labels') and
-                callable(subclass.labels) and
-                hasattr(subclass, 'statistics') and
-                callable(subclass.statistics) or
-                NotImplemented)
 
     def __init__(self, app):
         """
