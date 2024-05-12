@@ -39,7 +39,7 @@ class TestPlot:
         Test the initialization of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert isinstance(plot, PlotTime)
@@ -55,7 +55,7 @@ class TestPlot:
         Test the main_data method of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert getattr(plot, "main_data", None) is not None
@@ -67,7 +67,7 @@ class TestPlot:
         Test the labels method of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert getattr(plot, "labels", None) is not None
@@ -79,7 +79,7 @@ class TestPlot:
         Test the plot method of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert getattr(plot, "plot", None) is not None
@@ -91,7 +91,7 @@ class TestPlot:
         Test the statistics method of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert getattr(plot, "statistics", None) is not None
@@ -103,7 +103,7 @@ class TestPlot:
         Test the live_plot method of the Plot object.
         """
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         app = App(reader)
         plot = PlotTime(app)
         assert getattr(plot, "live_plot", None) is not None

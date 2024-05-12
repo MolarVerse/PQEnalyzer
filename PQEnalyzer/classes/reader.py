@@ -25,7 +25,7 @@ class Reader:
 
     Examples
     --------
-    >>> reader = Reader(["md-01.en", "md-02.en"], MDEngineFormat.PIMD_QMCF)
+    >>> reader = Reader(["md-01.en", "md-02.en"], MDEngineFormat.PQ)
     >>> reader.read()
     >>> reader.energies[0].info
     ['SIMULATION-TIME', 'ENERGY', 'KINETIC', 'POTENTIAL', 'TEMPERATURE', 'PRESSURE']

@@ -23,7 +23,7 @@ def main():
     filenames = parser.parse_args().filenames
     
     # set the md format
-    md_format = MDEngineFormat.PIMD_QMCF
+    md_format = MDEngineFormat.PQ
     if parser.parse_args().qmcfc: # if the user wants to use the QMCFC output as input
         md_format = MDEngineFormat.QMCFC # set the md format to QMCFC
 
