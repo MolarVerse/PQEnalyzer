@@ -2,7 +2,7 @@ import pytest
 import os
 
 from PQAnalysis.traj import MDEngineFormat
-from PQAnalysis.physicalData import EnergyError
+from PQAnalysis.physical_data import EnergyError
 
 from PQEnalyzer.classes import Reader
 
@@ -26,7 +26,7 @@ class TestReader:
     def test_single_input(self, example_dir):
         list_filenames = [example_dir + "md-01.en"]
 
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         assert len(reader.energies) == 1
         energy = reader.energies[0]
         assert len(energy.info) == 10
@@ -35,7 +35,7 @@ class TestReader:
     def test_multiple_inputs(self, example_dir):
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
 
-        energy_files = Reader(list_filenames, MDEngineFormat.PIMD_QMCF).energies
+        energy_files = Reader(list_filenames, MDEngineFormat.PQ).energies
         assert len(energy_files) == 2
         energy = energy_files[0]
         assert len(energy.info) == 12
@@ -47,26 +47,26 @@ class TestReader:
         list_filenames = [example_dir + "md-01.en", example_dir + "md-02.en"]
 
         with pytest.raises(ValueError):
-            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+            Reader(list_filenames, MDEngineFormat.PQ)
 
     def test_empty_input(self):
         list_filenames = []
 
         with pytest.raises(ValueError):
-            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+            Reader(list_filenames, MDEngineFormat.PQ)
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_empty_file(self, example_dir):
         list_filenames = [example_dir + "empty.en"]
 
         with pytest.raises(EnergyError):
-            Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+            Reader(list_filenames, MDEngineFormat.PQ)
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_read_last(self, example_dir):
         list_filenames = [example_dir + "md-02.en", example_dir + "md-03.en"]
 
-        reader = Reader(list_filenames, MDEngineFormat.PIMD_QMCF)
+        reader = Reader(list_filenames, MDEngineFormat.PQ)
         energies = reader.energies
         energy1, energy2 = energies
 
