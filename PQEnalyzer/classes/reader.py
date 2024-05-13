@@ -70,7 +70,7 @@ class Reader:
 
         energy_files = []
         for filename in self.filenames:
-            energy_files.append(EnergyFileReader(filename, format=self.md_format))
+            energy_files.append(EnergyFileReader(filename, engine_format=self.md_format))
 
         read_energy_files = []
         for energy_file in energy_files:
@@ -91,7 +91,7 @@ class Reader:
         None
         """
         
-        energy_file = EnergyFileReader(self.filenames[-1], format=self.md_format)
+        energy_file = EnergyFileReader(self.filenames[-1], engine_format=self.md_format)
         self.energies[-1] = energy_file.read()
 
     def __check_info_length(self, read_energy_files):

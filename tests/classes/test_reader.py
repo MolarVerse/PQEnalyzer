@@ -2,7 +2,7 @@ import pytest
 import os
 
 from PQAnalysis.traj import MDEngineFormat
-from PQAnalysis.physicalData import EnergyError
+from PQAnalysis.physical_data import EnergyError
 
 from PQEnalyzer.classes import Reader
 

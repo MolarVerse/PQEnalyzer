@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "PQAnalysis==0.5.2",
+    "PQAnalysis==1.0",
     "beartype",
     "customtkinter",
     "matplotlib",
