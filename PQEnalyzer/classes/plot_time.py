@@ -3,6 +3,7 @@ import os
 from .plot import Plot
 from .statistic import Statistic
 
+
 class PlotTime(Plot):
     """
     The plot the parameters dependent on the simulation time
@@ -38,9 +39,9 @@ class PlotTime(Plot):
         """
 
         super().__init__(app)
-        
+
         return None
-    
+
     def main_data(self, info_parameter: str) -> None:
         """
         Plot the main data on the plot frame.
@@ -63,7 +64,6 @@ class PlotTime(Plot):
                 label=basename,
             )
 
-    
     def labels(self, info_parameter: str) -> None:
         """
         Set the labels of the plot frame using the info parameter.
@@ -80,18 +80,27 @@ class PlotTime(Plot):
 
         self.ax.set_xlabel("Simulation step")
 
+        self.ax.ticklabel_format(axis="both", style="sci")
+
         self.ax.set_ylabel(
             f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
         )
 
-        # legend outside of plot
-        self.ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.15),
-            ncol=5,
-            fancybox=True,
-            shadow=True,
-        )
+        # Check if label is empty
+        if self.ax.get_legend_handles_labels()[1] == []:
+            # raise warning if no data to plot
+            # TODO: change to logger
+            # raise RuntimeWarning("No data to plot.")
+            print("No data to plot.")
+        else:
+            # legend outside of plot
+            self.ax.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.15),
+                ncol=5,
+                fancybox=True,
+                shadow=True,
+            )
 
         return None
 
@@ -122,7 +131,8 @@ class PlotTime(Plot):
 
         if self.app.cummulative_average.get():
             # calculate cummulative average and plot
-            x, y = Statistic.cummulative_average(self.reader.energies, info_parameter)
+            x, y = Statistic.cummulative_average(self.reader.energies,
+                                                 info_parameter)
             self.ax.plot(
                 x,
                 y,
@@ -132,7 +142,8 @@ class PlotTime(Plot):
 
         if self.app.auto_correlation.get():
             # calculate auto correlation and plot
-            x, y = Statistic.auto_correlation(self.reader.energies, info_parameter)
+            x, y = Statistic.auto_correlation(self.reader.energies,
+                                              info_parameter)
             self.ax.plot(
                 x,
                 y,
@@ -149,9 +160,8 @@ class PlotTime(Plot):
             else:
                 window_size_int = int(window_size)
 
-            x, y = Statistic.running_average(
-                self.reader.energies, info_parameter, window_size_int
-            )
+            x, y = Statistic.running_average(self.reader.energies,
+                                             info_parameter, window_size_int)
             self.ax.plot(
                 x,
                 y,

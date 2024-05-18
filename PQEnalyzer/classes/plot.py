@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from abc import abstractmethod, ABCMeta
 
+
 class Plot(metaclass=ABCMeta):
     """
     The plot class for the PQEnalyzer application.
@@ -42,7 +43,7 @@ class Plot(metaclass=ABCMeta):
         self.plot_frame.show()
 
         return None
-    
+
     def plot(self, info_parameter: str) -> None:
         """
         Plot the data. If the button is not checked, plot the main data.
@@ -93,7 +94,7 @@ class Plot(metaclass=ABCMeta):
             self.plot(info_parameter)
 
             # sleep for interval
-            plt.pause(interval/1000)
+            plt.pause(interval / 1000)
 
     @abstractmethod
     def main_data(self, info_parameter: str):
