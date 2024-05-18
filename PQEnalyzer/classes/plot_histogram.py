@@ -1,5 +1,6 @@
 import os
 from scipy.stats import gaussian_kde
+import numpy as np
 
 from .plot import Plot
 from .statistic import Statistic
@@ -58,12 +59,24 @@ class PlotHistogram(Plot):
 
         for i, energy in enumerate(self.reader.energies):
             basename = os.path.basename(self.reader.filenames[i])
+            data = energy.data[energy.info[info_parameter]]
+
+            # check if zero data
+            if np.unique(data).size == 1:
+                # raise warning if no data to plot
+                # TODO: change to logger
+                print("Data zero. No histogram available.")
+                return None
+
             # plot kde of histogram
             kde = gaussian_kde(energy.data[energy.info[info_parameter]])
-            x = range(
-                int(min(energy.data[energy.info[info_parameter]])),
-                int(max(energy.data[energy.info[info_parameter]])),
+
+            x = np.linspace(
+                min(energy.data[energy.info[info_parameter]]),
+                max(energy.data[energy.info[info_parameter]]),
+                1000,
             )
+
             y = kde(x)
             self.ax.plot(x, y, label=f"{basename} KDE")
 
@@ -84,6 +97,8 @@ class PlotHistogram(Plot):
         """
 
         self.ax.set_ylabel("Density")
+
+        self.ax.ticklabel_format(axis="both", style="sci")
 
         self.ax.set_xlabel(
             f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"

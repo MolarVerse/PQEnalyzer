@@ -80,6 +80,8 @@ class PlotTime(Plot):
 
         self.ax.set_xlabel("Simulation step")
 
+        self.ax.ticklabel_format(axis="both", style="sci")
+
         self.ax.set_ylabel(
             f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
         )
