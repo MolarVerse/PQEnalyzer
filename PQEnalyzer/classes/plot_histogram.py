@@ -4,6 +4,7 @@ from scipy.stats import gaussian_kde
 from .plot import Plot
 from .statistic import Statistic
 
+
 class PlotHistogram(Plot):
     """
     The plot the parameters dependent histogram for the PQEnalyzer application.
@@ -65,7 +66,7 @@ class PlotHistogram(Plot):
             )
             y = kde(x)
             self.ax.plot(x, y, label=f"{basename} KDE")
-        
+
         return None
 
     def labels(self, info_parameter: str) -> None:
@@ -88,14 +89,21 @@ class PlotHistogram(Plot):
             f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
         )
 
-        # legend outside of plot
-        self.ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.15),
-            ncol=5,
-            fancybox=True,
-            shadow=True,
-        )
+        # Check if label is empty
+        if self.ax.get_legend_handles_labels()[1] == []:
+            # raise warning if no data to plot
+            # TODO: change to logger
+            # raise RuntimeWarning("No data to plot.")
+            print("No data to plot.")
+        else:
+            # legend outside of plot
+            self.ax.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.15),
+                ncol=5,
+                fancybox=True,
+                shadow=True,
+            )
 
         return None
 
@@ -117,26 +125,22 @@ class PlotHistogram(Plot):
         if self.app.mean.get():
             # calculate mean and plot
             _, y = Statistic.mean(self.reader.energies, info_parameter)
-            self.ax.vlines(
-                y, 
-                0, 
-                self.ax.get_ylim()[1],
-                label="Mean", 
-                linestyles="--",
-                colors="blue"
-            )
+            self.ax.vlines(y,
+                           0,
+                           self.ax.get_ylim()[1],
+                           label="Mean",
+                           linestyles="--",
+                           colors="blue")
 
         if self.app.median.get():
             # calculate median and plot
             _, y = Statistic.median(self.reader.energies, info_parameter)
             # plot dependent y_max of histogram
-            self.ax.vlines(
-                y,
-                0,
-                self.ax.get_ylim()[1],
-                label="Median",
-                linestyles="--",
-                colors="red"
-            )
+            self.ax.vlines(y,
+                           0,
+                           self.ax.get_ylim()[1],
+                           label="Median",
+                           linestyles="--",
+                           colors="red")
 
         return None
