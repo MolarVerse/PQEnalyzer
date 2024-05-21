@@ -93,6 +93,9 @@ class Plot(metaclass=ABCMeta):
 
             self.plot(info_parameter)
 
+            if self.plot_frame.number not in plt.get_fignums():
+                break
+
             # sleep for interval
             plt.pause(interval / 1000)
 
