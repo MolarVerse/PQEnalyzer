@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import tkinter
 import os
-from PIL import Image
+from PIL import Image, ImageTk
 
 from ..config import BASE_PROJECT_PATH
 from .plot_time import PlotTime
@@ -34,9 +34,11 @@ class App(ctk.CTk):
         self.title("PQEnalyzer - MolarVerse")
 
         # load icon photo
-        # self.icon = Image.open(os.path.join(BASE_PROJECT_PATH, "icons", "icon.ico"))
-        # self.wm_iconbitmap()
-        # self.iconphoto(False, self.icon)
+        img = Image.open(os.path.join(BASE_PROJECT_PATH, "icons", "icon.png"))
+        self.iconphoto(False, ImageTk.PhotoImage(img))
+
+        # set the window size
+        self.resizable(False, False)
 
         # set reader object and info parameters
         self.reader = reader

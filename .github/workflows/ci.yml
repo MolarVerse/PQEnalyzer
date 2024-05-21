@@ -2,8 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      -  main
+      - develop
+  pull_request: 
+    branches:
+      - '*'
 
 jobs:
   build:
@@ -22,10 +26,9 @@ jobs:
 
     - name: Generate coverage report
       run: |
-        sudo apt-get install xvfb
         pip install pytest
         pip install pytest-cov
-        xvfb-run python -m pytest --cov=PQEnalyzer --cov-report=xml
+        python -m pytest --cov=PQEnalyzer --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
