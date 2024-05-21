@@ -1,2 +1,6 @@
 ignore:
   - "tests/*"
+  - "PQEnalyzer/classes/app.py"
+  - "PQEnalyzer/classes/plot.py"
+  - "PQEnalyzer/classes/plot_time.py"
+  - "PQEnalyzer/classes/plot_histogram.py"
