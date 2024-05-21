@@ -4,3 +4,5 @@
 
 # PQEnalyzer
 Energy and Parameter Analyzer for Molecular Dynamic Trajectories - PQ
+
+![PQ Logo](PQEnalyzer/icons/icon.png)
