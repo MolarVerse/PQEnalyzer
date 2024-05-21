@@ -1,3 +1,8 @@
+"""
+The plot the parameters dependent on the simulation time
+for the PQEnalyzer application.
+"""
+
 import os
 
 from .plot import Plot

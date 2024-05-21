@@ -2,6 +2,8 @@
 This is the main file of the PQEnalyzer project. It contains the
 main function that is executed when the program is run.
 """
+
+import sys
 import argparse
 from PQAnalysis.traj import MDEngineFormat
 
@@ -35,8 +37,9 @@ def main():
 
     # set the md format
     md_format = MDEngineFormat.PQ
-    if parser.parse_args(
-    ).qmcfc:  # if the user wants to use the QMCFC output as input
+
+    # if the user wants to use the QMCFC output as input
+    if parser.parse_args().qmcfc:
         md_format = MDEngineFormat.QMCFC  # set the md format to QMCFC
 
     # create the reader
@@ -44,7 +47,7 @@ def main():
         reader = Reader(filenames, md_format)
     except Exception as e:
         print(e)
-        exit(1)
+        sys.exit(1)
 
     # create the app
     app = App(reader)

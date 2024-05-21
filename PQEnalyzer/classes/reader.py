@@ -1,3 +1,8 @@
+"""
+A module for reading energy files. The Reader class reads energy files using the
+EnergyFileReader class from the PQAnalysis.io module.
+"""
+
 from PQAnalysis.io import EnergyFileReader
 
 
@@ -65,12 +70,12 @@ class Reader:
 
         if len(self.filenames) == 0:
             raise ValueError(
-                "The list of filenames is empty. Provide a list of filenames."
-            )
+                "The list of filenames is empty. Provide a list of filenames.")
 
         energy_files = []
         for filename in self.filenames:
-            energy_files.append(EnergyFileReader(filename, engine_format=self.md_format))
+            energy_files.append(
+                EnergyFileReader(filename, engine_format=self.md_format))
 
         read_energy_files = []
         for energy_file in energy_files:
@@ -78,7 +83,8 @@ class Reader:
             read_energy_files.append(read_energy_file)
 
         if not self.__check_info_length(read_energy_files):
-            raise ValueError("The energy files do not have the same length of info.")
+            raise ValueError(
+                "The energy files do not have the same length of info.")
 
         self.energies = read_energy_files
 
@@ -90,8 +96,8 @@ class Reader:
         -------
         None
         """
-        
-        energy_file = EnergyFileReader(self.filenames[-1], engine_format=self.md_format)
+        energy_file = EnergyFileReader(self.filenames[-1],
+                                       engine_format=self.md_format)
         self.energies[-1] = energy_file.read()
 
     def __check_info_length(self, read_energy_files):

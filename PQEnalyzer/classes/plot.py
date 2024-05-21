@@ -1,5 +1,9 @@
-import matplotlib.pyplot as plt
+"""
+The plot module contains the Plot class for the PQEnalyzer application.
+"""
+
 from abc import abstractmethod, ABCMeta
+import matplotlib.pyplot as plt
 
 
 class Plot(metaclass=ABCMeta):
@@ -42,8 +46,6 @@ class Plot(metaclass=ABCMeta):
         self.ax = self.plot_frame.add_subplot(111)
         self.plot_frame.show()
 
-        return None
-
     def plot(self, info_parameter: str) -> None:
         """
         Plot the data. If the button is not checked, plot the main data.
@@ -66,8 +68,6 @@ class Plot(metaclass=ABCMeta):
         self.statistics(info_parameter)
 
         self.labels(info_parameter)
-
-        return None
 
     def live_plot(self, info_parameter: str, interval: int = 1000) -> None:
         """

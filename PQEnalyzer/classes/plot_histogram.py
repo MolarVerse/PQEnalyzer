@@ -1,3 +1,7 @@
+"""
+The plot the parameters dependent histogram for the PQEnalyzer application.
+"""
+
 import os
 from scipy.stats import gaussian_kde
 import numpy as np

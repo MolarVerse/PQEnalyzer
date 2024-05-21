@@ -1,3 +1,8 @@
+"""
+The statistic class for the PQEnalyzer application. This class contains
+methods to calculate statistics of the data.
+"""
+
 import numpy as np
 
 
@@ -73,8 +78,7 @@ class Statistic:
         time = np.concatenate([energy.simulation_time for energy in energies])
 
         data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies]
-        )
+            [energy.data[energy.info[info_parameter]] for energy in energies])
 
         mean = np.mean(data)
 
@@ -106,8 +110,7 @@ class Statistic:
         time = np.concatenate([energy.simulation_time for energy in energies])
 
         data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies]
-        )
+            [energy.data[energy.info[info_parameter]] for energy in energies])
 
         median = np.median(data)
 
@@ -137,8 +140,7 @@ class Statistic:
         """
 
         data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies]
-        )
+            [energy.data[energy.info[info_parameter]] for energy in energies])
 
         cummulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
 
@@ -170,12 +172,11 @@ class Statistic:
         """
 
         data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies]
-        )
+            [energy.data[energy.info[info_parameter]] for energy in energies])
 
-        auto_correlation = np.correlate(data, data, mode="same") / np.correlate(
-            np.ones_like(data), data, mode="same"
-        )
+        auto_correlation = np.correlate(
+            data, data, mode="same") / np.correlate(
+                np.ones_like(data), data, mode="same")
 
         time = np.concatenate([energy.simulation_time for energy in energies])
 
@@ -213,24 +214,22 @@ class Statistic:
         """
 
         data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies]
-        )
+            [energy.data[energy.info[info_parameter]] for energy in energies])
 
         # Check if data is smaller than window_size
-        if (len(data) < window_size):
+        if len(data) < window_size:
             raise ValueError("Window size is larger than given data point")
 
         running_average = [
-            sum(data[i : i + window_size]) / window_size
+            sum(data[i:i + window_size]) / window_size
             for i in range(len(data) - window_size + 1)
         ]
 
         # Centered to the middle of the window
         time = np.mean(
             [
-                np.concatenate([energy.simulation_time for energy in energies])[
-                    i : i + window_size
-                ]
+                np.concatenate([energy.simulation_time
+                                for energy in energies])[i:i + window_size]
                 for i in range(len(data) - window_size + 1)
             ],
             axis=1,
