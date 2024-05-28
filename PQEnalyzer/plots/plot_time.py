@@ -5,8 +5,8 @@ for the PQEnalyzer application.
 
 import os
 
+from ..statistics import Statistic
 from .plot import Plot
-from .statistic import Statistic
 
 
 class PlotTime(Plot):

@@ -4,12 +4,14 @@ import os
 from PQAnalysis.traj import MDEngineFormat
 from PQAnalysis.physical_data import EnergyError
 
-from PQEnalyzer.classes import Reader
+from PQEnalyzer.readers import Reader
+
 
 class TestReader:
     """
     Test the read_energy_files function.
     """
+
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test__init__(self, example_dir):
         assert os.path.exists(example_dir + "md-01.en")
@@ -74,5 +76,3 @@ class TestReader:
         assert energies == reader.energies
         assert energy1 == reader.energies[0]
         assert energy2 != reader.energies[1]
-
-        

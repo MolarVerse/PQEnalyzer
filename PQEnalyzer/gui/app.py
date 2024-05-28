@@ -9,9 +9,8 @@ import tkinter
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
-from ..config import BASE_PROJECT_PATH
-from .plot_time import PlotTime
-from .plot_histogram import PlotHistogram
+from .. import __base__
+from ..plots import PlotTime, PlotHistogram
 
 
 class App(ctk.CTk):
@@ -41,7 +40,7 @@ class App(ctk.CTk):
         self.title("PQEnalyzer - MolarVerse")
 
         # load icon photo
-        img = Image.open(os.path.join(BASE_PROJECT_PATH, "icons", "icon.png"))
+        img = Image.open(os.path.join(__base__, "icons", "icon.png"))
         self.iconphoto(False, ImageTk.PhotoImage(img))
 
         # set the window size
@@ -81,7 +80,7 @@ class App(ctk.CTk):
 
         # logo
         self.logo = ctk.CTkImage(
-            Image.open(os.path.join(BASE_PROJECT_PATH, "icons", "icon.png")),
+            Image.open(os.path.join(__base__, "icons", "icon.png")),
             size=(100, 100),
         )
         self.sidebar_image_label = ctk.CTkLabel(self.sidebar_frame,

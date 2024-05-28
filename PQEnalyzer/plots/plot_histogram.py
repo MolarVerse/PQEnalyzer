@@ -6,8 +6,8 @@ import os
 from scipy.stats import gaussian_kde
 import numpy as np
 
+from ..statistics import Statistic
 from .plot import Plot
-from .statistic import Statistic
 
 
 class PlotHistogram(Plot):

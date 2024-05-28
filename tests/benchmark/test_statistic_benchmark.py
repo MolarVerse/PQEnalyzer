@@ -4,7 +4,8 @@ Test the performance of the Statistic class
 import pytest
 
 from PQAnalysis.traj import MDEngineFormat
-from PQEnalyzer.classes import Statistic, Reader
+from PQEnalyzer.readers import Reader
+from PQEnalyzer.statistics import Statistic
 
 
 @pytest.mark.benchmark(group="Statistic")

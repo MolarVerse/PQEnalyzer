@@ -5,7 +5,7 @@ import pytest
 
 from PQAnalysis.traj import MDEngineFormat
 
-from PQEnalyzer.classes import Reader
+from PQEnalyzer.readers import Reader
 
 
 @pytest.mark.benchmark(group="Reader")
