@@ -220,10 +220,10 @@ class Statistic:
         if len(data) < window_size:
             raise ValueError("Window size is larger than given data point")
 
-        running_average = [
-            sum(data[i:i + window_size]) / window_size
+        running_average = np.array([
+            np.sum(data[i:i + window_size]) / window_size
             for i in range(len(data) - window_size + 1)
-        ]
+        ])
 
         # Centered to the middle of the window
         time = np.mean(
