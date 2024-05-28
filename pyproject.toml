@@ -34,7 +34,8 @@ dependencies = [
 test = [
     "pytest",
     "coverage",
-    "pytest-cov"
+    "pytest-cov",
+    "pytest-benchmark",
 ]
 
 [tool.setuptools_scm]

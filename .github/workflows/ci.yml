@@ -22,13 +22,12 @@ jobs:
 
     - name: build PQEnalyzer
       run: |
-        pip install .[test]
+        pip install .
 
     - name: Generate coverage report
       run: |
-        pip install pytest
-        pip install pytest-cov
-        python -m pytest --cov=PQEnalyzer --cov-report=xml
+        pip install .[test]
+        python -m pytest -m "not benchmark" --cov=PQEnalyzer --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
