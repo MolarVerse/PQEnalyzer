@@ -43,14 +43,14 @@ class Plot(metaclass=ABCMeta):
         self.reader = app.reader
 
         # read parameters from the app
-        self.get_parameters()
+        self.get_app_parameters()
 
         # create the plot frame
         self.plot_frame = plt.figure()
         self.ax = self.plot_frame.add_subplot(111)
         self.plot_frame.show()
 
-    def get_parameters(self):
+    def get_app_parameters(self):
         """
         Get the parameter from the app.
 
@@ -70,7 +70,7 @@ class Plot(metaclass=ABCMeta):
 
         return None
 
-    def plot(self, info_parameter: str) -> None:
+    def display(self, info_parameter: str) -> None:
         """
         Plot the data. If the button is not checked, plot the main data.
         Checks if the statistics buttons are checked and plots the statistics, too.
@@ -93,7 +93,7 @@ class Plot(metaclass=ABCMeta):
 
         self.labels(info_parameter)
 
-    def live_plot(self, info_parameter: str, interval: int = 1000) -> None:
+    def follow(self, info_parameter: str, interval: int = 1000) -> None:
         """
         Plot the live data. Clears the plot and replots the data at a given interval.
         Exits the plot if the window is closed.
@@ -102,8 +102,8 @@ class Plot(metaclass=ABCMeta):
         ----------
         info_parameter : str
             The info parameter to plot.
-        interval : int
-            The interval which the plot is updated in milliseconds.
+        interval : int, optional
+            The interval at which the plot is updated in milliseconds. Default is 1000.
 
         Returns
         -------
@@ -112,7 +112,7 @@ class Plot(metaclass=ABCMeta):
 
         while True:
             # clear the plot
-            self.replot(info_parameter)
+            self.updatePlot(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
                 break
@@ -138,10 +138,10 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        self.get_parameters()
-        self.replot(info_parameter)
+        self.get_app_parameters()
+        self.updatePlot(info_parameter)
 
-    def replot(self, info_parameter: str) -> None:
+    def updatePlot(self, info_parameter: str) -> None:
         """
         Refresh the plot. Clears the plot, gets the new parameters
         and plots the data again.
@@ -167,7 +167,8 @@ class Plot(metaclass=ABCMeta):
             raise e
 
         self.ax.clear()
-        self.plot(info_parameter)
+
+        self.display(info_parameter)
 
     @abstractmethod
     def main_data(self, info_parameter: str):

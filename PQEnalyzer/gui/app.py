@@ -349,8 +349,8 @@ class App(ctk.CTk):
             plot = PlotHistogram(self)
 
         if self.follow.get():
-            plot.live_plot(self.__selected_info, int(self.interval.get()))
+            plot.follow(self.__selected_info, int(self.interval.get()))
         else:
-            plot.plot(self.__selected_info)
+            plot.display(self.__selected_info)
 
         self.list_of_plots.append(plot)
