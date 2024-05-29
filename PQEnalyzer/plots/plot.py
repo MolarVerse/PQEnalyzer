@@ -111,7 +111,6 @@ class Plot(metaclass=ABCMeta):
         """
 
         while True:
-            # clear the plot
             self.updatePlot(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
