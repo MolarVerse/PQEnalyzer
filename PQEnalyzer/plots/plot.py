@@ -151,12 +151,21 @@ class Plot(metaclass=ABCMeta):
         info_parameter : str
             The info parameter to plot.
 
+        Raises
+        ------
+        Exception
+            If the reader cannot read the last file. 
+
         Returns
         -------
         None
         """
 
-        self.reader.read_last()
+        try:
+            self.reader.read_last()
+        except Exception as e:
+            raise e
+
         self.ax.clear()
         self.plot(info_parameter)
 
