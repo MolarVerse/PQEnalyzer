@@ -42,6 +42,17 @@ class Plot(metaclass=ABCMeta):
         self.app = app
         self.reader = app.reader
 
+        # read parameters from the app
+        self.mean = self.app.mean.get()
+        self.median = self.app.median.get()
+        self.cummulative_average = self.app.cummulative_average.get()
+        self.auto_correlation = self.app.auto_correlation.get()
+        self.running_average = self.app.running_average.get()
+        self.window_size = self.app.window_size.get()
+
+        self.plot_main = self.app.plot_main_data.get()
+
+        # create the plot frame
         self.plot_frame = plt.figure()
         self.ax = self.plot_frame.add_subplot(111)
         self.plot_frame.show()
@@ -62,7 +73,7 @@ class Plot(metaclass=ABCMeta):
         """
 
         # if button is not checked, plot main data
-        if not self.app.plot_main_data.get():
+        if not self.main_data:
             self.main_data(info_parameter)
 
         self.statistics(info_parameter)
@@ -88,10 +99,9 @@ class Plot(metaclass=ABCMeta):
 
         while True:
             # clear the plot
-            self.ax.clear()
             self.reader.read_last()
 
-            self.plot(info_parameter)
+            self.refresh(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
                 break
@@ -101,6 +111,23 @@ class Plot(metaclass=ABCMeta):
 
             # sleep for interval
             plt.pause(interval / 1000)
+
+    def refresh(self, info_parameter: str) -> None:
+        """
+        Refresh the plot. Clears the plot and replots the data.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+
+        Returns
+        -------
+        None
+        """
+
+        self.ax.clear()
+        self.plot(info_parameter)
 
     @abstractmethod
     def main_data(self, info_parameter: str):
