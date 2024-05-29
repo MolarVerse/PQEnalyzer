@@ -1,7 +1,7 @@
 """
 The plot module contains the Plot class for the PQEnalyzer application.
 """
-
+import signal
 from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 
@@ -94,6 +94,9 @@ class Plot(metaclass=ABCMeta):
             self.plot(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
+                break
+
+            if signal.getsignal(signal.SIGINT):
                 break
 
             # sleep for interval
