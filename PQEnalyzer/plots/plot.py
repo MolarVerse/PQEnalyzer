@@ -73,7 +73,7 @@ class Plot(metaclass=ABCMeta):
         """
 
         # if button is not checked, plot main data
-        if not self.main_data:
+        if not self.plot_main:
             self.main_data(info_parameter)
 
         self.statistics(info_parameter)
