@@ -8,6 +8,7 @@ import tkinter
 
 import customtkinter as ctk
 from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
 
 from .. import __base__
 from ..plots import PlotTime, PlotHistogram
@@ -51,6 +52,8 @@ class App(ctk.CTk):
         self.info = [
             *self.reader.energies[0].info
         ][1:]  # get list of info parameters from first data object
+
+        self.list_of_plots = []
 
     def build(self):
         """
@@ -197,6 +200,21 @@ class App(ctk.CTk):
                               pady=(10, 10),
                               sticky="nsew")
 
+        self.button_refresh = ctk.CTkButton(  # refresh button
+            master=self.plot_frame,
+            fg_color="transparent",
+            border_width=2,
+            text_color=("gray10", "#DCE4EE"),
+            text="Refresh",
+            command=self.__refresh_plots,
+        )
+        self.button_refresh.grid(row=4,
+                                 column=0,
+                                 columnspan=2,
+                                 padx=(10, 10),
+                                 pady=(10, 10),
+                                 sticky="nsew")
+
     def __build_info_option_menu(self):
         """
         Build the info selection window.
@@ -310,6 +328,17 @@ class App(ctk.CTk):
     def __change_info_event(self, new_info: str):
         self.__selected_info = new_info
 
+    def __refresh_plots(self):
+        """
+        Refresh the plots.
+        """
+        for plot in self.list_of_plots:
+
+            if plot.plot_frame.number not in plt.get_fignums():
+                self.list_of_plots.remove(plot)
+
+            plot.refresh(self.__selected_info)
+
     def __plot_button_event(self, event):
         """
         Plot the data and checks if the user wants to follow the plot.
@@ -323,3 +352,5 @@ class App(ctk.CTk):
             plot.live_plot(self.__selected_info, int(self.interval.get()))
         else:
             plot.plot(self.__selected_info)
+
+        self.list_of_plots.append(plot)

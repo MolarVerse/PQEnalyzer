@@ -43,6 +43,22 @@ class Plot(metaclass=ABCMeta):
         self.reader = app.reader
 
         # read parameters from the app
+        self.get_parameters()
+
+        # create the plot frame
+        self.plot_frame = plt.figure()
+        self.ax = self.plot_frame.add_subplot(111)
+        self.plot_frame.show()
+
+    def get_parameters(self):
+        """
+        Get the parameter from the app.
+
+        Returns
+        -------
+        None
+        """
+
         self.mean = self.app.mean.get()
         self.median = self.app.median.get()
         self.cummulative_average = self.app.cummulative_average.get()
@@ -52,10 +68,7 @@ class Plot(metaclass=ABCMeta):
 
         self.plot_main = self.app.plot_main_data.get()
 
-        # create the plot frame
-        self.plot_frame = plt.figure()
-        self.ax = self.plot_frame.add_subplot(111)
-        self.plot_frame.show()
+        return None
 
     def plot(self, info_parameter: str) -> None:
         """
@@ -99,9 +112,7 @@ class Plot(metaclass=ABCMeta):
 
         while True:
             # clear the plot
-            self.reader.read_last()
-
-            self.refresh(info_parameter)
+            self.replot(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
                 break
@@ -114,7 +125,8 @@ class Plot(metaclass=ABCMeta):
 
     def refresh(self, info_parameter: str) -> None:
         """
-        Refresh the plot. Clears the plot and replots the data.
+        Refresh the plot. Clears the plot, gets the new parameters
+        and plots the data again.
 
         Parameters
         ----------
@@ -126,6 +138,25 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
+        self.get_parameters()
+        self.replot(info_parameter)
+
+    def replot(self, info_parameter: str) -> None:
+        """
+        Refresh the plot. Clears the plot, gets the new parameters
+        and plots the data again.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+
+        Returns
+        -------
+        None
+        """
+
+        self.reader.read_last()
         self.ax.clear()
         self.plot(info_parameter)
 
