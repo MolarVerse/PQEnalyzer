@@ -6,3 +6,20 @@
 
 # PQEnalyzer
 Energy and Parameter Analyzer for Molecular Dynamic Trajectories - PQ
+
+## Installation
+
+Clone the PQEnalyzer GitHub repository and navigate into the directory:
+
+    git clone https://github.com/MolarVerse/PQEnalyzer.git
+    cd PQEnalyzer
+    
+Install with pip:
+
+    pip install .
+
+## Usage
+
+Open the GUI by calling the PQEnalyzer via the CLI and supplying a .en file from the PQ trajectory:
+
+    pqenalyzer pq_output.en
