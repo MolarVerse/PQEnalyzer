@@ -64,9 +64,9 @@ class App(ctk.CTk):
         """
         Destroy the app.
         """
-        print("Closing the app...")
         self.quit()
         plt.close("all")
+        del(self)
 
     def build(self):
         """
