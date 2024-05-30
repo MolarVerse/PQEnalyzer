@@ -1,9 +1,10 @@
 """
 The plot module contains the Plot class for the PQEnalyzer application.
 """
-
+import signal
 from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 class Plot(metaclass=ABCMeta):
@@ -42,11 +43,59 @@ class Plot(metaclass=ABCMeta):
         self.app = app
         self.reader = app.reader
 
-        self.plot_frame = plt.figure()
-        self.ax = self.plot_frame.add_subplot(111)
-        self.plot_frame.show()
+        # read parameters from the app
+        self.get_app_parameters()
 
-    def plot(self, info_parameter: str) -> None:
+        # create the plot
+        self.figure = plt.figure()
+        self.ax = self.figure.add_subplot(111)
+
+        # set the signal handler
+        signal.signal(
+            signal.SIGINT,
+            lambda signal, frame: self.signal_handler(signal, frame),
+        )
+
+    def signal_handler(self, signal, frame):
+        """
+        Close the plot window when the signal is received.
+
+        Parameters
+        ----------
+        signal : int
+            The signal to handle.
+        frame : int
+            The frame to handle.
+
+        Returns
+        -------
+        None
+        """
+
+        plt.close("all")
+        self.app.destroy()
+
+    def get_app_parameters(self):
+        """
+        Get the parameter from the app.
+
+        Returns
+        -------
+        None
+        """
+
+        self.mean = self.app.mean.get()
+        self.median = self.app.median.get()
+        self.cummulative_average = self.app.cummulative_average.get()
+        self.auto_correlation = self.app.auto_correlation.get()
+        self.running_average = self.app.running_average.get()
+        self.window_size = self.app.window_size.get()
+
+        self.plot_main = self.app.plot_main_data.get()
+
+        return None
+
+    def simple(self, info_parameter: str) -> None:
         """
         Plot the data. If the button is not checked, plot the main data.
         Checks if the statistics buttons are checked and plots the statistics, too.
@@ -61,15 +110,14 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
+        self.info_parameter = info_parameter
+
         # if button is not checked, plot main data
-        if not self.app.plot_main_data.get():
-            self.main_data(info_parameter)
+        self.plot_data()
 
-        self.statistics(info_parameter)
+        plt.show()
 
-        self.labels(info_parameter)
-
-    def live_plot(self, info_parameter: str, interval: int = 1000) -> None:
+    def follow(self, info_parameter: str, interval: float = 1.0) -> None:
         """
         Plot the live data. Clears the plot and replots the data at a given interval.
         Exits the plot if the window is closed.
@@ -78,26 +126,83 @@ class Plot(metaclass=ABCMeta):
         ----------
         info_parameter : str
             The info parameter to plot.
-        interval : int
-            The interval which the plot is updated in milliseconds.
+        interval : int, optional
+            The interval at which the plot is updated in seconds
 
         Returns
         -------
         None
         """
 
-        while True:
-            # clear the plot
-            self.ax.clear()
+        self.info_parameter = info_parameter
+
+        def update(frame):
             self.reader.read_last()
+            self.ax.clear()
+            self.plot_data()
+            return []
 
-            self.plot(info_parameter)
+        self.ani = animation.FuncAnimation(
+            self.figure,
+            update,
+            blit=True,
+            interval=interval * 1000,
+            cache_frame_data=False,
+        )
 
-            if self.plot_frame.number not in plt.get_fignums():
-                break
+        plt.show()
 
-            # sleep for interval
-            plt.pause(interval / 1000)
+    def refresh(self) -> None:
+        """
+        Refresh the plot. Clears the plot, gets the new parameters
+        and plots the data again.
+
+        Parameters
+        ----------
+        info_parameter : str
+            The info parameter to plot.
+
+        Returns
+        -------
+        None
+        """
+
+        # Reads the last data
+        self.reader.read_last()
+
+        # Get the new parameters
+        self.get_app_parameters()
+
+        # Clear the plot
+        self.ax.clear()
+
+        # Plot the data
+        self.plot_data()
+
+        # Show the plot
+        plt.show()
+
+    def plot_data(self) -> None:
+        """
+        Plot the data.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        if not self.plot_main:
+            self.main_data(self.info_parameter)
+
+        self.statistics(self.info_parameter)
+
+        self.labels(self.info_parameter)
+
+        return None
 
     @abstractmethod
     def main_data(self, info_parameter: str):
