@@ -4,6 +4,7 @@ window for the PQEnalyzer application.
 """
 
 import os
+import signal
 import tkinter
 
 import customtkinter as ctk
@@ -54,6 +55,18 @@ class App(ctk.CTk):
         ][1:]  # get list of info parameters from first data object
 
         self.list_of_plots = []
+
+        # sigint handler
+        signal.signal(signal.SIGINT,
+                      lambda sig, frame: self.destroy())  # close the app
+
+    def destroy(self):
+        """
+        Destroy the app.
+        """
+        print("Closing the app...")
+        self.quit()
+        plt.close("all")
 
     def build(self):
         """
