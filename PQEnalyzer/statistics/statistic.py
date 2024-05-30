@@ -218,8 +218,7 @@ class Statistic:
 
         # Check if data is smaller than window_size
         if len(data) < window_size:
-            print("Window size is larger than given data point")
-            return [], []
+            raise ValueError("Window size is larger than given data point")
 
         running_average = np.array([
             np.sum(data[i:i + window_size]) / window_size

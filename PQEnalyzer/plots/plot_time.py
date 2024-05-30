@@ -165,6 +165,10 @@ class PlotTime(Plot):
             else:
                 window_size_int = int(float(window_size))
 
+            if window_size_int > len(self.reader.energies):
+                print("Window size is larger than the data.")
+                return None
+
             x, y = Statistic.running_average(self.reader.energies,
                                              info_parameter, window_size_int)
             self.ax.plot(
