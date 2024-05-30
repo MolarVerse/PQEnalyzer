@@ -350,7 +350,7 @@ class App(ctk.CTk):
             entry.delete(0, ctk.END)
             entry.configure(state="disabled")
 
-    def __change_appearance_mode_event(self, new_appearance_mode: str)
+    def __change_appearance_mode_event(self, new_appearance_mode: str):
         """ 
         Change the appearance mode of the app.
         """
