@@ -111,12 +111,13 @@ class Plot(metaclass=ABCMeta):
         """
 
         while True:
-            self.updatePlot(info_parameter)
+            # clear the plot
+            self.ax.clear()
+            self.reader.read_last()
+
+            self.display(info_parameter)
 
             if self.plot_frame.number not in plt.get_fignums():
-                break
-
-            if signal.getsignal(signal.SIGINT):
                 break
 
             # sleep for interval
@@ -136,9 +137,11 @@ class Plot(metaclass=ABCMeta):
         -------
         None
         """
-
+        self.reader.read_last()
         self.get_app_parameters()
-        self.updatePlot(info_parameter)
+
+        self.ax.clear()
+        self.display(info_parameter)
 
     def updatePlot(self, info_parameter: str) -> None:
         """
