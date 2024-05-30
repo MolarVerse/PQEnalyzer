@@ -3,18 +3,27 @@ This is the main file of the PQEnalyzer project. It contains the
 main function that is executed when the program is run.
 """
 
+import signal
 import sys
 import argparse
 from PQAnalysis.traj import MDEngineFormat
 
 from .__version__ import __version__
-from .classes import App
-from .classes import Reader
+from .gui import App
+from .readers import Reader
 
 
 def main():
     """
     The main function of the PQEnalyzer project.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
     """
     # parse command line arguments
     parser = argparse.ArgumentParser(description="PQEnalyzer - MolarVerse")
@@ -53,6 +62,8 @@ def main():
     app = App(reader)
     app.build()
     app.mainloop()
+
+    return None
 
 
 if __name__ == "__main__":

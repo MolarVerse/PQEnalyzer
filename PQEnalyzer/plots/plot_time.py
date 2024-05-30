@@ -5,8 +5,8 @@ for the PQEnalyzer application.
 
 import os
 
+from ..statistics import Statistic
 from .plot import Plot
-from .statistic import Statistic
 
 
 class PlotTime(Plot):
@@ -124,17 +124,17 @@ class PlotTime(Plot):
         None
         """
 
-        if self.app.mean.get():
+        if self.mean:
             # calculate mean and plot
             x, y = Statistic.mean(self.reader.energies, info_parameter)
             self.ax.plot(x, y, label="Mean", linestyle="--")
 
-        if self.app.median.get():
+        if self.median:
             # calculate median and plot
             x, y = Statistic.median(self.reader.energies, info_parameter)
             self.ax.plot(x, y, label="Median", linestyle="--")
 
-        if self.app.cummulative_average.get():
+        if self.cummulative_average:
             # calculate cummulative average and plot
             x, y = Statistic.cummulative_average(self.reader.energies,
                                                  info_parameter)
@@ -145,7 +145,7 @@ class PlotTime(Plot):
                 linestyle="--",
             )
 
-        if self.app.auto_correlation.get():
+        if self.auto_correlation:
             # calculate auto correlation and plot
             x, y = Statistic.auto_correlation(self.reader.energies,
                                               info_parameter)
@@ -156,14 +156,18 @@ class PlotTime(Plot):
                 linestyle="--",
             )
 
-        if self.app.running_average.get():
+        if self.running_average:
             # calculate running average and plot
-            window_size = self.app.window_size.get()
+            window_size = self.window_size
 
             if window_size == "":
                 window_size_int = 1000  # default window size
             else:
-                window_size_int = int(window_size)
+                window_size_int = int(float(window_size))
+
+            if window_size_int > len(self.reader.energies):
+                print("Window size is larger than the data.")
+                return None
 
             x, y = Statistic.running_average(self.reader.energies,
                                              info_parameter, window_size_int)

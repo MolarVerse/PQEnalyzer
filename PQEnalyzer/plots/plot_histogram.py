@@ -6,8 +6,8 @@ import os
 from scipy.stats import gaussian_kde
 import numpy as np
 
+from ..statistics import Statistic
 from .plot import Plot
-from .statistic import Statistic
 
 
 class PlotHistogram(Plot):
@@ -141,7 +141,7 @@ class PlotHistogram(Plot):
         None
         """
 
-        if self.app.mean.get():
+        if self.mean:
             # calculate mean and plot
             _, y = Statistic.mean(self.reader.energies, info_parameter)
             self.ax.vlines(y,
@@ -151,7 +151,7 @@ class PlotHistogram(Plot):
                            linestyles="--",
                            colors="blue")
 
-        if self.app.median.get():
+        if self.median:
             # calculate median and plot
             _, y = Statistic.median(self.reader.energies, info_parameter)
             # plot dependent y_max of histogram
