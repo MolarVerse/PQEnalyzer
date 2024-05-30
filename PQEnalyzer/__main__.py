@@ -13,28 +13,6 @@ from .gui import App
 from .readers import Reader
 
 
-def signal_handler(sig, frame, app):
-    """
-    The signal handler function for the PQEnalyzer project.
-
-    Parameters
-    ----------
-    sig : int
-        The signal number.
-    frame : Frame
-        The frame object.
-    app : App
-        The main application object.
-
-    Returns
-    -------
-    None
-    """
-    app.destroy()
-    app.quit()
-    sys.exit(0)
-
-
 def main():
     """
     The main function of the PQEnalyzer project.
@@ -84,10 +62,6 @@ def main():
     app = App(reader)
     app.build()
     app.mainloop()
-
-    # TODO: doesn't work
-    signal.signal(signal.SIGINT,
-                  lambda sig, frame: signal_handler(sig, frame, app))
 
     return None
 
