@@ -163,7 +163,7 @@ class PlotTime(Plot):
             if window_size == "":
                 window_size_int = 1000  # default window size
             else:
-                window_size_int = int(window_size)
+                window_size_int = int(float(window_size))
 
             x, y = Statistic.running_average(self.reader.energies,
                                              info_parameter, window_size_int)

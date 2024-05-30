@@ -65,8 +65,7 @@ class App(ctk.CTk):
         Destroy the app.
         """
         self.quit()
-        plt.close("all")
-        del(self)
+        del (self)
 
     def build(self):
         """
@@ -87,6 +86,10 @@ class App(ctk.CTk):
     def __build_sidebar(self):
         """
         Build the main window.
+
+        Returns
+        -------
+        None
         """
         # sidebar frame
         self.sidebar_frame = ctk.CTkFrame(self, width=140, corner_radius=0)
@@ -130,6 +133,10 @@ class App(ctk.CTk):
     def __build_button_menu(self):
         """
         Build the main window.
+
+        Returns
+        -------
+        None
         """
         self.plot_frame = ctk.CTkFrame(self, width=200)
         self.plot_frame.grid(row=2,
@@ -147,8 +154,8 @@ class App(ctk.CTk):
             border_width=2,
             text="Follow",
             variable=self.follow,
-            command=lambda: self.toggle_entry_state(self.check_follow, self.
-                                                    interval))
+            command=lambda: self.toggle_entry_state(
+                self.check_follow, self.interval, default="1.0"))
         self.check_follow.grid(row=0,
                                column=1,
                                padx=(10, 10),
@@ -178,7 +185,7 @@ class App(ctk.CTk):
         self.interval.configure(state="disabled")  # Initially disabled
 
         self.interval_label = ctk.CTkLabel(self.plot_frame,
-                                           text="Interval (ms):",
+                                           text="Interval (s):",
                                            anchor="w")
         self.interval_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
@@ -231,6 +238,10 @@ class App(ctk.CTk):
     def __build_info_option_menu(self):
         """
         Build the info selection window.
+
+        Returns
+        -------
+        None
         """
         self.info_frame = ctk.CTkFrame(self, width=200)
         self.info_frame.grid(row=0,
@@ -260,6 +271,10 @@ class App(ctk.CTk):
     def __build_settings_menu(self):
         """
         Build the settings window.
+
+        Returns
+        -------
+        None
         """
         self.settings_frame = ctk.CTkFrame(self, width=200)
         self.settings_frame.grid(row=1,
@@ -299,8 +314,8 @@ class App(ctk.CTk):
         self.running_average = ctk.CTkCheckBox(
             self.settings_frame,
             text="Running Average",
-            command=lambda: self.toggle_entry_state(self.running_average, self.
-                                                    window_size))
+            command=lambda: self.toggle_entry_state(
+                self.running_average, self.window_size, default="10"))
         self.running_average.grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.running_average_window_size_label = ctk.CTkLabel(
             self.settings_frame, text="Window Size:", anchor="w")
@@ -322,48 +337,73 @@ class App(ctk.CTk):
         """
         Validate if the input is a number.
         """
-        return value.isdigit() or value == ""
+        return value == "" or value.replace(".", "", 1).isdigit()
 
-    def toggle_entry_state(self, event, entry):
+    def toggle_entry_state(self, event, entry, default=""):
         """
         Toggle the state of the entry.
         """
         if event.get():
             entry.configure(state="normal")
-            entry.insert(0, "1000")
+            entry.insert(0, default)
         else:
             entry.delete(0, ctk.END)
             entry.configure(state="disabled")
 
-    def __change_appearance_mode_event(self, new_appearance_mode: str):
+    def __change_appearance_mode_event(self, new_appearance_mode: str)
+        """ 
+        Change the appearance mode of the app.
+        """
+        
         ctk.set_appearance_mode(new_appearance_mode)
 
     def __change_info_event(self, new_info: str):
+        """
+        Change the info parameter to plot.
+        """
+
         self.__selected_info = new_info
 
     def __refresh_plots(self):
         """
-        Refresh the plots.
+        Refresh the plots. If the plot is closed, remove it from the list.
+
+        Returns
+        -------
+        None
         """
         for plot in self.list_of_plots:
 
-            if plot.plot_frame.number not in plt.get_fignums():
+            if plot.figure.number not in plt.get_fignums():
                 self.list_of_plots.remove(plot)
+                continue
 
-            plot.refresh(self.__selected_info)
+            plot.refresh()
 
     def __plot_button_event(self, event):
         """
         Plot the data and checks if the user wants to follow the plot.
+        Appends the plot to the list of plots. If the user wants to follow the plot,
+        the plot is updated at a given interval.
+
+        Parameters
+        ----------
+        event : int
+            The event that triggered the function. 0 for time plot, 1 for histogram plot.
+
+        Returns
+        -------
+        None
         """
+
         if event == 0:
             plot = PlotTime(self)
         elif event == 1:
             plot = PlotHistogram(self)
 
-        if self.follow.get():
-            plot.follow(self.__selected_info, int(self.interval.get()))
-        else:
-            plot.display(self.__selected_info)
-
         self.list_of_plots.append(plot)
+
+        if self.follow.get():
+            plot.follow(self.__selected_info, float(self.interval.get()))
+        else:
+            plot.simple(self.__selected_info)

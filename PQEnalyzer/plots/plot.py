@@ -26,7 +26,7 @@ class Plot(metaclass=ABCMeta):
         Plot the live data at a given interval in milliseconds.
     """
 
-    def __init__(self, app, id: int = 2):
+    def __init__(self, app):
         """
         Constructs all the necessary attributes for the Plot object.
 
@@ -46,10 +46,34 @@ class Plot(metaclass=ABCMeta):
         # read parameters from the app
         self.get_app_parameters()
 
-        self.figure = plt.figure(id)
+        # create the plot
+        self.figure = plt.figure()
         self.ax = self.figure.add_subplot(111)
 
-        return None
+        # set the signal handler
+        signal.signal(
+            signal.SIGINT,
+            lambda signal, frame: self.signal_handler(signal, frame),
+        )
+
+    def signal_handler(self, signal, frame):
+        """
+        Close the plot window when the signal is received.
+
+        Parameters
+        ----------
+        signal : int
+            The signal to handle.
+        frame : int
+            The frame to handle.
+
+        Returns
+        -------
+        None
+        """
+
+        plt.close("all")
+        self.app.destroy()
 
     def get_app_parameters(self):
         """
@@ -143,14 +167,19 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
+        # Reads the last data
         self.reader.read_last()
 
+        # Get the new parameters
         self.get_app_parameters()
 
+        # Clear the plot
         self.ax.clear()
 
+        # Plot the data
         self.plot_data()
 
+        # Show the plot
         plt.show()
 
     def plot_data(self) -> None:
