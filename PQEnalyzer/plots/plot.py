@@ -142,7 +142,7 @@ class Plot(metaclass=ABCMeta):
             self.plot_data()
             return []
 
-        ani = animation.FuncAnimation(
+        self.ani = animation.FuncAnimation(
             self.figure,
             update,
             blit=True,
