@@ -4,6 +4,7 @@ The plot module contains the Plot class for the PQEnalyzer application.
 import signal
 from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 class Plot(metaclass=ABCMeta):
@@ -25,7 +26,7 @@ class Plot(metaclass=ABCMeta):
         Plot the live data at a given interval in milliseconds.
     """
 
-    def __init__(self, app):
+    def __init__(self, app, id: int = 2):
         """
         Constructs all the necessary attributes for the Plot object.
 
@@ -45,10 +46,10 @@ class Plot(metaclass=ABCMeta):
         # read parameters from the app
         self.get_app_parameters()
 
-        # create the plot frame
-        self.plot_frame = plt.figure()
-        self.ax = self.plot_frame.add_subplot(111)
-        self.plot_frame.show()
+        self.figure = plt.figure(id)
+        self.ax = self.figure.add_subplot(111)
+
+        return None
 
     def get_app_parameters(self):
         """
@@ -70,7 +71,7 @@ class Plot(metaclass=ABCMeta):
 
         return None
 
-    def display(self, info_parameter: str) -> None:
+    def simple(self, info_parameter: str) -> None:
         """
         Plot the data. If the button is not checked, plot the main data.
         Checks if the statistics buttons are checked and plots the statistics, too.
@@ -85,15 +86,14 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
+        self.info_parameter = info_parameter
+
         # if button is not checked, plot main data
-        if not self.plot_main:
-            self.main_data(info_parameter)
+        self.plot_data()
 
-        self.statistics(info_parameter)
+        plt.show()
 
-        self.labels(info_parameter)
-
-    def follow(self, info_parameter: str, interval: int = 1000) -> None:
+    def follow(self, info_parameter: str, interval: float = 1.0) -> None:
         """
         Plot the live data. Clears the plot and replots the data at a given interval.
         Exits the plot if the window is closed.
@@ -103,27 +103,32 @@ class Plot(metaclass=ABCMeta):
         info_parameter : str
             The info parameter to plot.
         interval : int, optional
-            The interval at which the plot is updated in milliseconds. Default is 1000.
+            The interval at which the plot is updated in seconds
 
         Returns
         -------
         None
         """
 
-        while True:
-            # clear the plot
-            self.ax.clear()
+        self.info_parameter = info_parameter
+
+        def update(frame):
             self.reader.read_last()
+            self.ax.clear()
+            self.plot_data()
+            return []
 
-            self.display(info_parameter)
+        ani = animation.FuncAnimation(
+            self.figure,
+            update,
+            blit=True,
+            interval=interval * 1000,
+            cache_frame_data=False,
+        )
 
-            if self.plot_frame.number not in plt.get_fignums():
-                break
+        plt.show()
 
-            # sleep for interval
-            plt.pause(interval / 1000)
-
-    def refresh(self, info_parameter: str) -> None:
+    def refresh(self) -> None:
         """
         Refresh the plot. Clears the plot, gets the new parameters
         and plots the data again.
@@ -137,40 +142,38 @@ class Plot(metaclass=ABCMeta):
         -------
         None
         """
+
         self.reader.read_last()
+
         self.get_app_parameters()
 
         self.ax.clear()
-        self.display(info_parameter)
 
-    def updatePlot(self, info_parameter: str) -> None:
+        self.plot_data()
+
+        plt.show()
+
+    def plot_data(self) -> None:
         """
-        Refresh the plot. Clears the plot, gets the new parameters
-        and plots the data again.
+        Plot the data.
 
         Parameters
         ----------
-        info_parameter : str
-            The info parameter to plot.
-
-        Raises
-        ------
-        Exception
-            If the reader cannot read the last file. 
+        None
 
         Returns
         -------
         None
         """
 
-        try:
-            self.reader.read_last()
-        except Exception as e:
-            raise e
+        if not self.plot_main:
+            self.main_data(self.info_parameter)
 
-        self.ax.clear()
+        self.statistics(self.info_parameter)
 
-        self.display(info_parameter)
+        self.labels(self.info_parameter)
+
+        return None
 
     @abstractmethod
     def main_data(self, info_parameter: str):
