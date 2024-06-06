@@ -30,7 +30,7 @@ dependencies = [
     "Pillow",
     "scipy",
     "plotext",
-    "inquirer",
+    "InquirerPy",
 ]
 
 [project.optional-dependencies]
