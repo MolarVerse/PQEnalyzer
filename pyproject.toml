@@ -24,10 +24,13 @@ dependencies = [
     "beartype",
     "customtkinter",
     "matplotlib",
+    "argcomplete",
     "numpy",
     "tk",
     "Pillow",
-    "scipy"
+    "scipy",
+    "plotext",
+    "inquirer",
 ]
 
 [project.optional-dependencies]
