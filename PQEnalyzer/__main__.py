@@ -31,7 +31,7 @@ def main():
     parser = argparse.ArgumentParser(description="PQEnalyzer - MolarVerse")
     parser.add_argument(
         "filenames",
-        metavar="filename",
+        metavar="filenames",
         nargs="+",
         help="The name of the energy files to read the data from.")
     parser.add_argument("-q",
