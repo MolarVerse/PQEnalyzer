@@ -24,7 +24,6 @@ dependencies = [
     "beartype",
     "customtkinter",
     "matplotlib",
-    "argparser",
     "argcomplete",
     "numpy",
     "tk",
