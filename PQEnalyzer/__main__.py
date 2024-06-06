@@ -11,6 +11,7 @@ from PQAnalysis.traj import MDEngineFormat
 from .__version__ import __version__
 from .gui import App
 from .readers import Reader
+from .plots import TermPlot
 
 
 def main():
@@ -36,6 +37,10 @@ def main():
                         "--qmcfc",
                         action="store_true",
                         help="Use the QMCFC output as input.")
+    parser.add_argument("-n",
+                        "--no-gui",
+                        action="store_true",
+                        help="Opens the terminal plotting feature.")
     parser.add_argument("-v",
                         "--version",
                         action="version",
@@ -58,10 +63,19 @@ def main():
         print(e)
         sys.exit(1)
 
-    # create the app
-    app = App(reader)
-    app.build()
-    app.mainloop()
+    # if the user wants to use the terminal plotting feature
+    if parser.parse_args().no_gui:
+
+        # create the termplot
+        termplot = TermPlot(reader)
+        termplot.plot("TEMPERATURE")
+
+        return None
+    else:
+        # create the app
+        app = App(reader)
+        app.build()
+        app.mainloop()
 
     return None
 
