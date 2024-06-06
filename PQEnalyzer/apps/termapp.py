@@ -2,7 +2,7 @@
 This module allows the user to plot the data in the terminal.
 """
 import signal
-import inquirer
+from InquirerPy import inquirer
 
 from ..plots import TermPlot
 
@@ -39,8 +39,6 @@ class TermApp:
             *self.reader.energies[0].info,
         ][1:]
 
-        signal.signal(signal.SIGINT, self.signal_handler)
-
         return None
 
     def run(self):
@@ -56,17 +54,15 @@ class TermApp:
         None
         """
 
-        questions = [
-            inquirer.List(
-                "info_parameter",
-                message="Select the information parameter to plot",
-                choices=self.info,
-            )
-        ]
+        result = inquirer.select(
+            message="Select the information parameter to plot",
+            choices=self.info,
+            vi_mode=True,
+            mandatory=True,
+        ).execute()
 
-        answers = inquirer.prompt(questions)
         termplot = TermPlot(self.reader)
-        termplot.plot(answers["info_parameter"])
+        termplot.plot(result)
 
         return None
 
@@ -82,32 +78,23 @@ class TermApp:
         -------
         None
         """
+        try:
+            self.run()
+            _exit = inquirer.confirm(
+                message="Do you want to exit?",
+                default=False,
+                vi_mode=True,
+                keybindings={
+                    "interrupt": [{
+                        "key": "c-d"
+                    }]
+                },
+            ).execute()
 
-        self.run()
-        _exit = [
-            inquirer.questions.Confirm(
-                "exit", message="Do you want to exit?", default=False
-            )
-        ]
-        answer = inquirer.prompt(_exit)
-        if answer["exit"]:
+            if _exit:
+                return None
+
+        except KeyboardInterrupt:
             return None
 
         return self.start()
-
-    def signal_handler(self, signal, frame):
-        """
-        Handle the signal.
-
-        Parameters
-        ----------
-        signal : int
-            The signal number.
-        frame : Frame
-            The frame.
-
-        Returns
-        -------
-        None
-        """
-        exit(0)
