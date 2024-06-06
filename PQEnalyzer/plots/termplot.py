@@ -17,6 +17,8 @@ class TermPlot:
 
     Methods
     -------
+    plot(info_parameter)
+        Plot the data in the terminal.
     """
 
     def __init__(self, reader):
@@ -60,3 +62,4 @@ class TermPlot:
                 f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
             )
         plt.show()
+        plt.clear_figure()

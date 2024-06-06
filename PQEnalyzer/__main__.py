@@ -9,9 +9,8 @@ import argcomplete
 from PQAnalysis.traj import MDEngineFormat
 
 from .__version__ import __version__
-from .gui import App
+from .apps import App, TermApp
 from .readers import Reader
-from .plots import TermPlot
 
 
 def main():
@@ -70,12 +69,9 @@ def main():
 
     # if the user wants to use the terminal plotting feature
     if parser.parse_args().no_gui:
-
         # create the termplot
-        termplot = TermPlot(reader)
-        termplot.plot("TEMPERATURE")
-
-        return None
+        termapp = TermApp(reader)
+        termapp.start()
     else:
         # create the app
         app = App(reader)
