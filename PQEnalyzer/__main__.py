@@ -3,9 +3,9 @@ This is the main file of the PQEnalyzer project. It contains the
 main function that is executed when the program is run.
 """
 
-import signal
 import sys
 import argparse
+import argcomplete
 from PQAnalysis.traj import MDEngineFormat
 
 from .__version__ import __version__
@@ -16,7 +16,9 @@ from .plots import TermPlot
 
 def main():
     """
-    The main function of the PQEnalyzer project.
+    The main function of the PQEnalyzer project. It reads the data
+    from the energy files and plots the data in the GUI or in the terminal.
+    Use the -h or --help flag to see the command line arguments.
 
     Parameters
     ----------
@@ -45,6 +47,9 @@ def main():
                         "--version",
                         action="version",
                         version=f"PQEnalyzer {__version__}")
+
+    # autocomplete the command line arguments
+    argcomplete.autocomplete(parser)
 
     # get command line arguments
     filenames = parser.parse_args().filenames
