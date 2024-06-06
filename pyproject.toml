@@ -20,14 +20,18 @@ classifiers = [
 ]
 
 dependencies = [
-    "PQAnalysis==1.0",
+    "PQAnalysis>=1.0",
     "beartype",
     "customtkinter",
     "matplotlib",
+    "argparser",
+    "argcomplete",
     "numpy",
     "tk",
     "Pillow",
-    "scipy"
+    "scipy",
+    "plotext",
+    "inquirer",
 ]
 
 [project.optional-dependencies]
