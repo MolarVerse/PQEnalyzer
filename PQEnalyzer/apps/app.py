@@ -191,9 +191,7 @@ class App(ctk.CTk):
 
         self.button_plot = ctk.CTkButton(
             master=self.plot_frame,
-            fg_color="transparent",
             border_width=2,
-            text_color=("gray10", "#DCE4EE"),
             text="Plot",
             command=lambda: self.__plot_button_event(0),
         )
@@ -207,9 +205,7 @@ class App(ctk.CTk):
 
         self.button_hist = ctk.CTkButton(
             master=self.plot_frame,
-            fg_color="transparent",
             border_width=2,
-            text_color=("gray10", "#DCE4EE"),
             text="Histogram",
             command=lambda: self.__plot_button_event(1),
         )
@@ -222,9 +218,7 @@ class App(ctk.CTk):
 
         self.button_refresh = ctk.CTkButton(  # refresh button
             master=self.plot_frame,
-            fg_color="transparent",
             border_width=2,
-            text_color=("gray10", "#DCE4EE"),
             text="Refresh",
             command=self.__refresh_plots,
         )
