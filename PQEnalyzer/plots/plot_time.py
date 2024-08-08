@@ -99,9 +99,6 @@ class PlotTime(Plot):
         else:
             # legend outside of plot
             self.ax.legend(
-                loc="upper center",
-                bbox_to_anchor=(0.5, 1.15),
-                ncol=5,
                 fancybox=True,
                 shadow=True,
             )
