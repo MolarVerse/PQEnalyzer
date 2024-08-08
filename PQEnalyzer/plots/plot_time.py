@@ -4,6 +4,7 @@ for the PQEnalyzer application.
 """
 
 import os
+import numpy as np
 
 from ..statistics import Statistic
 from .plot import Plot
@@ -62,12 +63,12 @@ class PlotTime(Plot):
         """
 
         for i, energy in enumerate(self.reader.energies):
-            basename = os.path.basename(self.reader.filenames[i])
             self.ax.plot(
                 energy.simulation_time,
                 energy.data[energy.info[info_parameter]],
-                label=basename,
+                label=self.reader.filenames[i],
             )
+        self.add_value_label(energy.simulation_time, energy.data[energy.info[info_parameter]])
 
     def labels(self, info_parameter: str) -> None:
         """
@@ -100,9 +101,7 @@ class PlotTime(Plot):
         else:
             # legend outside of plot
             self.ax.legend(
-                loc="upper center",
-                bbox_to_anchor=(0.5, 1.15),
-                ncol=5,
+                fontsize="small",
                 fancybox=True,
                 shadow=True,
             )
@@ -129,10 +128,14 @@ class PlotTime(Plot):
             x, y = Statistic.mean(self.reader.energies, info_parameter)
             self.ax.plot(x, y, label="Mean", linestyle="--")
 
+            self.add_value_label(x, y)
+
         if self.median:
             # calculate median and plot
             x, y = Statistic.median(self.reader.energies, info_parameter)
             self.ax.plot(x, y, label="Median", linestyle="--")
+
+            self.add_value_label(x, y)
 
         if self.cummulative_average:
             # calculate cummulative average and plot
@@ -145,6 +148,8 @@ class PlotTime(Plot):
                 linestyle="--",
             )
 
+            self.add_value_label(x, y)
+
         if self.auto_correlation:
             # calculate auto correlation and plot
             x, y = Statistic.auto_correlation(self.reader.energies,
@@ -156,6 +161,8 @@ class PlotTime(Plot):
                 linestyle="--",
             )
 
+            self.add_value_label(x, y)
+
         if self.running_average:
             # calculate running average and plot
             window_size = self.window_size
@@ -165,17 +172,48 @@ class PlotTime(Plot):
             else:
                 window_size_int = int(float(window_size))
 
-            if window_size_int > len(self.reader.energies):
-                print("Window size is larger than the data.")
-                return None
-
-            x, y = Statistic.running_average(self.reader.energies,
+            try:
+                x, y = Statistic.running_average(self.reader.energies,
                                              info_parameter, window_size_int)
+            except ValueError:
+                # raise warning if window size is too large
+                print("Window size is too large.")
+                return None
+                
             self.ax.plot(
                 x,
                 y,
                 label="Running Average (" + str(window_size_int) + ")",
                 linestyle="--",
             )
+
+            self.add_value_label(x, y)
+
+        return None
+
+    def add_value_label(self, x, y) -> None:
+        """
+        Add a value label of the last y point to the plot frame.
+
+        Parameters
+        ----------
+        x : float
+            The x coordinate of the value label.
+        y : float
+            The y coordinate of the value label.
+
+        Returns
+        -------
+        None
+        """
+
+        self.ax.text(
+            self.ax.get_xlim()[1],
+            y[-1],
+            f"{y[-1]:.3e}",
+            fontsize=8,
+            horizontalalignment="left",
+            bbox=dict(facecolor="white", alpha=0.5, edgecolor="white"),
+        )
 
         return None
