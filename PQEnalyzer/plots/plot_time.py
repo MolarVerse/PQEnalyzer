@@ -99,6 +99,7 @@ class PlotTime(Plot):
         else:
             # legend outside of plot
             self.ax.legend(
+                fontsize="small",
                 fancybox=True,
                 shadow=True,
             )
