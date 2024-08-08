@@ -62,11 +62,10 @@ class PlotTime(Plot):
         """
 
         for i, energy in enumerate(self.reader.energies):
-            basename = os.path.basename(self.reader.filenames[i])
             self.ax.plot(
                 energy.simulation_time,
                 energy.data[energy.info[info_parameter]],
-                label=basename,
+                label=self.reader.filenames[i],
             )
 
     def labels(self, info_parameter: str) -> None:
