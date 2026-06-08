@@ -64,17 +64,22 @@ class TestStatistic:
         time, auto_correlation = Statistic.auto_correlation(
             energies, "SIMULATION-TIME")
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.allclose(auto_correlation,
-                           [2.1666, 2.8571, 3.6666, 4., 4.3333],
-                           rtol=1e-4)
+        assert np.allclose(auto_correlation, [1, 0.4, -0.1, -0.4, -0.4])
 
         energies2 = Reader(["tests/data/md-02.en"], MDEngineFormat.PQ).energies
         time, auto_correlation = Statistic.auto_correlation(
             energies2, "SIMULATION-TIME")
         assert np.all(time == [6, 7, 8, 9, 10])
-        assert np.allclose(auto_correlation,
-                           [7.0741, 7.6471, 8.25, 8.6666, 9.0952],
-                           rtol=1e-4)
+        assert np.allclose(auto_correlation, [1, 0.4, -0.1, -0.4, -0.4])
+
+    def test_auto_correlation_constant_data(self):
+        energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
+
+        time, auto_correlation = Statistic.auto_correlation(
+            energies, "E(INTRA)")
+
+        assert np.all(time == [1, 2, 3, 4, 5])
+        assert np.all(auto_correlation == [1, 0, 0, 0, 0])
 
     def test_running_average(self):
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies

@@ -46,7 +46,7 @@ class Statistic:
     >>> Statistic.cumulative_average(energies, "ENERGY")
     ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
     >>> Statistic.auto_correlation(energies, "ENERGY")
-    ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
+    ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
     >>> Statistic.running_average(energies, "ENERGY", 2)
     ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
     """
@@ -161,7 +161,7 @@ class Statistic:
     @staticmethod
     def auto_correlation(energies, info_parameter) -> tuple:
         """
-        Calculate the auto correlation of the data.
+        Calculate the normalized autocorrelation of the data.
 
         Parameters
         ----------
@@ -173,20 +173,30 @@ class Statistic:
         Returns
         -------
         tuple
-            A tuple containing the time and auto correlation of the data.
+            A tuple containing the time and normalized autocorrelation data.
 
         Examples
         --------
         >>> Statistic.auto_correlation(energies, "ENERGY")
-        ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
+        ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
         """
 
-        data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies])
+        data = np.concatenate([
+            energy.data[energy.info[info_parameter]]
+            for energy in energies
+        ]).astype(float)
 
-        auto_correlation = np.correlate(
-            data, data, mode="same") / np.correlate(
-                np.ones_like(data), data, mode="same")
+        centered_data = data - np.mean(data)
+        zero_lag_correlation = np.dot(centered_data, centered_data)
+
+        if zero_lag_correlation == 0:
+            auto_correlation = np.zeros_like(data)
+            auto_correlation[0] = 1
+        else:
+            auto_correlation = (
+                np.correlate(centered_data, centered_data,
+                             mode="full")[len(data) - 1:] /
+                zero_lag_correlation)
 
         time = np.concatenate([energy.simulation_time for energy in energies])
 
