@@ -3,9 +3,6 @@ The plot the parameters dependent on the simulation time
 for the PQEnalyzer application.
 """
 
-import os
-import numpy as np
-
 from ..statistics import Statistic
 from .plot import Plot
 
@@ -165,21 +162,16 @@ class PlotTime(Plot):
 
         if self.running_average:
             # calculate running average and plot
-            window_size = self.window_size
-
-            if window_size == "":
-                window_size_int = 1000  # default window size
-            else:
-                window_size_int = int(float(window_size))
-
             try:
+                window_size_int = self.__parse_window_size(self.window_size)
                 x, y = Statistic.running_average(self.reader.energies,
-                                             info_parameter, window_size_int)
-            except ValueError:
+                                                  info_parameter,
+                                                  window_size_int)
+            except ValueError as error:
                 # raise warning if window size is too large
-                print("Window size is too large.")
+                print(error)
                 return None
-                
+
             self.ax.plot(
                 x,
                 y,
@@ -190,6 +182,21 @@ class PlotTime(Plot):
             self.add_value_label(x, y)
 
         return None
+
+    def __parse_window_size(self, window_size):
+        """
+        Parse the running-average window size from a GUI entry string.
+        """
+        stripped_window_size = window_size.strip()
+
+        if stripped_window_size in {"", "."}:
+            return 1000
+
+        parsed_window_size = int(float(stripped_window_size))
+        if parsed_window_size < 1:
+            raise ValueError("Window size must be positive")
+
+        return parsed_window_size
 
     def add_value_label(self, x, y) -> None:
         """

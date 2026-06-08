@@ -70,7 +70,7 @@ class PlotHistogram(Plot):
                 # raise warning if no data to plot
                 # TODO: change to logger
                 print("Data zero. No histogram available.")
-                return None
+                continue
 
             # plot kde of histogram
             kde = gaussian_kde(energy.data[energy.info[info_parameter]])
@@ -144,7 +144,7 @@ class PlotHistogram(Plot):
         if self.mean:
             # calculate mean and plot
             _, y = Statistic.mean(self.reader.energies, info_parameter)
-            self.ax.vlines(y,
+            self.ax.vlines(float(y[0]),
                            0,
                            self.ax.get_ylim()[1],
                            label="Mean",
@@ -155,7 +155,7 @@ class PlotHistogram(Plot):
             # calculate median and plot
             _, y = Statistic.median(self.reader.energies, info_parameter)
             # plot dependent y_max of histogram
-            self.ax.vlines(y,
+            self.ax.vlines(float(y[0]),
                            0,
                            self.ax.get_ylim()[1],
                            label="Median",
