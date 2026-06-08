@@ -1,11 +1,12 @@
-name: Publish Python distribution to PyPI and TestPyPI
+name: Publish Python distribution
 
-on: 
+on:
   push:
     tags:
       - '**'
 
-permissions: write-all
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -60,7 +61,6 @@ jobs:
 
     permissions:
       contents: write  # IMPORTANT: mandatory for making GitHub Releases
-      id-token: write  # IMPORTANT: mandatory for sigstore
 
     steps:
     - uses: actions/checkout@v4
@@ -77,27 +77,36 @@ jobs:
         python3 -m pip install git-changelog
 
     - name: Get previous tag
-      id: previousTag
+      id: previous_tag
       run: |
-        name=$(git --no-pager tag --sort=creatordate --merged ${{ github.ref_name }} | tail -2 | head -1)
-        echo "previousTag: $name"
-        echo "previousTag=$name" >> $GITHUB_ENV
-        echo "::set-output name=previousTag::$name"
+        previous_tag="$(git --no-pager tag --sort=creatordate --merged "$GITHUB_REF_NAME" | grep -Fxv "$GITHUB_REF_NAME" | tail -1 || true)"
+        echo "previous tag: $previous_tag"
+        echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
 
-    - name: generate new changelog
+    - name: Generate release notes
+      id: changelog
       run: |
-        name=$(git --no-pager tag --sort=creatordate --merged ${{ github.ref_name }} | tail -2 | head -1)
-        echo "git-changelog=$(git-changelog --sections ci,doc,feat,fix,perf,test -F "$name.." -c angular)" >> $GITHUB_ENV
+        {
+          echo "notes<<EOF"
+          if [ -n "${{ steps.previous_tag.outputs.previous_tag }}" ]; then
+            git-changelog --sections ci,doc,feat,fix,perf,test -F "${{ steps.previous_tag.outputs.previous_tag }}.." -c angular
+          else
+            git-changelog --sections ci,doc,feat,fix,perf,test -c angular
+          fi
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      run: >-
-        gh release create
-        '${{ github.ref_name }}'
-        --repo '${{ github.repository }}'
-        --notes "${changelog}"
+        RELEASE_NOTES: ${{ steps.changelog.outputs.notes }}
+      run: |
+        if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes "$RELEASE_NOTES"
+        else
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes "$RELEASE_NOTES"
+        fi
 
     - name: Build CHANGELOG.md
       run: |
@@ -109,14 +118,16 @@ jobs:
         git config --global user.name "github-actions[bot]"
 
         git add CHANGELOG.md
-        git commit -m "Docs: Update CHANGELOG.md on release event"
+        if git diff --cached --quiet; then
+          echo "No changelog changes to commit."
+          exit 0
+        fi
+
+        git commit -m "doc: update changelog"
 
     - name: Push changes
       if: github.event_name == 'push'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: 'main'
+      run: git push origin HEAD:main
 
   pypi-release-update:
     name: >-

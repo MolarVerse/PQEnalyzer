@@ -12,10 +12,10 @@ authors = [
 ]
 description = "A package that help analyze PQ energy and parameter output."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
@@ -43,6 +43,19 @@ test = [
 
 [tool.setuptools_scm]
 version_file = "PQEnalyzer/__version__.py"
+
+[tool.pytest.ini_options]
+markers = [
+    "benchmark: performance benchmark tests",
+]
+
+[tool.coverage.run]
+omit = [
+    "PQEnalyzer/__main__.py",
+    "PQEnalyzer/__version__.py",
+    "PQEnalyzer/apps/*",
+    "PQEnalyzer/plots/*",
+]
 
 [project.scripts]
 pqenalyzer = "PQEnalyzer.__main__:main"

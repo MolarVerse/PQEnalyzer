@@ -6,11 +6,8 @@ main function that is executed when the program is run.
 import sys
 import argparse
 import argcomplete
-from PQAnalysis.traj import MDEngineFormat
 
-from .__version__ import __version__
-from .apps import App, TermApp
-from .readers import Reader
+from . import __version__
 
 
 def main():
@@ -50,25 +47,28 @@ def main():
     # autocomplete the command line arguments
     argcomplete.autocomplete(parser)
 
-    # get command line arguments
-    filenames = parser.parse_args().filenames
+    args = parser.parse_args()
 
-    # set the md format
+    from PQAnalysis.traj import MDEngineFormat
+
+    from .apps import App, TermApp
+    from .readers import Reader
+
     md_format = MDEngineFormat.PQ
 
     # if the user wants to use the QMCFC output as input
-    if parser.parse_args().qmcfc:
+    if args.qmcfc:
         md_format = MDEngineFormat.QMCFC  # set the md format to QMCFC
 
     # create the reader
     try:
-        reader = Reader(filenames, md_format)
+        reader = Reader(args.filenames, md_format)
     except Exception as e:
         print(e)
         sys.exit(1)
 
     # if the user wants to use the terminal plotting feature
-    if parser.parse_args().no_gui:
+    if args.no_gui:
         # create the termplot
         termapp = TermApp(reader)
         termapp.start()

@@ -19,8 +19,10 @@ class Statistic:
         Calculate the mean of the data.
     median(energies, info_parameter)
         Calculate the median of the data.
+    cumulative_average(energies, info_parameter)
+        Calculate the cumulative average of the data.
     cummulative_average(energies, info_parameter)
-        Calculate the cummulative average of the data with a given window size.
+        Backward-compatible alias for cumulative_average.
     auto_correlation(energies, info_parameter)
         Calculate the auto correlation of the data.
     running_average(energies, info_parameter, window_size)
@@ -41,7 +43,7 @@ class Statistic:
     ([1, 5], [1.0, 1.0])
     >>> Statistic.median(energies, "ENERGY")
     ([1, 5], [1.0, 1.0])
-    >>> Statistic.cummulative_average(energies, "ENERGY")
+    >>> Statistic.cumulative_average(energies, "ENERGY")
     ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
     >>> Statistic.auto_correlation(energies, "ENERGY")
     ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
@@ -117,36 +119,44 @@ class Statistic:
         return (np.array([time[0], time[-1]]), np.array([median, median]))
 
     @staticmethod
-    def cummulative_average(energies: list, info_parameter: str) -> tuple:
+    def cumulative_average(energies: list, info_parameter: str) -> tuple:
         """
-        Calculate the cummulative average of the data with a given window size.
+        Calculate the cumulative average of the data.
 
         Parameters
         ----------
         energies : list
             A list of energy objects.
         info_parameter : str
-            The info parameter to calculate the cummulative average of.
+            The info parameter to calculate the cumulative average of.
 
         Returns
         -------
         tuple
-            A tuple containing the time and cummulative average of the data.
+            A tuple containing the time and cumulative average of the data.
 
         Examples
         --------
-        >>> Statistic.cummulative_average(energies, "ENERGY")
+        >>> Statistic.cumulative_average(energies, "ENERGY")
         ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
         """
 
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies])
 
-        cummulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
+        cumulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
 
         time = np.concatenate([energy.simulation_time for energy in energies])
 
-        return time, cummulative_average
+        return time, cumulative_average
+
+    @staticmethod
+    def cummulative_average(energies: list, info_parameter: str) -> tuple:
+        """
+        Backward-compatible alias for cumulative_average.
+        """
+
+        return Statistic.cumulative_average(energies, info_parameter)
 
     @staticmethod
     def auto_correlation(energies, info_parameter) -> tuple:
@@ -205,7 +215,7 @@ class Statistic:
         Raises
         ------
         ValueError
-            If the window size is larger than the given data point.
+            If the window size is not positive or is larger than the data.
 
         Examples
         --------
@@ -215,6 +225,9 @@ class Statistic:
 
         data = np.concatenate(
             [energy.data[energy.info[info_parameter]] for energy in energies])
+
+        if window_size < 1:
+            raise ValueError("Window size must be positive")
 
         # Check if data is smaller than window_size
         if len(data) < window_size:
@@ -226,13 +239,10 @@ class Statistic:
         ])
 
         # Centered to the middle of the window
-        time = np.mean(
-            [
-                np.concatenate([energy.simulation_time
-                                for energy in energies])[i:i + window_size]
-                for i in range(len(data) - window_size + 1)
-            ],
-            axis=1,
-        )
+        time = np.concatenate([energy.simulation_time for energy in energies])
+        time = np.array([
+            np.mean(time[i:i + window_size])
+            for i in range(len(data) - window_size + 1)
+        ])
 
         return time, running_average
