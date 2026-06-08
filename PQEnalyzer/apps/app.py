@@ -290,7 +290,7 @@ class App(ctk.CTk):
         self.median = ctk.CTkCheckBox(self.settings_frame, text="Median")
         self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.cummulative_average = ctk.CTkCheckBox(self.settings_frame,
-                                                   text="Cummulative Average")
+                                                   text="Cumulative Average")
         self.cummulative_average.grid(row=3,
                                       column=0,
                                       padx=10,

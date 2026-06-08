@@ -35,18 +35,29 @@ class TestStatistic:
         assert np.all(time == [6, 10])
         assert np.all(median == [8, 8])
 
-    def test_cummulative_average(self):
+    def test_cumulative_average(self):
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
-        time, cummulative_average = Statistic.cummulative_average(
+        time, cumulative_average = Statistic.cumulative_average(
             energies, "SIMULATION-TIME")
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(cummulative_average == [1, 1.5, 2, 2.5, 3])
+        assert np.all(cumulative_average == [1, 1.5, 2, 2.5, 3])
 
         energies2 = Reader(["tests/data/md-02.en"], MDEngineFormat.PQ).energies
-        time, cummulative_average = Statistic.cummulative_average(
+        time, cumulative_average = Statistic.cumulative_average(
             energies2, "SIMULATION-TIME")
         assert np.all(time == [6, 7, 8, 9, 10])
-        assert np.all(cummulative_average == [6, 6.5, 7, 7.5, 8])
+        assert np.all(cumulative_average == [6, 6.5, 7, 7.5, 8])
+
+    def test_cummulative_average_keeps_backward_compatibility(self):
+        energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
+
+        old_time, old_average = Statistic.cummulative_average(
+            energies, "SIMULATION-TIME")
+        new_time, new_average = Statistic.cumulative_average(
+            energies, "SIMULATION-TIME")
+
+        assert np.all(old_time == new_time)
+        assert np.all(old_average == new_average)
 
     def test_auto_correlation(self):
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
@@ -85,3 +96,9 @@ class TestStatistic:
 
         with pytest.raises(ValueError):
             Statistic.running_average(energies2, "SIMULATION-TIME", 6)
+
+        with pytest.raises(ValueError):
+            Statistic.running_average(energies2, "SIMULATION-TIME", 0)
+
+        with pytest.raises(ValueError):
+            Statistic.running_average(energies2, "SIMULATION-TIME", -1)

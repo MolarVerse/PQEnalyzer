@@ -138,13 +138,13 @@ class PlotTime(Plot):
             self.add_value_label(x, y)
 
         if self.cummulative_average:
-            # calculate cummulative average and plot
-            x, y = Statistic.cummulative_average(self.reader.energies,
-                                                 info_parameter)
+            # calculate cumulative average and plot
+            x, y = Statistic.cumulative_average(self.reader.energies,
+                                                info_parameter)
             self.ax.plot(
                 x,
                 y,
-                label="Cummulative Average",
+                label="Cumulative Average",
                 linestyle="--",
             )
 

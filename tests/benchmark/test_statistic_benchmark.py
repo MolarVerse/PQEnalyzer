@@ -3,6 +3,9 @@ Test the performance of the Statistic class
 """
 import pytest
 
+pytest.importorskip("pytest_benchmark",
+                    reason="pytest-benchmark is required for benchmark tests")
+
 from PQAnalysis.traj import MDEngineFormat
 from PQEnalyzer.readers import Reader
 from PQEnalyzer.statistics import Statistic

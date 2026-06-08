@@ -1,5 +1,7 @@
-import pytest
 import os
+import shutil
+
+import pytest
 
 from PQAnalysis.traj import MDEngineFormat
 from PQAnalysis.physical_data import EnergyError
@@ -51,6 +53,51 @@ class TestReader:
         with pytest.raises(ValueError):
             Reader(list_filenames, MDEngineFormat.PQ)
 
+    @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
+    def test_multiple_input_with_different_parameters(self, tmp_path,
+                                                      example_dir):
+        reference = tmp_path / "reference"
+        changed = tmp_path / "changed"
+        shutil.copyfile(example_dir + "md-02.en", reference.with_suffix(".en"))
+        shutil.copyfile(example_dir + "md-02.info",
+                        reference.with_suffix(".info"))
+        shutil.copyfile(example_dir + "md-02.en", changed.with_suffix(".en"))
+
+        changed_info = (reference.with_suffix(".info").read_text().replace(
+            "VOLUME", "BOX-VOLUME", 1))
+        changed.with_suffix(".info").write_text(changed_info)
+
+        with pytest.raises(ValueError, match="same info parameters"):
+            Reader(
+                [
+                    str(reference.with_suffix(".en")),
+                    str(changed.with_suffix(".en")),
+                ],
+                MDEngineFormat.PQ,
+            )
+
+    @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
+    def test_multiple_input_with_different_units(self, tmp_path, example_dir):
+        reference = tmp_path / "reference"
+        changed = tmp_path / "changed"
+        shutil.copyfile(example_dir + "md-02.en", reference.with_suffix(".en"))
+        shutil.copyfile(example_dir + "md-02.info",
+                        reference.with_suffix(".info"))
+        shutil.copyfile(example_dir + "md-02.en", changed.with_suffix(".en"))
+
+        changed_info = (reference.with_suffix(".info").read_text().replace(
+            "A^3", "nm^3", 1))
+        changed.with_suffix(".info").write_text(changed_info)
+
+        with pytest.raises(ValueError, match="same units"):
+            Reader(
+                [
+                    str(reference.with_suffix(".en")),
+                    str(changed.with_suffix(".en")),
+                ],
+                MDEngineFormat.PQ,
+            )
+
     def test_empty_input(self):
         list_filenames = []
 
@@ -76,3 +123,30 @@ class TestReader:
         assert energies == reader.energies
         assert energy1 == reader.energies[0]
         assert energy2 != reader.energies[1]
+
+    @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
+    def test_read_last_rejects_incompatible_refresh(self, tmp_path,
+                                                    example_dir):
+        reference = tmp_path / "reference"
+        changed = tmp_path / "changed"
+        shutil.copyfile(example_dir + "md-02.en", reference.with_suffix(".en"))
+        shutil.copyfile(example_dir + "md-02.info",
+                        reference.with_suffix(".info"))
+        shutil.copyfile(example_dir + "md-02.en", changed.with_suffix(".en"))
+        shutil.copyfile(example_dir + "md-02.info",
+                        changed.with_suffix(".info"))
+
+        reader = Reader(
+            [
+                str(reference.with_suffix(".en")),
+                str(changed.with_suffix(".en")),
+            ],
+            MDEngineFormat.PQ,
+        )
+
+        changed_info = (changed.with_suffix(".info").read_text().replace(
+            "A^3", "nm^3", 1))
+        changed.with_suffix(".info").write_text(changed_info)
+
+        with pytest.raises(ValueError, match="same units"):
+            reader.read_last()

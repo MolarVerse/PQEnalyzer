@@ -82,9 +82,7 @@ class Reader:
             read_energy_file = energy_file.read()
             read_energy_files.append(read_energy_file)
 
-        if not self.__check_info_length(read_energy_files):
-            raise ValueError(
-                "The energy files do not have the same length of info.")
+        self.__validate_info_compatibility(read_energy_files)
 
         self.energies = read_energy_files
 
@@ -98,22 +96,33 @@ class Reader:
         """
         energy_file = EnergyFileReader(self.filenames[-1],
                                        engine_format=self.md_format)
-        self.energies[-1] = energy_file.read()
+        refreshed_energy = energy_file.read()
+        refreshed_energies = [*self.energies]
+        refreshed_energies[-1] = refreshed_energy
 
-    def __check_info_length(self, read_energy_files):
+        self.__validate_info_compatibility(refreshed_energies)
+
+        self.energies[-1] = refreshed_energy
+
+    def __validate_info_compatibility(self, read_energy_files):
         """
-        Check if all the energy files have the same length of info.
+        Check if all energy files expose the same parameters and units.
 
         Returns
         -------
-        bool
+        None
         """
 
-        info_lengths = []
-        for energy_file in read_energy_files:
-            info_lengths.append(len(energy_file.info))
+        reference_info = read_energy_files[0].info
+        reference_units = read_energy_files[0].units
 
-        if len(set(info_lengths)) == 1:
-            return True
-        else:
-            return False
+        for index, energy_file in enumerate(read_energy_files[1:], start=1):
+            if energy_file.info != reference_info:
+                raise ValueError(
+                    "The energy files do not have the same info parameters: "
+                    f"{self.filenames[0]} and {self.filenames[index]}.")
+
+            if energy_file.units != reference_units:
+                raise ValueError(
+                    "The energy files do not have the same units: "
+                    f"{self.filenames[0]} and {self.filenames[index]}.")
