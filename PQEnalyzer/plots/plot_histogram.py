@@ -1,14 +1,13 @@
 """
 Histogram/KDE plotting for PQ energy parameters.
 """
-
-import os
 from scipy.stats import gaussian_kde
 import numpy as np
 
 from ..statistics import Statistic
 from ..energy_access import concatenate_series, parameter_unit, parameter_values
 from .._logging import get_logger
+from .labels import unique_path_labels
 from .plot import Plot
 
 
@@ -58,8 +57,8 @@ class PlotHistogram(Plot):
         None
         """
 
+        labels = unique_path_labels(self.reader.filenames)
         for i, energy in enumerate(self.reader.energies):
-            basename = os.path.basename(self.reader.filenames[i])
             data = parameter_values(energy, info_parameter)
 
             # check if zero data
@@ -77,7 +76,7 @@ class PlotHistogram(Plot):
             )
 
             y = kde(x)
-            self.ax.plot(x, y, label=f"{basename} KDE")
+            self.ax.plot(x, y, label=f"{labels[i]} KDE")
 
         return None
 
@@ -104,18 +103,11 @@ class PlotHistogram(Plot):
             f"{parameter_unit(self.reader.energies[0], info_parameter)}"
         )
 
-        # Check if label is empty
-        if self.ax.get_legend_handles_labels()[1] == []:
+        _, labels = self.ax.get_legend_handles_labels()
+        if not labels:
             logger.warning("No data to plot.")
         else:
-            # legend outside of plot
-            self.ax.legend(
-                loc="upper center",
-                bbox_to_anchor=(0.5, 1.15),
-                ncol=5,
-                fancybox=True,
-                shadow=True,
-            )
+            self.show_legend(loc="best", ncol=min(3, len(labels)))
 
         return None
 
@@ -140,23 +132,12 @@ class PlotHistogram(Plot):
             # calculate mean and plot
             _, y = Statistic.mean_values(energy_series.time,
                                          energy_series.values)
-            self.ax.vlines(float(y[0]),
-                           0,
-                           self.ax.get_ylim()[1],
-                           label="Mean",
-                           linestyles="--",
-                           colors="blue")
+            self.ax.axvline(float(y[0]), label="Mean", linestyle="--")
 
         if self.median:
             # calculate median and plot
             _, y = Statistic.median_values(energy_series.time,
                                            energy_series.values)
-            # plot dependent y_max of histogram
-            self.ax.vlines(float(y[0]),
-                           0,
-                           self.ax.get_ylim()[1],
-                           label="Median",
-                           linestyles="--",
-                           colors="red")
+            self.ax.axvline(float(y[0]), label="Median", linestyle="--")
 
         return None
