@@ -1,8 +1,11 @@
+from types import SimpleNamespace
+
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 import pytest
 
 from PQEnalyzer.apps import app as app_module
+from PQEnalyzer.apps import app_layout
 
 
 class FakeFlag:
@@ -46,6 +49,28 @@ class DummyPlot:
 
     def simple(self, info_parameter):
         self.calls.append(("simple", info_parameter))
+
+
+class FakeWidget:
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.grid_calls = []
+        self.configured_rows = []
+        self.configured_columns = []
+
+    def grid(self, *args, **kwargs):
+        self.grid_calls.append((args, kwargs))
+
+    def grid_rowconfigure(self, *args, **kwargs):
+        self.configured_rows.append((args, kwargs))
+
+    def grid_columnconfigure(self, *args, **kwargs):
+        self.configured_columns.append((args, kwargs))
+
+    def set(self, value):
+        self.value = value
 
 
 @pytest.fixture(autouse=True)
@@ -135,6 +160,52 @@ def test_destroy_closes_plots_and_tk_window(monkeypatch):
     app_module.App.destroy(object.__new__(app_module.App))
 
     assert calls == [("close", "all"), ("quit", None), ("destroy", None)]
+
+
+def test_build_delegates_to_layout_builders(monkeypatch):
+    app = object.__new__(app_module.App)
+    calls = []
+
+    monkeypatch.setattr(app_module, "build_sidebar",
+                        lambda app, callback: calls.append(
+                            ("sidebar", app, callback)))
+    monkeypatch.setattr(app_module, "build_plot_controls",
+                        lambda app, plot_callback, refresh_callback:
+                        calls.append(("plot", app, plot_callback,
+                                      refresh_callback)))
+    monkeypatch.setattr(app_module, "build_parameter_selector",
+                        lambda app, callback: calls.append(
+                            ("parameter", app, callback)))
+    monkeypatch.setattr(app_module, "build_settings_controls",
+                        lambda app: calls.append(("settings", app)))
+
+    app_module.App.build(app)
+
+    assert [call[0] for call in calls] == [
+        "sidebar",
+        "plot",
+        "parameter",
+        "settings",
+    ]
+    assert all(call[1] is app for call in calls)
+    assert all(call[-1] is not None for call in calls[:3])
+
+
+def test_parameter_selector_builder_sets_initial_selection(monkeypatch):
+    app = SimpleNamespace(info=["TEMPERATURE", "PRESSURE"])
+    selected = []
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkOptionMenu", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont",
+                        lambda *args, **kwargs: ("font", args, kwargs))
+
+    app_layout.build_parameter_selector(app, selected.append)
+
+    assert selected == ["TEMPERATURE"]
+    assert app.info_optionmenu.kwargs["values"] == ["TEMPERATURE", "PRESSURE"]
+    assert app.info_optionmenu.kwargs["command"] == selected.append
 
 
 def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):
