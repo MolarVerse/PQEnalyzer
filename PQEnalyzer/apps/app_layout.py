@@ -272,7 +272,7 @@ class ParameterSelectorView:
 
 class StatisticsControlsView:
     """
-    Statistics option controls.
+    Statistics and time-series overlay controls.
 
     Plot classes read these checkboxes directly from ``App`` when they collect
     plotting options, so this view assigns the same attributes that older App
@@ -288,42 +288,70 @@ class StatisticsControlsView:
                         sticky="nsew",
                         padx=(20, 20),
                         pady=(10, 10))
-        self.frame.grid_rowconfigure(9, weight=1)
+        self.frame.grid_rowconfigure(2, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
 
+        self.statistics_frame = ctk.CTkFrame(self.frame)
+        self.statistics_frame.grid(row=0,
+                                   column=0,
+                                   sticky="nsew",
+                                   padx=0,
+                                   pady=(0, 10))
+        self.statistics_frame.grid_columnconfigure(0, weight=1)
+
+        self.time_series_frame = ctk.CTkFrame(self.frame)
+        self.time_series_frame.grid(row=1,
+                                    column=0,
+                                    sticky="nsew",
+                                    padx=0,
+                                    pady=0)
+        self.time_series_frame.grid_rowconfigure(7, weight=1)
+        self.time_series_frame.grid_columnconfigure(0, weight=1)
+
         self.label = ctk.CTkLabel(
-            self.frame,
+            self.statistics_frame,
             text="Statistics:",
             font=ctk.CTkFont(size=15, weight="bold"),
         )
         self.label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.mean = ctk.CTkCheckBox(self.frame, text="Mean")
+        self.mean = ctk.CTkCheckBox(self.statistics_frame, text="Mean")
         self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.median = ctk.CTkCheckBox(self.frame, text="Median")
+        self.median = ctk.CTkCheckBox(self.statistics_frame, text="Median")
         self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        self.time_series_label = ctk.CTkLabel(
+            self.time_series_frame,
+            text="Time-series overlays:",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        )
+        self.time_series_label.grid(row=0,
+                                    column=0,
+                                    padx=10,
+                                    pady=5,
+                                    sticky="w")
         self.cumulative_average = ctk.CTkCheckBox(
-            self.frame,
+            self.time_series_frame,
             text="Cumulative Average",
         )
-        self.cumulative_average.grid(row=3,
+        self.cumulative_average.grid(row=1,
                                      column=0,
                                      padx=10,
                                      pady=5,
                                      sticky="w")
         self.self_correlation_mean = ctk.CTkCheckBox(
-            self.frame, text="Self-Correlation Mean")
-        self.self_correlation_mean.grid(row=4,
+            self.time_series_frame, text="Self-Correlation Mean")
+        self.self_correlation_mean.grid(row=2,
                                            column=0,
                                            padx=10,
                                            pady=5,
                                            sticky="w")
 
         self.difference = ctk.CTkCheckBox(
-            self.frame,
+            self.time_series_frame,
             text="Difference (1 - 2)",
             command=self.__enable_no_data_for_difference,
         )
-        self.difference.grid(row=5,
+        self.difference.grid(row=3,
                              column=0,
                              padx=10,
                              pady=5,
@@ -331,30 +359,30 @@ class StatisticsControlsView:
 
         self.window_size = None
         self.running_average = ctk.CTkCheckBox(
-            self.frame,
+            self.time_series_frame,
             text="Running Average",
             command=lambda: app.toggle_entry_state(
                 self.running_average, self.window_size, default="10"))
-        self.running_average.grid(row=6,
+        self.running_average.grid(row=4,
                                   column=0,
                                   padx=10,
                                   pady=5,
                                   sticky="w")
-        self.window_size_label = ctk.CTkLabel(self.frame,
+        self.window_size_label = ctk.CTkLabel(self.time_series_frame,
                                               text="Window Size:",
                                               anchor="w")
-        self.window_size_label.grid(row=7,
+        self.window_size_label.grid(row=5,
                                     column=0,
                                     padx=10,
                                     pady=5,
                                     sticky="w")
         self.window_size = ctk.CTkEntry(
-            self.frame,
+            self.time_series_frame,
             width=10,
             validate="key",
             validatecommand=(app.register(app.validate_number), "%P"),
         )
-        self.window_size.grid(row=8,
+        self.window_size.grid(row=6,
                               column=0,
                               padx=10,
                               pady=5,
@@ -362,7 +390,10 @@ class StatisticsControlsView:
         self.window_size.configure(state="disabled")
 
         app.settings_frame = self.frame
+        app.statistics_frame = self.statistics_frame
+        app.time_series_frame = self.time_series_frame
         app.settings_label = self.label
+        app.time_series_label = self.time_series_label
         app.mean = self.mean
         app.median = self.median
         app.cummulative_average = self.cumulative_average
