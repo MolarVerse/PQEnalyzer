@@ -1,5 +1,5 @@
 """
-Layout builders for the PQEnalyzer GUI.
+View classes for the PQEnalyzer GUI layout.
 """
 
 import os
@@ -33,231 +33,303 @@ def configure_window(app):
     app.resizable(False, False)
 
 
-def build_sidebar(app, change_appearance_mode_callback):
+class SidebarView:
     """
-    Build the sidebar and theme selector.
-    """
-
-    app.sidebar_frame = ctk.CTkFrame(app, width=140, corner_radius=0)
-    app.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-    app.sidebar_frame.grid_rowconfigure(4, weight=1)
-    app.sidebar_frame.grid_columnconfigure(0, weight=1)
-
-    app.logo = ctk.CTkImage(
-        Image.open(os.path.join(__base__, "icons", "icon.png")),
-        size=(100, 100),
-    )
-    app.sidebar_image_label = ctk.CTkLabel(app.sidebar_frame,
-                                           image=app.logo,
-                                           text="")
-    app.sidebar_image_label.grid(row=0, column=0, pady=10, padx=10)
-    app.logo_label = ctk.CTkLabel(
-        app.sidebar_frame,
-        text="PQEnalyzer",
-        font=ctk.CTkFont(size=20, weight="bold"),
-    )
-    app.logo_label.grid(row=1, column=0, padx=10, pady=10)
-
-    app.appearance_mode_label = ctk.CTkLabel(app.sidebar_frame,
-                                             text="Appearance Mode:",
-                                             anchor="w")
-    app.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-    app.appearance_mode_optionemenu = ctk.CTkOptionMenu(
-        app.sidebar_frame,
-        values=["System", "Light", "Dark"],
-        command=change_appearance_mode_callback,
-    )
-    app.appearance_mode_optionemenu.grid(row=6,
-                                         column=0,
-                                         padx=20,
-                                         pady=(10, 10))
-    app.appearance_mode_optionemenu.set("System")
-
-
-def build_plot_controls(app, plot_button_callback, refresh_callback):
-    """
-    Build plot command controls.
+    Sidebar logo and appearance-mode controls.
     """
 
-    app.plot_frame = ctk.CTkFrame(app, width=200)
-    app.plot_frame.grid(row=2,
+    def __init__(self, app, change_appearance_mode_callback):
+        self.app = app
+        self.change_appearance_mode_callback = change_appearance_mode_callback
+
+        self.frame = ctk.CTkFrame(app, width=140, corner_radius=0)
+        self.frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
+        self.frame.grid_rowconfigure(4, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+
+        self.logo = ctk.CTkImage(
+            Image.open(os.path.join(__base__, "icons", "icon.png")),
+            size=(100, 100),
+        )
+        self.image_label = ctk.CTkLabel(self.frame,
+                                        image=self.logo,
+                                        text="")
+        self.image_label.grid(row=0, column=0, pady=10, padx=10)
+        self.logo_label = ctk.CTkLabel(
+            self.frame,
+            text="PQEnalyzer",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        )
+        self.logo_label.grid(row=1, column=0, padx=10, pady=10)
+
+        self.appearance_mode_label = ctk.CTkLabel(
+            self.frame,
+            text="Appearance Mode:",
+            anchor="w",
+        )
+        self.appearance_mode_label.grid(row=5,
+                                        column=0,
+                                        padx=20,
+                                        pady=(10, 0))
+        self.appearance_mode_optionemenu = ctk.CTkOptionMenu(
+            self.frame,
+            values=["System", "Light", "Dark"],
+            command=change_appearance_mode_callback,
+        )
+        self.appearance_mode_optionemenu.grid(row=6,
+                                              column=0,
+                                              padx=20,
+                                              pady=(10, 10))
+        self.appearance_mode_optionemenu.set("System")
+
+        app.sidebar_frame = self.frame
+        app.logo = self.logo
+        app.sidebar_image_label = self.image_label
+        app.logo_label = self.logo_label
+        app.appearance_mode_label = self.appearance_mode_label
+        app.appearance_mode_optionemenu = self.appearance_mode_optionemenu
+
+
+class PlotControlsView:
+    """
+    Plot command controls.
+    """
+
+    def __init__(self, app, plot_button_callback, refresh_callback):
+        self.app = app
+        self.plot_button_callback = plot_button_callback
+        self.refresh_callback = refresh_callback
+
+        self.frame = ctk.CTkFrame(app, width=200)
+        self.frame.grid(row=2,
                         column=1,
                         sticky="nsew",
                         padx=(20, 20),
                         pady=(10, 10))
-    app.plot_frame.grid_rowconfigure(4, weight=1)
-    app.plot_frame.grid_columnconfigure(2, weight=1)
+        self.frame.grid_rowconfigure(4, weight=1)
+        self.frame.grid_columnconfigure(2, weight=1)
 
-    app.follow = tkinter.BooleanVar()
-    app.interval = None
-    app.check_follow = ctk.CTkCheckBox(
-        master=app.plot_frame,
-        border_width=2,
-        text="Follow",
-        variable=app.follow,
-        command=lambda: app.toggle_entry_state(
-            app.check_follow, app.interval, default="1.0"))
-    app.check_follow.grid(row=0,
-                          column=1,
-                          padx=(10, 10),
-                          pady=(10, 10),
-                          sticky="nsew")
+        self.follow = tkinter.BooleanVar()
+        self.follow_checkbox = ctk.CTkCheckBox(
+            master=self.frame,
+            border_width=2,
+            text="Follow",
+            variable=self.follow,
+            command=lambda: app.toggle_entry_state(
+                self.follow_checkbox, self.interval_entry, default="1.0"))
+        self.follow_checkbox.grid(row=0,
+                                  column=1,
+                                  padx=(10, 10),
+                                  pady=(10, 10),
+                                  sticky="nsew")
 
-    app.plot_main_data = tkinter.BooleanVar()
-    app.check_nodata = ctk.CTkCheckBox(
-        master=app.plot_frame,
-        border_width=2,
-        text="No Data",
-        variable=app.plot_main_data,
-    )
-    app.check_nodata.grid(row=0,
-                          column=0,
-                          padx=(10, 10),
-                          pady=(10, 10),
-                          sticky="nsew")
+        self.plot_main_data = tkinter.BooleanVar()
+        self.no_data_checkbox = ctk.CTkCheckBox(
+            master=self.frame,
+            border_width=2,
+            text="No Data",
+            variable=self.plot_main_data,
+        )
+        self.no_data_checkbox.grid(row=0,
+                                   column=0,
+                                   padx=(10, 10),
+                                   pady=(10, 10),
+                                   sticky="nsew")
 
-    app.interval = ctk.CTkEntry(
-        app.plot_frame,
-        width=10,
-        validate="key",
-        validatecommand=(app.register(app.validate_number), "%P"),
-    )
-    app.interval.grid(row=1, column=1, padx=10, pady=5, sticky="we")
-    app.interval.configure(state="disabled")
+        self.interval_entry = ctk.CTkEntry(
+            self.frame,
+            width=10,
+            validate="key",
+            validatecommand=(app.register(app.validate_number), "%P"),
+        )
+        self.interval_entry.grid(row=1,
+                                 column=1,
+                                 padx=10,
+                                 pady=5,
+                                 sticky="we")
+        self.interval_entry.configure(state="disabled")
 
-    app.interval_label = ctk.CTkLabel(app.plot_frame,
-                                      text="Interval (s):",
-                                      anchor="w")
-    app.interval_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-
-    app.button_plot = ctk.CTkButton(
-        master=app.plot_frame,
-        border_width=2,
-        text="Plot",
-        command=lambda: plot_button_callback(0),
-    )
-
-    app.button_plot.grid(row=2,
-                         column=0,
-                         columnspan=2,
-                         padx=(10, 10),
-                         pady=(10, 10),
-                         sticky="nsew")
-
-    app.button_hist = ctk.CTkButton(
-        master=app.plot_frame,
-        border_width=2,
-        text="Histogram",
-        command=lambda: plot_button_callback(1),
-    )
-    app.button_hist.grid(row=3,
-                         column=0,
-                         columnspan=2,
-                         padx=(10, 10),
-                         pady=(10, 10),
-                         sticky="nsew")
-
-    app.button_refresh = ctk.CTkButton(
-        master=app.plot_frame,
-        border_width=2,
-        text="Refresh",
-        command=refresh_callback,
-    )
-    app.button_refresh.grid(row=4,
-                            column=0,
-                            columnspan=2,
-                            padx=(10, 10),
-                            pady=(10, 10),
-                            sticky="nsew")
-
-
-def build_parameter_selector(app, change_info_callback):
-    """
-    Build the parameter selection controls.
-    """
-
-    app.info_frame = ctk.CTkFrame(app, width=200)
-    app.info_frame.grid(row=0,
-                        column=1,
-                        sticky="nsew",
-                        padx=(20, 20),
-                        pady=(10, 10))
-    app.info_frame.grid_rowconfigure(2, weight=1)
-    app.info_frame.grid_columnconfigure(1, weight=1)
-
-    app.info_label = ctk.CTkLabel(app.info_frame,
-                                  text="Parameter:",
-                                  font=ctk.CTkFont(size=15, weight="bold"))
-    app.info_label.grid(row=0, column=1, padx=20, pady=10, sticky="w")
-    app.info_optionmenu = ctk.CTkOptionMenu(
-        app.info_frame,
-        values=app.info,
-        command=change_info_callback,
-        width=150,
-        anchor="c",
-    )
-    app.info_optionmenu.grid(row=1, column=1, padx=20, pady=10)
-    change_info_callback(app.info[0])
-
-
-def build_settings_controls(app):
-    """
-    Build statistics option controls.
-    """
-
-    app.settings_frame = ctk.CTkFrame(app, width=200)
-    app.settings_frame.grid(row=1,
-                            column=1,
-                            sticky="nsew",
-                            padx=(20, 20),
-                            pady=(10, 10))
-    app.settings_frame.grid_rowconfigure(8, weight=1)
-    app.settings_frame.grid_columnconfigure(0, weight=1)
-
-    app.settings_label = ctk.CTkLabel(
-        app.settings_frame,
-        text="Statistics:",
-        font=ctk.CTkFont(size=15, weight="bold"),
-    )
-    app.settings_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-    app.mean = ctk.CTkCheckBox(app.settings_frame, text="Mean")
-    app.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-    app.median = ctk.CTkCheckBox(app.settings_frame, text="Median")
-    app.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
-    app.cummulative_average = ctk.CTkCheckBox(app.settings_frame,
-                                              text="Cumulative Average")
-    app.cummulative_average.grid(row=3,
+        self.interval_label = ctk.CTkLabel(self.frame,
+                                           text="Interval (s):",
+                                           anchor="w")
+        self.interval_label.grid(row=1,
                                  column=0,
                                  padx=10,
                                  pady=5,
                                  sticky="w")
-    app.auto_correlation = ctk.CTkCheckBox(app.settings_frame,
-                                           text="Auto Correlation")
-    app.auto_correlation.grid(row=4,
+
+        self.plot_button = ctk.CTkButton(
+            master=self.frame,
+            border_width=2,
+            text="Plot",
+            command=lambda: plot_button_callback(0),
+        )
+        self.plot_button.grid(row=2,
+                              column=0,
+                              columnspan=2,
+                              padx=(10, 10),
+                              pady=(10, 10),
+                              sticky="nsew")
+
+        self.histogram_button = ctk.CTkButton(
+            master=self.frame,
+            border_width=2,
+            text="Histogram",
+            command=lambda: plot_button_callback(1),
+        )
+        self.histogram_button.grid(row=3,
+                                   column=0,
+                                   columnspan=2,
+                                   padx=(10, 10),
+                                   pady=(10, 10),
+                                   sticky="nsew")
+
+        self.refresh_button = ctk.CTkButton(
+            master=self.frame,
+            border_width=2,
+            text="Refresh",
+            command=refresh_callback,
+        )
+        self.refresh_button.grid(row=4,
+                                 column=0,
+                                 columnspan=2,
+                                 padx=(10, 10),
+                                 pady=(10, 10),
+                                 sticky="nsew")
+
+        app.plot_frame = self.frame
+        app.follow = self.follow
+        app.check_follow = self.follow_checkbox
+        app.plot_main_data = self.plot_main_data
+        app.check_nodata = self.no_data_checkbox
+        app.interval = self.interval_entry
+        app.interval_label = self.interval_label
+        app.button_plot = self.plot_button
+        app.button_hist = self.histogram_button
+        app.button_refresh = self.refresh_button
+
+
+class ParameterSelectorView:
+    """
+    Energy-parameter selection controls.
+    """
+
+    def __init__(self, app, change_info_callback):
+        self.app = app
+        self.change_info_callback = change_info_callback
+
+        self.frame = ctk.CTkFrame(app, width=200)
+        self.frame.grid(row=0,
+                        column=1,
+                        sticky="nsew",
+                        padx=(20, 20),
+                        pady=(10, 10))
+        self.frame.grid_rowconfigure(2, weight=1)
+        self.frame.grid_columnconfigure(1, weight=1)
+
+        self.label = ctk.CTkLabel(
+            self.frame,
+            text="Parameter:",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        )
+        self.label.grid(row=0, column=1, padx=20, pady=10, sticky="w")
+        self.optionmenu = ctk.CTkOptionMenu(
+            self.frame,
+            values=app.info,
+            command=change_info_callback,
+            width=150,
+            anchor="c",
+        )
+        self.optionmenu.grid(row=1, column=1, padx=20, pady=10)
+        change_info_callback(app.info[0])
+
+        app.info_frame = self.frame
+        app.info_label = self.label
+        app.info_optionmenu = self.optionmenu
+
+
+class StatisticsControlsView:
+    """
+    Statistics option controls.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+        self.frame = ctk.CTkFrame(app, width=200)
+        self.frame.grid(row=1,
+                        column=1,
+                        sticky="nsew",
+                        padx=(20, 20),
+                        pady=(10, 10))
+        self.frame.grid_rowconfigure(8, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+
+        self.label = ctk.CTkLabel(
+            self.frame,
+            text="Statistics:",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        )
+        self.label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.mean = ctk.CTkCheckBox(self.frame, text="Mean")
+        self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.median = ctk.CTkCheckBox(self.frame, text="Median")
+        self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.cumulative_average = ctk.CTkCheckBox(
+            self.frame,
+            text="Cumulative Average",
+        )
+        self.cumulative_average.grid(row=3,
+                                     column=0,
+                                     padx=10,
+                                     pady=5,
+                                     sticky="w")
+        self.auto_correlation = ctk.CTkCheckBox(self.frame,
+                                                text="Auto Correlation")
+        self.auto_correlation.grid(row=4,
+                                   column=0,
+                                   padx=10,
+                                   pady=5,
+                                   sticky="w")
+
+        self.window_size = None
+        self.running_average = ctk.CTkCheckBox(
+            self.frame,
+            text="Running Average",
+            command=lambda: app.toggle_entry_state(
+                self.running_average, self.window_size, default="10"))
+        self.running_average.grid(row=5,
+                                  column=0,
+                                  padx=10,
+                                  pady=5,
+                                  sticky="w")
+        self.window_size_label = ctk.CTkLabel(self.frame,
+                                              text="Window Size:",
+                                              anchor="w")
+        self.window_size_label.grid(row=6,
+                                    column=0,
+                                    padx=10,
+                                    pady=5,
+                                    sticky="w")
+        self.window_size = ctk.CTkEntry(
+            self.frame,
+            width=10,
+            validate="key",
+            validatecommand=(app.register(app.validate_number), "%P"),
+        )
+        self.window_size.grid(row=7,
                               column=0,
                               padx=10,
                               pady=5,
-                              sticky="w")
+                              sticky="we")
+        self.window_size.configure(state="disabled")
 
-    app.window_size = None
-    app.running_average = ctk.CTkCheckBox(
-        app.settings_frame,
-        text="Running Average",
-        command=lambda: app.toggle_entry_state(
-            app.running_average, app.window_size, default="10"))
-    app.running_average.grid(row=5, column=0, padx=10, pady=5, sticky="w")
-    app.running_average_window_size_label = ctk.CTkLabel(
-        app.settings_frame, text="Window Size:", anchor="w")
-    app.running_average_window_size_label.grid(row=6,
-                                               column=0,
-                                               padx=10,
-                                               pady=5,
-                                               sticky="w")
-    app.window_size = ctk.CTkEntry(
-        app.settings_frame,
-        width=10,
-        validate="key",
-        validatecommand=(app.register(app.validate_number), "%P"),
-    )
-    app.window_size.grid(row=7, column=0, padx=10, pady=5, sticky="we")
-    app.window_size.configure(state="disabled")
+        app.settings_frame = self.frame
+        app.settings_label = self.label
+        app.mean = self.mean
+        app.median = self.median
+        app.cummulative_average = self.cumulative_average
+        app.auto_correlation = self.auto_correlation
+        app.running_average = self.running_average
+        app.running_average_window_size_label = self.window_size_label
+        app.window_size = self.window_size
