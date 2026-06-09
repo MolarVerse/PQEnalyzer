@@ -1,6 +1,5 @@
 """
-This module contains the App class that is used to create the main application
-window for the PQEnalyzer application.
+Graphical CustomTkinter application coordinator.
 """
 
 import signal
@@ -25,10 +24,11 @@ logger = get_logger(__name__)
 
 class App(ctk.CTk):
     """
-    The main application class for the PQEnalyzer application. This class inherits
-    from the CTK class.
+    Root GUI window that coordinates views, callbacks and plotting.
 
-    ...
+    Layout is delegated to view classes in ``app_layout``. This class keeps the
+    mutable application state and event handlers that those views wire into
+    widgets.
 
     Attributes
     ----------
@@ -38,28 +38,26 @@ class App(ctk.CTk):
     Methods
     -------
     build()
-        Build the main window.
+        Create the GUI view objects and attach their widgets.
     """
 
     def __init__(self, reader=None):
         """
-        Constructs all the necessary attributes for the App object.
+        Initialize the root window and derive selectable parameters.
         """
         super().__init__()
         configure_default_theme()
         configure_window(self)
 
-        # set reader object and info parameters
         self.reader = reader
         self.info = [
             *self.reader.energies[0].info
-        ][1:]  # get list of info parameters from first data object
+        ][1:]
 
         self.list_of_plots = []
 
-        # sigint handler
         signal.signal(signal.SIGINT,
-                      lambda sig, frame: self.destroy())  # close the app
+                      lambda sig, frame: self.destroy())
 
     def destroy(self):
         """
@@ -71,7 +69,7 @@ class App(ctk.CTk):
 
     def build(self):
         """
-        Build the main window.
+        Create all view objects and attach their widgets to the root window.
         """
         self.sidebar_view = SidebarView(
             self, self.__change_appearance_mode_event)
@@ -83,7 +81,7 @@ class App(ctk.CTk):
 
     def validate_number(self, value):
         """
-        Validate if the input is a number.
+        Return whether a GUI entry value is empty or non-negative numeric text.
         """
         if value in {"", "."}:
             return True
@@ -95,7 +93,7 @@ class App(ctk.CTk):
 
     def toggle_entry_state(self, event, entry, default=""):
         """
-        Toggle the state of the entry.
+        Enable or disable a dependent entry based on a checkbox state.
         """
         entry.configure(state="normal")
         entry.delete(0, ctk.END)
@@ -108,6 +106,9 @@ class App(ctk.CTk):
     def parse_positive_float(self, value, default, field_name):
         """
         Parse a positive float value from a GUI entry string.
+
+        Empty values and a single decimal point use the supplied default so
+        partially edited fields remain usable.
         """
         stripped_value = value.strip()
 
@@ -122,25 +123,21 @@ class App(ctk.CTk):
 
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         """
-        Change the appearance mode of the app.
+        Apply a CustomTkinter appearance-mode selection.
         """
 
         ctk.set_appearance_mode(new_appearance_mode)
 
     def __change_info_event(self, new_info: str):
         """
-        Change the info parameter to plot.
+        Store the currently selected energy parameter.
         """
 
         self.__selected_info = new_info
 
     def __refresh_plots(self):
         """
-        Refresh the plots. If the plot is closed, remove it from the list.
-
-        Returns
-        -------
-        None
+        Refresh open plots and forget plots whose windows were closed.
         """
         for plot in self.list_of_plots:
 
@@ -152,18 +149,13 @@ class App(ctk.CTk):
 
     def __plot_button_event(self, event):
         """
-        Plot the data and checks if the user wants to follow the plot.
-        Appends the plot to the list of plots. If the user wants to follow the plot,
-        the plot is updated at a given interval.
+        Create a time-series or histogram plot from the current GUI state.
 
         Parameters
         ----------
         event : int
-            The event that triggered the function. 0 for time plot, 1 for histogram plot.
-
-        Returns
-        -------
-        None
+            Plot selector: ``0`` creates a time plot, ``1`` creates a
+            histogram plot.
         """
 
         if event == 0:

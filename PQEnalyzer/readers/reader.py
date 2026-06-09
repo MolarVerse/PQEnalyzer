@@ -1,5 +1,9 @@
 """
 Reader orchestration for PQAnalysis energy files.
+
+PQEnalyzer deliberately delegates file parsing to PQAnalysis. The Reader class
+adds the application-specific guarantees needed before a GUI or terminal plot
+can compare multiple files.
 """
 
 from PQAnalysis.io import EnergyFileReader
@@ -12,8 +16,6 @@ class Reader:
     PQAnalysis owns the energy-file parsing. This wrapper keeps the
     PQEnalyzer-specific behavior around multi-file reads: every selected file
     must expose the same parameter mapping and units before plotting.
-
-    ...
 
     Attributes
     ----------
@@ -36,13 +38,13 @@ class Reader:
     --------
     >>> reader = Reader(["md-01.en", "md-02.en"], MDEngineFormat.PQ)
     >>> reader.read()
-    >>> reader.energies[0].temperature
-    array([...])
+    >>> reader.energies[0].temperature_unit
+    'K'
     """
 
     def __init__(self, filenames, md_format):
         """
-        Constructs all the necessary attributes for the Reader object.
+        Read the configured files immediately.
 
         Parameters
         ----------
@@ -51,9 +53,11 @@ class Reader:
         md_format : MDEngineFormat
             The molecular dynamics engine format.
 
-        Returns
-        -------
-        None
+        Raises
+        ------
+        ValueError
+            If no filenames are provided or if multiple files are not
+            compatible for plotting.
         """
 
         self.energies = []
@@ -65,9 +69,8 @@ class Reader:
         """
         Read all energy files through PQAnalysis and validate compatibility.
 
-        Returns
-        -------
-        None
+        Existing ``energies`` are replaced only after all files have been read
+        and validated.
         """
 
         self.__validate_filenames()
@@ -84,9 +87,8 @@ class Reader:
         """
         Refresh the last energy file while preserving compatibility checks.
 
-        Returns
-        -------
-        None
+        This is used by live/follow plotting so the newest file can grow on
+        disk without rebuilding the whole Reader object.
         """
 
         self.__validate_filenames()
@@ -100,7 +102,7 @@ class Reader:
 
     def __read_energy_file(self, filename):
         """
-        Read one energy file with PQAnalysis.
+        Read one energy file with PQAnalysis using this Reader's MD format.
         """
 
         return EnergyFileReader(filename,
@@ -119,9 +121,9 @@ class Reader:
         """
         Check if all energy files expose the same parameters and units.
 
-        Returns
-        -------
-        None
+        Multi-file plots assume each parameter label refers to the same column
+        and unit in every file. Rejecting mismatches here keeps plotting and
+        statistics code simple.
         """
 
         reference_info = energies[0].info

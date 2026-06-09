@@ -1,5 +1,5 @@
 """
-The plot module contains the Plot class for the PQEnalyzer application.
+Base plotting workflow for GUI-backed matplotlib plots.
 """
 import signal
 from abc import abstractmethod, ABCMeta
@@ -9,9 +9,11 @@ import matplotlib.animation as animation
 
 class Plot(metaclass=ABCMeta):
     """
-    The plot class for the PQEnalyzer application.
+    Shared lifecycle for time-series and histogram plot windows.
 
-    ...
+    Subclasses provide the concrete main-data, statistics and label rendering.
+    This base class owns refresh/follow behavior and reads plot options from
+    the active App instance before each render.
 
     Attributes
     ----------
@@ -20,15 +22,17 @@ class Plot(metaclass=ABCMeta):
 
     Methods
     -------
-    plot(info_parameter)
-        Plot the data.
-    live_plot(info_parameter, interval)
-        Plot the live data at a given interval in milliseconds.
+    simple(info_parameter)
+        Render a static plot for the selected parameter.
+    follow(info_parameter, interval)
+        Refresh the plot at a fixed interval in seconds.
+    refresh()
+        Re-read the latest data and redraw an existing plot.
     """
 
     def __init__(self, app):
         """
-        Constructs all the necessary attributes for the Plot object.
+        Initialize shared plot state and create the matplotlib axes.
 
         Parameters
         ----------
@@ -58,7 +62,7 @@ class Plot(metaclass=ABCMeta):
 
     def signal_handler(self, signal, frame):
         """
-        Close the plot window when the signal is received.
+        Close plot and application windows after SIGINT.
 
         Parameters
         ----------
@@ -77,7 +81,7 @@ class Plot(metaclass=ABCMeta):
 
     def get_app_parameters(self):
         """
-        Get the parameter from the app.
+        Copy the current plotting options from the App widgets.
 
         Returns
         -------
@@ -97,8 +101,10 @@ class Plot(metaclass=ABCMeta):
 
     def simple(self, info_parameter: str) -> None:
         """
-        Plot the data. If the button is not checked, plot the main data.
-        Checks if the statistics buttons are checked and plots the statistics, too.
+        Render a static plot for one info parameter.
+
+        Main data is plotted unless the "No Data" option is selected. Enabled
+        statistics are overlaid by the subclass implementation.
 
         Parameters
         ----------
@@ -119,15 +125,14 @@ class Plot(metaclass=ABCMeta):
 
     def follow(self, info_parameter: str, interval: float = 1.0) -> None:
         """
-        Plot the live data. Clears the plot and replots the data at a given interval.
-        Exits the plot if the window is closed.
+        Render a live plot and refresh it at the configured interval.
 
         Parameters
         ----------
         info_parameter : str
             The info parameter to plot.
         interval : int, optional
-            The interval at which the plot is updated in seconds
+            The interval at which the plot is updated, in seconds.
 
         Returns
         -------
@@ -154,13 +159,7 @@ class Plot(metaclass=ABCMeta):
 
     def refresh(self) -> None:
         """
-        Refresh the plot. Clears the plot, gets the new parameters
-        and plots the data again.
-
-        Parameters
-        ----------
-        info_parameter : str
-            The info parameter to plot.
+        Refresh an existing plot with the latest file contents and options.
 
         Returns
         -------
@@ -184,11 +183,7 @@ class Plot(metaclass=ABCMeta):
 
     def plot_data(self) -> None:
         """
-        Plot the data.
-
-        Parameters
-        ----------
-        None
+        Render main data, enabled statistics and plot labels.
 
         Returns
         -------
@@ -207,7 +202,7 @@ class Plot(metaclass=ABCMeta):
     @abstractmethod
     def main_data(self, info_parameter: str):
         """
-        Plot the main data on the plot frame.
+        Plot raw parameter data on the matplotlib axes.
 
         Parameters
         ----------
@@ -224,7 +219,7 @@ class Plot(metaclass=ABCMeta):
     @abstractmethod
     def labels(self, info_parameter: str):
         """
-        Set the labels of the plot frame using the info parameter.
+        Set axis labels and legend for the plot.
 
         Parameters
         ----------
@@ -241,7 +236,7 @@ class Plot(metaclass=ABCMeta):
     @abstractmethod
     def statistics(self, info_parameter: str):
         """
-        Plot the statistics of the data on the plot frame.
+        Plot enabled statistic overlays for the selected parameter.
 
         Parameters
         ----------

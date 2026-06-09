@@ -1,5 +1,5 @@
 """
-This module contains the classes for plotting the histogram and time series of the data.
+Plot implementations for GUI and terminal rendering.
 """
 
 from .plot_histogram import PlotHistogram

@@ -1,5 +1,5 @@
 """
-The plot the parameters dependent histogram for the PQEnalyzer application.
+Histogram/KDE plotting for PQ energy parameters.
 """
 
 import os
@@ -17,26 +17,18 @@ logger = get_logger(__name__)
 
 class PlotHistogram(Plot):
     """
-    The plot the parameters dependent histogram for the PQEnalyzer application.
-
-    ...
+    Plot kernel-density estimates for selected energy parameters.
 
     Attributes
     ----------
     app : App
         The main application object.
 
-    Methods
-    -------
-    plot(info_parameter)
-        Plot the data.
-    live_plot(info_parameter, interval)
-        Plot the live data at a given interval in milliseconds.
     """
 
     def __init__(self, app):
         """
-        Constructs all the necessary attributes for the PlotHistogram object.
+        Initialize a histogram plot window.
 
         Parameters
         ----------
@@ -54,7 +46,7 @@ class PlotHistogram(Plot):
 
     def main_data(self, info_parameter: str) -> None:
         """
-        Plot the main data on the plot frame.
+        Plot one KDE curve per input file.
 
         Parameters
         ----------
@@ -91,7 +83,7 @@ class PlotHistogram(Plot):
 
     def labels(self, info_parameter: str) -> None:
         """
-        Set the labels of the plot frame using the info parameter.
+        Set histogram labels and legend.
 
         Parameters
         ----------
@@ -129,8 +121,7 @@ class PlotHistogram(Plot):
 
     def statistics(self, info_parameter: str) -> None:
         """
-        Plot the statistics of the data dependent into the plot frame using the info parameter.
-        Mean and/or median are calculated and plotted.
+        Plot enabled mean and median guide lines.
 
         Parameters
         ----------

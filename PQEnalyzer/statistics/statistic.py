@@ -1,6 +1,9 @@
 """
-The statistic class for the PQEnalyzer application. This class contains
-methods to calculate statistics of the data.
+Numeric statistics used by PQEnalyzer plots.
+
+The public energy-based methods are compatibility wrappers for existing call
+sites. The ``*_values`` methods contain the actual numeric implementations and
+operate only on aligned time/value arrays.
 """
 
 import numpy as np
@@ -10,47 +13,42 @@ from ..energy_access import concatenate_series
 
 class Statistic:
     """
-    The statistic class for the PQEnalyzer application. This class contains
-    methods to calculate statistics of the data.
-
-    ...
+    Namespace for stateless plotting statistics.
 
     Methods
     -------
     mean(energies, info_parameter)
-        Calculate the mean of the data.
+        Calculate a horizontal mean line for a Reader energy parameter.
+    mean_values(time, values)
+        Calculate a horizontal mean line for numeric arrays.
     median(energies, info_parameter)
-        Calculate the median of the data.
+        Calculate a horizontal median line for a Reader energy parameter.
+    median_values(time, values)
+        Calculate a horizontal median line for numeric arrays.
     cumulative_average(energies, info_parameter)
-        Calculate the cumulative average of the data.
+        Calculate cumulative average values for a Reader energy parameter.
+    cumulative_average_values(time, values)
+        Calculate cumulative average values for numeric arrays.
     cummulative_average(energies, info_parameter)
         Backward-compatible alias for cumulative_average.
     auto_correlation(energies, info_parameter)
-        Calculate the auto correlation of the data.
+        Calculate normalized autocorrelation for a Reader energy parameter.
+    auto_correlation_values(time, values)
+        Calculate normalized autocorrelation for numeric arrays.
     running_average(energies, info_parameter, window_size)
-        Calculate the running average of the data with a given window size.
-
-    ...
+        Calculate a centered running average for a Reader energy parameter.
+    running_average_values(time, values, window_size)
+        Calculate a centered running average for numeric arrays.
 
     Raises
     ------
     TypeError
-        If the class is instantiated.
-
-    ...
+        If the class is instantiated; all methods are static.
 
     Examples
     --------
-    >>> Statistic.mean(energies, "ENERGY")
-    ([1, 5], [1.0, 1.0])
-    >>> Statistic.median(energies, "ENERGY")
-    ([1, 5], [1.0, 1.0])
-    >>> Statistic.cumulative_average(energies, "ENERGY")
-    ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
-    >>> Statistic.auto_correlation(energies, "ENERGY")
-    ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
-    >>> Statistic.running_average(energies, "ENERGY", 2)
-    ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
+    >>> Statistic.mean_values([1, 2, 3], [10, 20, 30])
+    (array([1, 3]), array([20., 20.]))
     """
 
     def __new__(cls, *args, **kwargs):
@@ -59,7 +57,7 @@ class Statistic:
     @staticmethod
     def mean(energies: list, info_parameter: str) -> tuple:
         """
-        Calculate the mean of the data.
+        Calculate a horizontal mean line for an energy parameter.
 
         Parameters
         ----------
@@ -86,6 +84,9 @@ class Statistic:
     def mean_values(time, values) -> tuple:
         """
         Calculate the mean line for a numeric series.
+
+        The returned time axis contains the first and last input time so the
+        line spans the plotted data range.
         """
 
         time, data = Statistic.__arrays(time, values)
@@ -96,7 +97,7 @@ class Statistic:
     @staticmethod
     def median(energies: list, info_parameter: str) -> tuple:
         """
-        Calculate the median of the data.
+        Calculate a horizontal median line for an energy parameter.
 
         Parameters
         ----------
@@ -124,6 +125,9 @@ class Statistic:
     def median_values(time, values) -> tuple:
         """
         Calculate the median line for a numeric series.
+
+        The returned time axis contains the first and last input time so the
+        line spans the plotted data range.
         """
 
         time, data = Statistic.__arrays(time, values)
@@ -134,7 +138,7 @@ class Statistic:
     @staticmethod
     def cumulative_average(energies: list, info_parameter: str) -> tuple:
         """
-        Calculate the cumulative average of the data.
+        Calculate cumulative average values for an energy parameter.
 
         Parameters
         ----------
@@ -162,6 +166,9 @@ class Statistic:
     def cumulative_average_values(time, values) -> tuple:
         """
         Calculate the cumulative average for a numeric series.
+
+        Each output value is the average of all values from the first point
+        through the current point.
         """
 
         time, data = Statistic.__arrays(time, values)
@@ -208,6 +215,9 @@ class Statistic:
     def auto_correlation_values(time, values) -> tuple:
         """
         Calculate the normalized autocorrelation for a numeric series.
+
+        Constant series are reported as a unit impulse: one at zero lag and
+        zero afterwards. That keeps the result finite and plot-friendly.
         """
 
         time, data = Statistic.__arrays(time, values)
@@ -230,8 +240,7 @@ class Statistic:
     @staticmethod
     def running_average(energies, info_parameter, window_size) -> tuple:
         """
-        Calculate the running average of the data with a given window size.
-        Centered to the middle of the window.
+        Calculate a centered running average for an energy parameter.
 
         Parameters
         ----------
@@ -267,6 +276,9 @@ class Statistic:
     def running_average_values(time, values, window_size) -> tuple:
         """
         Calculate the centered running average for a numeric series.
+
+        Output time values are centered by averaging the input time values
+        inside each window.
         """
 
         time, data = Statistic.__arrays(time, values)

@@ -1,5 +1,10 @@
 """
 View classes for the PQEnalyzer GUI layout.
+
+Each view owns a focused group of CustomTkinter widgets and mirrors the widget
+attributes onto ``App`` for compatibility with existing plotting code. This
+keeps ``App`` as the coordinator while making layout sections independently
+testable.
 """
 
 import os
@@ -23,6 +28,9 @@ def configure_default_theme():
 def configure_window(app):
     """
     Configure top-level window settings.
+
+    The icon is loaded here because it belongs to the root Tk window rather
+    than one specific view class.
     """
 
     app.title("PQEnalyzer - MolarVerse")
@@ -36,6 +44,13 @@ def configure_window(app):
 class SidebarView:
     """
     Sidebar logo and appearance-mode controls.
+
+    Parameters
+    ----------
+    app : App
+        Root application window.
+    change_appearance_mode_callback : callable
+        Callback invoked by the appearance-mode option menu.
     """
 
     def __init__(self, app, change_appearance_mode_callback):
@@ -93,6 +108,10 @@ class SidebarView:
 class PlotControlsView:
     """
     Plot command controls.
+
+    This view exposes the ``follow``, ``plot_main_data`` and interval widgets on
+    the app because ``Plot`` reads that state when a plot window is created or
+    refreshed.
     """
 
     def __init__(self, app, plot_button_callback, refresh_callback):
@@ -212,6 +231,9 @@ class PlotControlsView:
 class ParameterSelectorView:
     """
     Energy-parameter selection controls.
+
+    The selector initializes the app's selected parameter immediately so plot
+    buttons can be used without first changing the option menu.
     """
 
     def __init__(self, app, change_info_callback):
@@ -251,6 +273,10 @@ class ParameterSelectorView:
 class StatisticsControlsView:
     """
     Statistics option controls.
+
+    Plot classes read these checkboxes directly from ``App`` when they collect
+    plotting options, so this view assigns the same attributes that older App
+    code created inline.
     """
 
     def __init__(self, app):
