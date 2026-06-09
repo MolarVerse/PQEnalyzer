@@ -96,3 +96,16 @@ def concatenate_parameter(energies: list, info_parameter: str) -> np.ndarray:
 
     return np.concatenate(
         [parameter_values(energy, info_parameter) for energy in energies])
+
+
+def concatenate_series(energies: list, info_parameter: str) -> EnergySeries:
+    """
+    Return one normalized parameter series across multiple energy files.
+    """
+
+    return EnergySeries(
+        time=concatenate_time(energies),
+        values=concatenate_parameter(energies, info_parameter),
+        label=info_parameter,
+        unit=parameter_unit(energies[0], info_parameter),
+    )
