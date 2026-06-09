@@ -7,7 +7,7 @@ from scipy.stats import gaussian_kde
 import numpy as np
 
 from ..statistics import Statistic
-from ..energy_access import parameter_unit, parameter_values
+from ..energy_access import concatenate_series, parameter_unit, parameter_values
 from .._logging import get_logger
 from .plot import Plot
 
@@ -142,9 +142,13 @@ class PlotHistogram(Plot):
         None
         """
 
+        energy_series = concatenate_series(self.reader.energies,
+                                           info_parameter)
+
         if self.mean:
             # calculate mean and plot
-            _, y = Statistic.mean(self.reader.energies, info_parameter)
+            _, y = Statistic.mean_values(energy_series.time,
+                                         energy_series.values)
             self.ax.vlines(float(y[0]),
                            0,
                            self.ax.get_ylim()[1],
@@ -154,7 +158,8 @@ class PlotHistogram(Plot):
 
         if self.median:
             # calculate median and plot
-            _, y = Statistic.median(self.reader.energies, info_parameter)
+            _, y = Statistic.median_values(energy_series.time,
+                                           energy_series.values)
             # plot dependent y_max of histogram
             self.ax.vlines(float(y[0]),
                            0,
