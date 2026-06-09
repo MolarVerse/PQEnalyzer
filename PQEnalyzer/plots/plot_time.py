@@ -4,6 +4,7 @@ for the PQEnalyzer application.
 """
 
 from ..statistics import Statistic
+from ..energy_access import parameter_unit, series
 from .._logging import get_logger
 from .plot import Plot
 
@@ -64,12 +65,13 @@ class PlotTime(Plot):
         """
 
         for i, energy in enumerate(self.reader.energies):
+            energy_series = series(energy, info_parameter)
             self.ax.plot(
-                energy.simulation_time,
-                energy.data[energy.info[info_parameter]],
+                energy_series.time,
+                energy_series.values,
                 label=self.reader.filenames[i],
             )
-        self.add_value_label(energy.simulation_time, energy.data[energy.info[info_parameter]])
+        self.add_value_label(energy_series.time, energy_series.values)
 
     def labels(self, info_parameter: str) -> None:
         """
@@ -90,7 +92,8 @@ class PlotTime(Plot):
         self.ax.ticklabel_format(axis="both", style="sci")
 
         self.ax.set_ylabel(
-            f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
+            f"{info_parameter} / "
+            f"{parameter_unit(self.reader.energies[0], info_parameter)}"
         )
 
         # Check if label is empty

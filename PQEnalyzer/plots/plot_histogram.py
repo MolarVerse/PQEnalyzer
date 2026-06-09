@@ -7,6 +7,7 @@ from scipy.stats import gaussian_kde
 import numpy as np
 
 from ..statistics import Statistic
+from ..energy_access import parameter_unit, parameter_values
 from .._logging import get_logger
 from .plot import Plot
 
@@ -67,7 +68,7 @@ class PlotHistogram(Plot):
 
         for i, energy in enumerate(self.reader.energies):
             basename = os.path.basename(self.reader.filenames[i])
-            data = energy.data[energy.info[info_parameter]]
+            data = parameter_values(energy, info_parameter)
 
             # check if zero data
             if np.unique(data).size == 1:
@@ -75,11 +76,11 @@ class PlotHistogram(Plot):
                 continue
 
             # plot kde of histogram
-            kde = gaussian_kde(energy.data[energy.info[info_parameter]])
+            kde = gaussian_kde(data)
 
             x = np.linspace(
-                min(energy.data[energy.info[info_parameter]]),
-                max(energy.data[energy.info[info_parameter]]),
+                min(data),
+                max(data),
                 1000,
             )
 
@@ -107,7 +108,8 @@ class PlotHistogram(Plot):
         self.ax.ticklabel_format(axis="both", style="sci")
 
         self.ax.set_xlabel(
-            f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
+            f"{info_parameter} / "
+            f"{parameter_unit(self.reader.energies[0], info_parameter)}"
         )
 
         # Check if label is empty
