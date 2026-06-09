@@ -51,7 +51,6 @@ def main():
 
     from PQAnalysis.traj import MDEngineFormat
 
-    from .apps import App, TermApp
     from .readers import Reader
 
     md_format = MDEngineFormat.PQ
@@ -69,10 +68,14 @@ def main():
 
     # if the user wants to use the terminal plotting feature
     if args.no_gui:
+        from .apps import TermApp
+
         # create the termplot
         termapp = TermApp(reader)
         termapp.start()
     else:
+        from .apps import App
+
         # create the app
         app = App(reader)
         app.build()

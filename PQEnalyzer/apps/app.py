@@ -64,8 +64,9 @@ class App(ctk.CTk):
         """
         Destroy the app.
         """
+        plt.close("all")
         self.quit()
-        del (self)
+        super().destroy()
 
     def build(self):
         """
@@ -331,24 +332,46 @@ class App(ctk.CTk):
         """
         Validate if the input is a number.
         """
-        return value == "" or value.replace(".", "", 1).isdigit()
+        if value in {"", "."}:
+            return True
+
+        try:
+            return float(value) >= 0
+        except ValueError:
+            return False
 
     def toggle_entry_state(self, event, entry, default=""):
         """
         Toggle the state of the entry.
         """
+        entry.configure(state="normal")
+        entry.delete(0, ctk.END)
+
         if event.get():
-            entry.configure(state="normal")
             entry.insert(0, default)
         else:
-            entry.delete(0, ctk.END)
             entry.configure(state="disabled")
 
+    def parse_positive_float(self, value, default, field_name):
+        """
+        Parse a positive float value from a GUI entry string.
+        """
+        stripped_value = value.strip()
+
+        if stripped_value in {"", "."}:
+            return default
+
+        parsed_value = float(stripped_value)
+        if parsed_value <= 0:
+            raise ValueError(f"{field_name} must be greater than zero.")
+
+        return parsed_value
+
     def __change_appearance_mode_event(self, new_appearance_mode: str):
-        """ 
+        """
         Change the appearance mode of the app.
         """
-        
+
         ctk.set_appearance_mode(new_appearance_mode)
 
     def __change_info_event(self, new_info: str):
@@ -391,13 +414,26 @@ class App(ctk.CTk):
         """
 
         if event == 0:
-            plot = PlotTime(self)
+            plot_factory = PlotTime
         elif event == 1:
-            plot = PlotHistogram(self)
+            plot_factory = PlotHistogram
+        else:
+            raise ValueError(f"Unknown plot event: {event}")
+
+        interval = None
+        if self.follow.get():
+            try:
+                interval = self.parse_positive_float(
+                    self.interval.get(), 1.0, "Interval")
+            except ValueError as error:
+                print(error)
+                return None
+
+        plot = plot_factory(self)
 
         self.list_of_plots.append(plot)
 
-        if self.follow.get():
-            plot.follow(self.__selected_info, float(self.interval.get()))
+        if interval is not None:
+            plot.follow(self.__selected_info, interval)
         else:
             plot.simple(self.__selected_info)
