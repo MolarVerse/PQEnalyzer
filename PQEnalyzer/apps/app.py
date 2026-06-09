@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from .._logging import get_logger
 from ..plots import PlotTime, PlotHistogram
+from ..plots.theme import apply_matplotlib_theme, resolve_appearance_mode
 from .app_layout import (
     configure_default_theme,
     configure_window,
@@ -47,6 +48,8 @@ class App(ctk.CTk):
         """
         super().__init__()
         configure_default_theme()
+        self.appearance_mode = resolve_appearance_mode("System")
+        apply_matplotlib_theme(self.appearance_mode)
         configure_window(self)
 
         self.reader = reader
@@ -127,6 +130,9 @@ class App(ctk.CTk):
         """
 
         ctk.set_appearance_mode(new_appearance_mode)
+        self.appearance_mode = resolve_appearance_mode(new_appearance_mode)
+        apply_matplotlib_theme(self.appearance_mode)
+        self.__redraw_plots()
 
     def __change_info_event(self, new_info: str):
         """
@@ -146,6 +152,18 @@ class App(ctk.CTk):
                 continue
 
             plot.refresh()
+
+    def __redraw_plots(self):
+        """
+        Redraw open plots after visual-only GUI setting changes.
+        """
+        for plot in list(self.list_of_plots):
+
+            if plot.figure.number not in plt.get_fignums():
+                self.list_of_plots.remove(plot)
+                continue
+
+            plot.redraw()
 
     def __plot_button_event(self, event):
         """

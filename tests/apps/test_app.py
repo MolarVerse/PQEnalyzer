@@ -283,3 +283,39 @@ def test_plot_button_runs_simple_histogram(monkeypatch):
 def test_plot_button_rejects_unknown_event():
     with pytest.raises(ValueError, match="Unknown plot event"):
         app_module.App._App__plot_button_event(make_app(), 3)
+
+
+def test_change_appearance_mode_updates_matplotlib_and_open_plots(monkeypatch):
+    app = make_app()
+    calls = []
+
+    class FakeFigure:
+
+        def __init__(self, number):
+            self.number = number
+
+    class FakePlot:
+
+        def __init__(self, number):
+            self.figure = FakeFigure(number)
+
+        def redraw(self):
+            calls.append(("redraw", self.figure.number))
+
+    open_plot = FakePlot(1)
+    closed_plot = FakePlot(2)
+    app.list_of_plots = [open_plot, closed_plot]
+
+    monkeypatch.setattr(app_module.ctk, "set_appearance_mode",
+                        lambda mode: calls.append(("ctk", mode)))
+    monkeypatch.setattr(app_module, "resolve_appearance_mode",
+                        lambda mode: "Dark")
+    monkeypatch.setattr(app_module, "apply_matplotlib_theme",
+                        lambda mode: calls.append(("mpl", mode)))
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App._App__change_appearance_mode_event(app, "Dark")
+
+    assert app.appearance_mode == "Dark"
+    assert app.list_of_plots == [open_plot]
+    assert calls == [("ctk", "Dark"), ("mpl", "Dark"), ("redraw", 1)]
