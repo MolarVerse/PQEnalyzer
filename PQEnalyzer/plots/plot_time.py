@@ -144,14 +144,13 @@ class PlotTime(Plot):
 
             self.add_value_label(x, y)
 
-        if self.auto_correlation:
-            # calculate auto correlation and plot
-            x, y = Statistic.auto_correlation_values(energy_series.time,
-                                                     energy_series.values)
+        if self.self_correlation_mean:
+            x, y = Statistic.self_correlation_mean_values(
+                energy_series.time, energy_series.values)
             self.ax.plot(
                 x,
                 y,
-                label="Auto Correlation",
+                label="Self-Correlation Mean",
                 linestyle="--",
             )
 

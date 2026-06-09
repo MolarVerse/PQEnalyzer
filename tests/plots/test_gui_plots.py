@@ -53,7 +53,7 @@ class FakeApp:
         mean=False,
         median=False,
         cummulative_average=False,
-        auto_correlation=False,
+        self_correlation_mean=False,
         running_average=False,
         window_size="",
     ):
@@ -61,7 +61,7 @@ class FakeApp:
         self.mean = FakeFlag(mean)
         self.median = FakeFlag(median)
         self.cummulative_average = FakeFlag(cummulative_average)
-        self.auto_correlation = FakeFlag(auto_correlation)
+        self.self_correlation_mean = FakeFlag(self_correlation_mean)
         self.running_average = FakeFlag(running_average)
         self.window_size = FakeEntry(window_size)
         self.plot_main_data = FakeFlag(False)
@@ -109,7 +109,7 @@ def test_time_statistics_draw_expected_overlay_series():
         mean=True,
         median=True,
         cummulative_average=True,
-        auto_correlation=True,
+        self_correlation_mean=True,
         running_average=True,
         window_size="2",
     )
@@ -121,6 +121,22 @@ def test_time_statistics_draw_expected_overlay_series():
         "Mean",
         "Median",
         "Cumulative Average",
-        "Auto Correlation",
+        "Self-Correlation Mean",
         "Running Average (2)",
     ]
+
+
+def test_time_self_correlation_mean_uses_data_scale():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4, 5])],
+                  self_correlation_mean=True)
+    plot = PlotTime(app)
+
+    plot.statistics("PARAMETER")
+
+    line = plot.ax.lines[0]
+
+    assert line.get_label() == "Self-Correlation Mean"
+    assert np.all(line.get_xdata() == [1, 2, 3, 4, 5])
+    assert np.allclose(line.get_ydata(),
+                       [8.6666, 10, 11, 10, 8.6666],
+                       rtol=1e-4)

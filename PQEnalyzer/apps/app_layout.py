@@ -310,13 +310,13 @@ class StatisticsControlsView:
                                      padx=10,
                                      pady=5,
                                      sticky="w")
-        self.auto_correlation = ctk.CTkCheckBox(self.frame,
-                                                text="Auto Correlation")
-        self.auto_correlation.grid(row=4,
-                                   column=0,
-                                   padx=10,
-                                   pady=5,
-                                   sticky="w")
+        self.self_correlation_mean = ctk.CTkCheckBox(
+            self.frame, text="Self-Correlation Mean")
+        self.self_correlation_mean.grid(row=4,
+                                           column=0,
+                                           padx=10,
+                                           pady=5,
+                                           sticky="w")
 
         self.window_size = None
         self.running_average = ctk.CTkCheckBox(
@@ -355,7 +355,7 @@ class StatisticsControlsView:
         app.mean = self.mean
         app.median = self.median
         app.cummulative_average = self.cumulative_average
-        app.auto_correlation = self.auto_correlation
+        app.self_correlation_mean = self.self_correlation_mean
         app.running_average = self.running_average
         app.running_average_window_size_label = self.window_size_label
         app.window_size = self.window_size

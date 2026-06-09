@@ -74,38 +74,52 @@ class TestStatistic:
         assert np.all(old_time == new_time)
         assert np.all(old_average == new_average)
 
-    def test_auto_correlation(self):
-        time, auto_correlation = Statistic.auto_correlation_values(
-            [1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
+    def test_self_correlation_mean(self):
+        time, self_correlation_mean = (
+            Statistic.self_correlation_mean_values(
+                [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.allclose(auto_correlation, [1, 0.4, -0.1, -0.4, -0.4])
+        assert np.allclose(
+            self_correlation_mean,
+            [8.6666, 10, 11, 10, 8.6666],
+            rtol=1e-4,
+        )
 
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
-        time, auto_correlation = Statistic.auto_correlation(
-            energies, "SIMULATION-TIME")
+        time, self_correlation_mean = (
+            Statistic.self_correlation_mean(energies, "SIMULATION-TIME"))
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.allclose(auto_correlation, [1, 0.4, -0.1, -0.4, -0.4])
+        assert np.allclose(
+            self_correlation_mean,
+            [8.6666, 10, 11, 10, 8.6666],
+            rtol=1e-4,
+        )
 
         energies2 = Reader(["tests/data/md-02.en"], MDEngineFormat.PQ).energies
-        time, auto_correlation = Statistic.auto_correlation(
-            energies2, "SIMULATION-TIME")
+        time, self_correlation_mean = (
+            Statistic.self_correlation_mean(energies2, "SIMULATION-TIME"))
         assert np.all(time == [6, 7, 8, 9, 10])
-        assert np.allclose(auto_correlation, [1, 0.4, -0.1, -0.4, -0.4])
+        assert np.allclose(
+            self_correlation_mean,
+            [63.6666, 65, 66, 65, 63.6666],
+            rtol=1e-4,
+        )
 
-    def test_auto_correlation_constant_data(self):
-        time, auto_correlation = Statistic.auto_correlation_values(
-            [1, 2, 3, 4, 5], [2, 2, 2, 2, 2])
+    def test_self_correlation_mean_constant_data(self):
+        time, self_correlation_mean = (
+            Statistic.self_correlation_mean_values(
+                [1, 2, 3, 4, 5], [2, 2, 2, 2, 2]))
 
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(auto_correlation == [1, 0, 0, 0, 0])
+        assert np.all(self_correlation_mean == [4, 4, 4, 4, 4])
 
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
 
-        time, auto_correlation = Statistic.auto_correlation(
-            energies, "E(INTRA)")
+        time, self_correlation_mean = (
+            Statistic.self_correlation_mean(energies, "E(INTRA)"))
 
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(auto_correlation == [1, 0, 0, 0, 0])
+        assert np.all(self_correlation_mean == [0, 0, 0, 0, 0])
 
     def test_running_average(self):
         time, running_average = Statistic.running_average_values(
