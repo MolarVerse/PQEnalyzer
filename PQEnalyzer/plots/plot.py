@@ -6,6 +6,8 @@ from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from .theme import apply_figure_theme, apply_matplotlib_theme
+
 
 class Plot(metaclass=ABCMeta):
     """
@@ -51,8 +53,10 @@ class Plot(metaclass=ABCMeta):
         self.get_app_parameters()
 
         # create the plot
+        apply_matplotlib_theme(getattr(self.app, "appearance_mode", None))
         self.figure = plt.figure()
         self.ax = self.figure.add_subplot(111)
+        self.apply_theme()
 
         # set the signal handler
         signal.signal(
@@ -144,6 +148,7 @@ class Plot(metaclass=ABCMeta):
         def update(frame):
             self.reader.read_last()
             self.ax.clear()
+            self.apply_theme()
             self.plot_data()
             return []
 
@@ -169,17 +174,27 @@ class Plot(metaclass=ABCMeta):
         # Reads the last data
         self.reader.read_last()
 
+        self.redraw()
+
+        # Show the plot
+        plt.show()
+
+    def redraw(self) -> None:
+        """
+        Redraw an existing plot without reading new file contents.
+        """
+
         # Get the new parameters
         self.get_app_parameters()
 
         # Clear the plot
         self.ax.clear()
+        self.apply_theme()
 
         # Plot the data
         self.plot_data()
 
-        # Show the plot
-        plt.show()
+        self.figure.canvas.draw_idle()
 
     def plot_data(self) -> None:
         """
@@ -196,8 +211,20 @@ class Plot(metaclass=ABCMeta):
         self.statistics(self.info_parameter)
 
         self.labels(self.info_parameter)
+        self.apply_theme()
 
         return None
+
+    def apply_theme(self) -> None:
+        """
+        Apply the active application appearance mode to this plot.
+        """
+
+        apply_figure_theme(
+            self.figure,
+            self.ax,
+            getattr(self.app, "appearance_mode", None),
+        )
 
     @abstractmethod
     def main_data(self, info_parameter: str):
