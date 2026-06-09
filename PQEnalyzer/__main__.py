@@ -8,6 +8,10 @@ import argparse
 import argcomplete
 
 from . import __version__
+from ._logging import configure_logging, get_logger
+
+
+logger = get_logger(__name__)
 
 
 def main():
@@ -48,6 +52,7 @@ def main():
     argcomplete.autocomplete(parser)
 
     args = parser.parse_args()
+    configure_logging()
 
     from PQAnalysis.traj import MDEngineFormat
 
@@ -63,7 +68,8 @@ def main():
     try:
         reader = Reader(args.filenames, md_format)
     except Exception as e:
-        print(e)
+        if not e.__class__.__module__.startswith("PQAnalysis"):
+            logger.error("%s", e)
         sys.exit(1)
 
     # if the user wants to use the terminal plotting feature

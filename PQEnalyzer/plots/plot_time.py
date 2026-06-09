@@ -4,7 +4,11 @@ for the PQEnalyzer application.
 """
 
 from ..statistics import Statistic
+from .._logging import get_logger
 from .plot import Plot
+
+
+logger = get_logger(__name__)
 
 
 class PlotTime(Plot):
@@ -91,10 +95,7 @@ class PlotTime(Plot):
 
         # Check if label is empty
         if self.ax.get_legend_handles_labels()[1] == []:
-            # raise warning if no data to plot
-            # TODO: change to logger
-            # raise RuntimeWarning("No data to plot.")
-            print("No data to plot.")
+            logger.warning("No data to plot.")
         else:
             # legend outside of plot
             self.ax.legend(
@@ -168,8 +169,7 @@ class PlotTime(Plot):
                                                   info_parameter,
                                                   window_size_int)
             except ValueError as error:
-                # raise warning if window size is too large
-                print(error)
+                logger.warning("%s", error)
                 return None
 
             self.ax.plot(

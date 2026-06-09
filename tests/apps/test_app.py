@@ -137,7 +137,7 @@ def test_destroy_closes_plots_and_tk_window(monkeypatch):
     assert calls == [("close", "all"), ("quit", None), ("destroy", None)]
 
 
-def test_plot_button_rejects_invalid_follow_interval(monkeypatch, capsys):
+def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):
     app = make_app(follow=True, interval="0")
     monkeypatch.setattr(app_module, "PlotTime", DummyPlot)
 
@@ -145,7 +145,7 @@ def test_plot_button_rejects_invalid_follow_interval(monkeypatch, capsys):
 
     assert app.list_of_plots == []
     assert DummyPlot.instances == []
-    assert "Interval must be greater than zero" in capsys.readouterr().out
+    assert "Interval must be greater than zero" in caplog.text
 
 
 def test_plot_button_passes_valid_follow_interval(monkeypatch):
