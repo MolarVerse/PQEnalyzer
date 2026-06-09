@@ -136,3 +136,34 @@ def concatenate_series(energies: list, info_parameter: str) -> EnergySeries:
         label=info_parameter,
         unit=parameter_unit(energies[0], info_parameter),
     )
+
+
+def difference_series(energies: list, info_parameter: str) -> EnergySeries:
+    """
+    Return the pointwise difference between two aligned energy series.
+
+    The returned values are ``first - second``. Simulation-time axes must match
+    exactly so the subtraction never hides shifted or differently sampled runs.
+    """
+
+    if len(energies) != 2:
+        raise ValueError(
+            "Difference plotting requires exactly two input files.")
+
+    first = series(energies[0], info_parameter)
+    second = series(energies[1], info_parameter)
+
+    if (
+        first.time.shape != second.time.shape
+        or first.values.shape != second.values.shape
+        or not np.array_equal(first.time, second.time)
+    ):
+        raise ValueError(
+            "Difference plotting requires matching simulation-time axes.")
+
+    return EnergySeries(
+        time=first.time,
+        values=first.values - second.values,
+        label=info_parameter,
+        unit=first.unit,
+    )

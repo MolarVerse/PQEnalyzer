@@ -288,7 +288,7 @@ class StatisticsControlsView:
                         sticky="nsew",
                         padx=(20, 20),
                         pady=(10, 10))
-        self.frame.grid_rowconfigure(8, weight=1)
+        self.frame.grid_rowconfigure(9, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
 
         self.label = ctk.CTkLabel(
@@ -318,13 +318,24 @@ class StatisticsControlsView:
                                            pady=5,
                                            sticky="w")
 
+        self.difference = ctk.CTkCheckBox(
+            self.frame,
+            text="Difference (1 - 2)",
+            command=self.__enable_no_data_for_difference,
+        )
+        self.difference.grid(row=5,
+                             column=0,
+                             padx=10,
+                             pady=5,
+                             sticky="w")
+
         self.window_size = None
         self.running_average = ctk.CTkCheckBox(
             self.frame,
             text="Running Average",
             command=lambda: app.toggle_entry_state(
                 self.running_average, self.window_size, default="10"))
-        self.running_average.grid(row=5,
+        self.running_average.grid(row=6,
                                   column=0,
                                   padx=10,
                                   pady=5,
@@ -332,7 +343,7 @@ class StatisticsControlsView:
         self.window_size_label = ctk.CTkLabel(self.frame,
                                               text="Window Size:",
                                               anchor="w")
-        self.window_size_label.grid(row=6,
+        self.window_size_label.grid(row=7,
                                     column=0,
                                     padx=10,
                                     pady=5,
@@ -343,7 +354,7 @@ class StatisticsControlsView:
             validate="key",
             validatecommand=(app.register(app.validate_number), "%P"),
         )
-        self.window_size.grid(row=7,
+        self.window_size.grid(row=8,
                               column=0,
                               padx=10,
                               pady=5,
@@ -356,6 +367,15 @@ class StatisticsControlsView:
         app.median = self.median
         app.cummulative_average = self.cumulative_average
         app.self_correlation_mean = self.self_correlation_mean
+        app.difference = self.difference
         app.running_average = self.running_average
         app.running_average_window_size_label = self.window_size_label
         app.window_size = self.window_size
+
+    def __enable_no_data_for_difference(self):
+        """
+        Hide raw series by default when plotting a derived difference.
+        """
+
+        if self.difference.get():
+            self.app.plot_main_data.set(True)

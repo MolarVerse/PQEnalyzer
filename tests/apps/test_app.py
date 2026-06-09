@@ -6,6 +6,7 @@ import pytest
 
 from PQEnalyzer.apps import app as app_module
 from PQEnalyzer.apps import app_layout
+from PQEnalyzer.apps import termapp as termapp_module
 
 
 class FakeFlag:
@@ -245,8 +246,40 @@ def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     assert app.median is view.median
     assert app.cummulative_average is view.cumulative_average
     assert app.self_correlation_mean is view.self_correlation_mean
+    assert app.difference is view.difference
     assert app.running_average is view.running_average
     assert app.window_size is view.window_size
+
+
+def test_difference_checkbox_enables_no_data(monkeypatch):
+    class FakeBoolean:
+
+        def __init__(self):
+            self.value = False
+
+        def set(self, value):
+            self.value = value
+
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+        plot_main_data=FakeBoolean(),
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont",
+                        lambda *args, **kwargs: ("font", args, kwargs))
+
+    view = app_layout.StatisticsControlsView(app)
+    view.difference.get = lambda: True
+
+    view.difference.kwargs["command"]()
+
+    assert app.plot_main_data.value is True
 
 
 def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):
@@ -319,3 +352,41 @@ def test_change_appearance_mode_updates_matplotlib_and_open_plots(monkeypatch):
     assert app.appearance_mode == "Dark"
     assert app.list_of_plots == [open_plot]
     assert calls == [("ctk", "Dark"), ("mpl", "Dark"), ("redraw", 1)]
+
+
+def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):
+    calls = []
+    reader = SimpleNamespace(
+        energies=[
+            SimpleNamespace(info={"SIMULATION-TIME": "TIME",
+                                  "PARAMETER": "PARAMETER"}),
+            SimpleNamespace(info={"SIMULATION-TIME": "TIME",
+                                  "PARAMETER": "PARAMETER"}),
+        ],
+    )
+
+    class FakePrompt:
+
+        def __init__(self, result):
+            self.result = result
+
+        def execute(self):
+            return self.result
+
+    class FakeTermPlot:
+
+        def __init__(self, plot_reader):
+            self.reader = plot_reader
+
+        def plot(self, info_parameter, difference=False):
+            calls.append((self.reader, info_parameter, difference))
+
+    monkeypatch.setattr(termapp_module.inquirer, "select",
+                        lambda **kwargs: FakePrompt("PARAMETER"))
+    monkeypatch.setattr(termapp_module.inquirer, "confirm",
+                        lambda **kwargs: FakePrompt(True))
+    monkeypatch.setattr(termapp_module, "TermPlot", FakeTermPlot)
+
+    termapp_module.TermApp(reader).run()
+
+    assert calls == [(reader, "PARAMETER", True)]
