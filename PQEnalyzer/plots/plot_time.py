@@ -5,6 +5,7 @@ Time-series plotting for PQ energy parameters.
 from ..statistics import Statistic
 from ..energy_access import concatenate_series, parameter_unit, series
 from .._logging import get_logger
+from .labels import unique_path_labels
 from .plot import Plot
 
 
@@ -53,14 +54,15 @@ class PlotTime(Plot):
         None
         """
 
+        labels = unique_path_labels(self.reader.filenames)
         for i, energy in enumerate(self.reader.energies):
             energy_series = series(energy, info_parameter)
             self.ax.plot(
                 energy_series.time,
                 energy_series.values,
-                label=self.reader.filenames[i],
+                label=labels[i],
             )
-        self.add_value_label(energy_series.time, energy_series.values)
+            self.add_value_label(energy_series.time, energy_series.values)
 
     def labels(self, info_parameter: str) -> None:
         """
@@ -85,16 +87,8 @@ class PlotTime(Plot):
             f"{parameter_unit(self.reader.energies[0], info_parameter)}"
         )
 
-        # Check if label is empty
-        if self.ax.get_legend_handles_labels()[1] == []:
+        if not self.show_legend(loc="best"):
             logger.warning("No data to plot.")
-        else:
-            # legend outside of plot
-            self.ax.legend(
-                fontsize="small",
-                fancybox=True,
-                shadow=True,
-            )
 
         return None
 
@@ -211,12 +205,14 @@ class PlotTime(Plot):
         None
         """
 
-        self.ax.text(
-            self.ax.get_xlim()[1],
-            y[-1],
+        self.ax.annotate(
             f"{y[-1]:.3e}",
+            xy=(x[-1], y[-1]),
+            xytext=(6, 0),
+            textcoords="offset points",
             fontsize=8,
             horizontalalignment="left",
+            verticalalignment="center",
             bbox=dict(facecolor="white", alpha=0.5, edgecolor="white"),
         )
 

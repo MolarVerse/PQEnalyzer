@@ -54,7 +54,7 @@ class Plot(metaclass=ABCMeta):
 
         # create the plot
         apply_matplotlib_theme(getattr(self.app, "appearance_mode", None))
-        self.figure = plt.figure()
+        self.figure = plt.figure(figsize=(9, 5.5))
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
 
@@ -213,8 +213,26 @@ class Plot(metaclass=ABCMeta):
 
         self.labels(self.info_parameter)
         self.apply_theme()
+        self.figure.tight_layout()
 
         return None
+
+    def show_legend(self, **kwargs) -> bool:
+        """
+        Draw a consistently styled legend when plotted labels exist.
+        """
+
+        _, labels = self.ax.get_legend_handles_labels()
+        if not labels:
+            return False
+
+        legend_options = {
+            "fontsize": "small",
+            "frameon": True,
+        }
+        legend_options.update(kwargs)
+        self.ax.legend(**legend_options)
+        return True
 
     def apply_theme(self) -> None:
         """

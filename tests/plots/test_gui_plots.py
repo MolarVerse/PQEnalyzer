@@ -34,11 +34,14 @@ class FakeEnergy:
 
 class FakeReader:
 
-    def __init__(self, energies):
+    def __init__(self, energies, filenames=None):
         self.energies = energies
-        self.filenames = [
-            f"/tmp/series-{index}.en" for index, _ in enumerate(energies)
-        ]
+        if filenames is None:
+            filenames = [
+                f"/tmp/series-{index}.en"
+                for index, _ in enumerate(energies)
+            ]
+        self.filenames = filenames
 
     def read_last(self):
         return None
@@ -56,8 +59,9 @@ class FakeApp:
         self_correlation_mean=False,
         running_average=False,
         window_size="",
+        filenames=None,
     ):
-        self.reader = FakeReader(energies)
+        self.reader = FakeReader(energies, filenames)
         self.mean = FakeFlag(mean)
         self.median = FakeFlag(median)
         self.cummulative_average = FakeFlag(cummulative_average)
@@ -81,15 +85,56 @@ def test_histogram_skips_constant_series_and_plots_remaining_data(caplog):
     assert "Data zero. No histogram available." in caplog.text
 
 
+def test_histogram_disambiguates_duplicate_filenames():
+    app = FakeApp(
+        [FakeEnergy([1, 2, 3, 4]), FakeEnergy([2, 3, 4, 5])],
+        filenames=["/tmp/run-a/md.en", "/tmp/run-b/md.en"],
+    )
+    plot = PlotHistogram(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "run-a/md.en KDE",
+        "run-b/md.en KDE",
+    ]
+
+
 def test_histogram_statistics_draw_single_mean_and_median_lines():
     app = FakeApp([FakeEnergy([1, 2, 3, 4])], mean=True, median=True)
     plot = PlotHistogram(app)
 
     plot.statistics("PARAMETER")
 
-    assert len(plot.ax.collections) == 2
-    assert len(plot.ax.collections[0].get_segments()) == 1
-    assert len(plot.ax.collections[1].get_segments()) == 1
+    assert plot.ax.get_legend_handles_labels()[1] == ["Mean", "Median"]
+    assert len(plot.ax.lines) == 2
+    assert all(line.get_linestyle() == "--" for line in plot.ax.lines)
+
+
+def test_time_main_data_uses_readable_filenames_and_value_labels():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == ["series-0.en"]
+    assert len(plot.ax.texts) == 1
+    assert plot.ax.texts[0].get_text() == "4.000e+00"
+
+
+def test_time_main_data_disambiguates_duplicate_filenames():
+    app = FakeApp(
+        [FakeEnergy([1, 2, 3, 4]), FakeEnergy([2, 3, 4, 5])],
+        filenames=["/tmp/run-a/md.en", "/tmp/run-b/md.en"],
+    )
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "run-a/md.en",
+        "run-b/md.en",
+    ]
 
 
 def test_running_average_rejects_invalid_window_size_without_crashing(caplog):

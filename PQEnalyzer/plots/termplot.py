@@ -1,11 +1,10 @@
 """
 Terminal plotting implementation.
 """
-
-import os
 import plotext as plt
 
 from ..energy_access import parameter_unit, series
+from .labels import unique_path_labels
 
 
 class TermPlot:
@@ -43,13 +42,13 @@ class TermPlot:
             The information parameter to plot.
 
         """
+        labels = unique_path_labels(self.reader.filenames)
         for i, energy in enumerate(self.reader.energies):
-            basename = os.path.basename(self.reader.filenames[i])
             energy_series = series(energy, info_parameter)
             plt.plot(
                 energy_series.time,
                 energy_series.values,
-                label=basename,
+                label=labels[i],
             )
             plt.xlabel("Simulation Time")
             plt.ylabel(
