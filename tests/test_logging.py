@@ -1,6 +1,6 @@
 import logging
 
-from PQEnalyzer._logging import (RESET_COLOR, RuntimeFormatter,
+from PQEnalyzer._logging import (LEVEL_COLORS, RESET_COLOR, RuntimeFormatter,
                                  PACKAGE_LOGGER_NAME, configure_logging,
                                  get_logger)
 
@@ -42,10 +42,13 @@ def make_record(level, message):
 
 def test_runtime_formatter_colorizes_by_level():
     formatter = RuntimeFormatter(use_color=True)
+    record = make_record(logging.WARNING, "Careful")
 
-    message = formatter.format(make_record(logging.WARNING, "Careful"))
+    message = formatter.format(record)
 
-    assert message == f"\033[33mWARNING: Careful{RESET_COLOR}"
+    assert message == (
+        f"{LEVEL_COLORS[logging.WARNING]}WARNING{RESET_COLOR}: Careful")
+    assert record.levelname == "WARNING"
 
 
 def test_runtime_formatter_can_disable_color():
@@ -54,6 +57,14 @@ def test_runtime_formatter_can_disable_color():
     message = formatter.format(make_record(logging.ERROR, "Failed"))
 
     assert message == "ERROR: Failed"
+
+
+def test_runtime_formatter_leaves_unknown_levels_plain():
+    formatter = RuntimeFormatter(use_color=True)
+
+    message = formatter.format(make_record(35, "Custom"))
+
+    assert message == "Level 35: Custom"
 
 
 def test_configure_logging_delegates_to_standard_logging(monkeypatch):
@@ -72,7 +83,8 @@ def test_configure_logging_delegates_to_standard_logging(monkeypatch):
     assert calls[0]["level"] == logging.DEBUG
     assert handler.stream is fake_stream
     assert handler.formatter.format(make_record(
-        logging.ERROR, "Failed")) == f"\033[31mERROR: Failed{RESET_COLOR}"
+        logging.ERROR,
+        "Failed")) == f"{LEVEL_COLORS[logging.ERROR]}ERROR{RESET_COLOR}: Failed"
 
 
 def test_configure_logging_respects_no_color(monkeypatch):

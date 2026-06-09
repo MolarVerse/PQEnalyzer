@@ -10,11 +10,11 @@ import sys
 PACKAGE_LOGGER_NAME = "PQEnalyzer"
 RESET_COLOR = "\033[0m"
 LEVEL_COLORS = {
-    logging.DEBUG: "\033[2m",
-    logging.INFO: "\033[34m",
-    logging.WARNING: "\033[33m",
-    logging.ERROR: "\033[31m",
-    logging.CRITICAL: "\033[1;31m",
+    logging.DEBUG: "\033[2;38;5;245m",
+    logging.INFO: "\033[38;5;75m",
+    logging.WARNING: "\033[38;5;214m",
+    logging.ERROR: "\033[38;5;203m",
+    logging.CRITICAL: "\033[1;38;5;199m",
 }
 
 
@@ -28,13 +28,19 @@ class RuntimeFormatter(logging.Formatter):
         self.use_color = use_color
 
     def format(self, record):
-        message = super().format(record)
-
         if not self.use_color:
-            return message
+            return super().format(record)
 
         color = LEVEL_COLORS.get(record.levelno)
-        return f"{color}{message}{RESET_COLOR}" if color else message
+        if not color:
+            return super().format(record)
+
+        original_levelname = record.levelname
+        record.levelname = f"{color}{original_levelname}{RESET_COLOR}"
+        try:
+            return super().format(record)
+        finally:
+            record.levelname = original_levelname
 
 
 def get_logger(name=None):
