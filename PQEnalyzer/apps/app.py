@@ -12,7 +12,11 @@ from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 
 from .. import __base__
+from .._logging import get_logger
 from ..plots import PlotTime, PlotHistogram
+
+
+logger = get_logger(__name__)
 
 
 class App(ctk.CTk):
@@ -426,7 +430,7 @@ class App(ctk.CTk):
                 interval = self.parse_positive_float(
                     self.interval.get(), 1.0, "Interval")
             except ValueError as error:
-                print(error)
+                logger.warning("%s", error)
                 return None
 
         plot = plot_factory(self)

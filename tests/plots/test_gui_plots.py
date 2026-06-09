@@ -69,14 +69,14 @@ def teardown_function():
     plt.close("all")
 
 
-def test_histogram_skips_constant_series_and_plots_remaining_data(capsys):
+def test_histogram_skips_constant_series_and_plots_remaining_data(caplog):
     app = FakeApp([FakeEnergy([1, 1, 1, 1]), FakeEnergy([1, 2, 3, 4])])
     plot = PlotHistogram(app)
 
     plot.main_data("PARAMETER")
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
-    assert "Data zero. No histogram available." in capsys.readouterr().out
+    assert "Data zero. No histogram available." in caplog.text
 
 
 def test_histogram_statistics_draw_single_mean_and_median_lines():
@@ -90,7 +90,7 @@ def test_histogram_statistics_draw_single_mean_and_median_lines():
     assert len(plot.ax.collections[1].get_segments()) == 1
 
 
-def test_running_average_rejects_invalid_window_size_without_crashing(capsys):
+def test_running_average_rejects_invalid_window_size_without_crashing(caplog):
     app = FakeApp([FakeEnergy([1, 2, 3, 4])],
                   running_average=True,
                   window_size="0")
@@ -98,4 +98,4 @@ def test_running_average_rejects_invalid_window_size_without_crashing(capsys):
 
     plot.statistics("PARAMETER")
 
-    assert "Window size must be positive" in capsys.readouterr().out
+    assert "Window size must be positive" in caplog.text
