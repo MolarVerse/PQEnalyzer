@@ -47,6 +47,7 @@ version_file = "PQEnalyzer/__version__.py"
 [tool.pytest.ini_options]
 markers = [
     "benchmark: performance benchmark tests",
+    "e2e: end-to-end CLI and GUI smoke tests",
 ]
 
 [tool.coverage.run]
