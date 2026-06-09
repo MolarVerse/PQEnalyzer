@@ -5,6 +5,8 @@ The plot module to plot the data in the terminal.
 import os
 import plotext as plt
 
+from ..energy_access import parameter_unit, series
+
 
 class TermPlot:
     """
@@ -52,14 +54,16 @@ class TermPlot:
         """
         for i, energy in enumerate(self.reader.energies):
             basename = os.path.basename(self.reader.filenames[i])
+            energy_series = series(energy, info_parameter)
             plt.plot(
-                energy.simulation_time,
-                energy.data[energy.info[info_parameter]],
+                energy_series.time,
+                energy_series.values,
                 label=basename,
             )
             plt.xlabel("Simulation Time")
             plt.ylabel(
-                f"{info_parameter} / {self.reader.energies[0].units[info_parameter]}"
+                f"{info_parameter} / "
+                f"{parameter_unit(self.reader.energies[0], info_parameter)}"
             )
         plt.show()
         plt.clear_figure()

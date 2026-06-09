@@ -5,6 +5,8 @@ methods to calculate statistics of the data.
 
 import numpy as np
 
+from ..energy_access import concatenate_parameter, concatenate_time
+
 
 class Statistic:
     """
@@ -77,10 +79,8 @@ class Statistic:
         ([1, 5], [1.0, 1.0])
         """
 
-        time = np.concatenate([energy.simulation_time for energy in energies])
-
-        data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies])
+        time = concatenate_time(energies)
+        data = concatenate_parameter(energies, info_parameter)
 
         mean = np.mean(data)
 
@@ -109,10 +109,8 @@ class Statistic:
         ([1, 5], [1.0, 1.0])
         """
 
-        time = np.concatenate([energy.simulation_time for energy in energies])
-
-        data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies])
+        time = concatenate_time(energies)
+        data = concatenate_parameter(energies, info_parameter)
 
         median = np.median(data)
 
@@ -141,12 +139,11 @@ class Statistic:
         ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
         """
 
-        data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies])
+        data = concatenate_parameter(energies, info_parameter)
 
         cumulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
 
-        time = np.concatenate([energy.simulation_time for energy in energies])
+        time = concatenate_time(energies)
 
         return time, cumulative_average
 
@@ -181,10 +178,7 @@ class Statistic:
         ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
         """
 
-        data = np.concatenate([
-            energy.data[energy.info[info_parameter]]
-            for energy in energies
-        ]).astype(float)
+        data = concatenate_parameter(energies, info_parameter).astype(float)
 
         centered_data = data - np.mean(data)
         zero_lag_correlation = np.dot(centered_data, centered_data)
@@ -198,7 +192,7 @@ class Statistic:
                              mode="full")[len(data) - 1:] /
                 zero_lag_correlation)
 
-        time = np.concatenate([energy.simulation_time for energy in energies])
+        time = concatenate_time(energies)
 
         return time, auto_correlation
 
@@ -233,8 +227,7 @@ class Statistic:
         ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
         """
 
-        data = np.concatenate(
-            [energy.data[energy.info[info_parameter]] for energy in energies])
+        data = concatenate_parameter(energies, info_parameter)
 
         if window_size < 1:
             raise ValueError("Window size must be positive")
@@ -249,7 +242,7 @@ class Statistic:
         ])
 
         # Centered to the middle of the window
-        time = np.concatenate([energy.simulation_time for energy in energies])
+        time = concatenate_time(energies)
         time = np.array([
             np.mean(time[i:i + window_size])
             for i in range(len(data) - window_size + 1)
