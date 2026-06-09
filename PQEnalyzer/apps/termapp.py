@@ -1,5 +1,5 @@
 """
-This module allows the user to plot the data in the terminal.
+Interactive terminal application for parameter selection and plotting.
 """
 import signal
 from InquirerPy import inquirer
@@ -9,29 +9,24 @@ from ..plots import TermPlot
 
 class TermApp:
     """
-    A class to plot the data in the terminal.
+    Prompt for an energy parameter and render it with TermPlot.
 
     Attributes
     ----------
     reader : Reader
         The Reader object to read the data.
 
-    Methods
-    -------
     """
 
     def __init__(self, reader):
         """
-        Constructs all the necessary attributes for the TermApp object.
+        Store the Reader and derive selectable parameter names.
 
         Parameters
         ----------
         reader : Reader
             The Reader object to read the data.
 
-        Returns
-        -------
-        None
         """
 
         self.reader = reader
@@ -43,15 +38,7 @@ class TermApp:
 
     def run(self):
         """
-        Run the terminal application.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
+        Ask for one parameter and draw a terminal plot once.
         """
 
         result = inquirer.select(
@@ -68,15 +55,7 @@ class TermApp:
 
     def start(self):
         """
-        Start the terminal application.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
+        Run the terminal prompt loop until the user exits or interrupts.
         """
         try:
             self.run()

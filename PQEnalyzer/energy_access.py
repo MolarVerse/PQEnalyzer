@@ -1,5 +1,10 @@
 """
-Helpers for reading PQAnalysis energy data through its public API.
+Energy data access helpers built around PQAnalysis public attributes.
+
+PQAnalysis exposes common energy columns as named arrays, while custom or
+future columns may only be reachable through the generic ``info``/``data``
+mapping. This module keeps that fallback in one place so plots and statistics
+do not need to know PQAnalysis internals.
 """
 
 from dataclasses import dataclass
@@ -21,12 +26,24 @@ PARAMETER_ATTRIBUTES = {
     "MOMENTUM": "momentum",
     "LOOPTIME": "looptime",
 }
+# Mapping from PQ info labels to PQAnalysis ``Energy`` attribute names.
 
 
 @dataclass(frozen=True)
 class EnergySeries:
     """
     Normalized view of a single energy parameter and its time axis.
+
+    Attributes
+    ----------
+    time : np.ndarray
+        Simulation-time values for the series.
+    values : np.ndarray
+        Numeric parameter values aligned with ``time``.
+    label : str
+        Original PQ info parameter label.
+    unit : str
+        Display unit for ``values``.
     """
 
     time: np.ndarray
@@ -38,6 +55,10 @@ class EnergySeries:
 def parameter_values(energy, info_parameter: str) -> np.ndarray:
     """
     Return a parameter array, preferring PQAnalysis public Energy attributes.
+
+    The fallback supports labels that are not represented in
+    ``PARAMETER_ATTRIBUTES`` but are still present in the parsed PQAnalysis
+    ``Energy`` object.
     """
 
     attribute = PARAMETER_ATTRIBUTES.get(info_parameter)
@@ -50,6 +71,9 @@ def parameter_values(energy, info_parameter: str) -> np.ndarray:
 def parameter_unit(energy, info_parameter: str) -> str:
     """
     Return a parameter unit, preferring PQAnalysis public unit attributes.
+
+    Unit lookup mirrors ``parameter_values`` so every caller receives the unit
+    from the same source as the values when possible.
     """
 
     attribute = PARAMETER_ATTRIBUTES.get(info_parameter)
@@ -62,7 +86,7 @@ def parameter_unit(energy, info_parameter: str) -> str:
 
 def simulation_time(energy) -> np.ndarray:
     """
-    Return the simulation time axis from a PQAnalysis Energy object.
+    Return the simulation-time axis from a PQAnalysis Energy object.
     """
 
     return np.asarray(energy.simulation_time)
@@ -70,7 +94,7 @@ def simulation_time(energy) -> np.ndarray:
 
 def series(energy, info_parameter: str) -> EnergySeries:
     """
-    Return a normalized parameter series for plotting.
+    Return one file's normalized parameter series for plotting.
     """
 
     return EnergySeries(
@@ -83,7 +107,7 @@ def series(energy, info_parameter: str) -> EnergySeries:
 
 def concatenate_time(energies: list) -> np.ndarray:
     """
-    Concatenate simulation time arrays from multiple energy files.
+    Concatenate simulation-time arrays from multiple energy files.
     """
 
     return np.concatenate([simulation_time(energy) for energy in energies])
@@ -91,7 +115,7 @@ def concatenate_time(energies: list) -> np.ndarray:
 
 def concatenate_parameter(energies: list, info_parameter: str) -> np.ndarray:
     """
-    Concatenate one parameter from multiple energy files.
+    Concatenate one parameter from multiple energy files in reader order.
     """
 
     return np.concatenate(
@@ -101,6 +125,9 @@ def concatenate_parameter(energies: list, info_parameter: str) -> np.ndarray:
 def concatenate_series(energies: list, info_parameter: str) -> EnergySeries:
     """
     Return one normalized parameter series across multiple energy files.
+
+    Reader compatibility validation guarantees all files share the same unit,
+    so the returned series can safely use the first file's unit.
     """
 
     return EnergySeries(

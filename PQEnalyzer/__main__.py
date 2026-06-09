@@ -1,6 +1,10 @@
 """
-This is the main file of the PQEnalyzer project. It contains the
-main function that is executed when the program is run.
+Command-line entrypoint for PQEnalyzer.
+
+The CLI reads one or more energy files through the Reader wrapper and then
+starts either the graphical CustomTkinter application or the terminal plotting
+flow. GUI imports stay inside main() so terminal mode can start without loading
+Tkinter.
 """
 
 import sys
@@ -16,19 +20,12 @@ logger = get_logger(__name__)
 
 def main():
     """
-    The main function of the PQEnalyzer project. It reads the data
-    from the energy files and plots the data in the GUI or in the terminal.
-    Use the -h or --help flag to see the command line arguments.
+    Parse command-line arguments, read energy files, and start the chosen UI.
 
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
+    PQAnalysis exceptions are allowed to keep their own formatting. Other
+    reader errors are logged through the application logger before returning a
+    non-zero process exit.
     """
-    # parse command line arguments
     parser = argparse.ArgumentParser(description="PQEnalyzer - MolarVerse")
     parser.add_argument(
         "filenames",
@@ -48,7 +45,6 @@ def main():
                         action="version",
                         version=f"PQEnalyzer {__version__}")
 
-    # autocomplete the command line arguments
     argcomplete.autocomplete(parser)
 
     args = parser.parse_args()
@@ -60,11 +56,9 @@ def main():
 
     md_format = MDEngineFormat.PQ
 
-    # if the user wants to use the QMCFC output as input
     if args.qmcfc:
-        md_format = MDEngineFormat.QMCFC  # set the md format to QMCFC
+        md_format = MDEngineFormat.QMCFC
 
-    # create the reader
     try:
         reader = Reader(args.filenames, md_format)
     except Exception as e:
@@ -72,17 +66,14 @@ def main():
             logger.error("%s", e)
         sys.exit(1)
 
-    # if the user wants to use the terminal plotting feature
     if args.no_gui:
         from .apps import TermApp
 
-        # create the termplot
         termapp = TermApp(reader)
         termapp.start()
     else:
         from .apps import App
 
-        # create the app
         app = App(reader)
         app.build()
         app.mainloop()

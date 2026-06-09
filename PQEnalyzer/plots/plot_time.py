@@ -1,6 +1,5 @@
 """
-The plot the parameters dependent on the simulation time
-for the PQEnalyzer application.
+Time-series plotting for PQ energy parameters.
 """
 
 from ..statistics import Statistic
@@ -14,27 +13,17 @@ logger = get_logger(__name__)
 
 class PlotTime(Plot):
     """
-    The plot the parameters dependent on the simulation time
-    for the PQEnalyzer application.
-
-    ...
+    Plot selected energy parameters against simulation time.
 
     Attributes
     ----------
     app : App
         The main application object.
-    
-    Methods
-    -------
-    plot(info_parameter)
-        Plot the data.
-    live_plot(info_parameter, interval)
-        Plot the live data at a given interval in milliseconds.
     """
 
     def __init__(self, app):
         """
-        Constructs all the necessary attributes for the PlotTime object.
+        Initialize a time-series plot window.
 
         Parameters
         ----------
@@ -52,7 +41,7 @@ class PlotTime(Plot):
 
     def main_data(self, info_parameter: str) -> None:
         """
-        Plot the main data on the plot frame.
+        Plot each input file as a separate time-series line.
 
         Parameters
         ----------
@@ -75,7 +64,7 @@ class PlotTime(Plot):
 
     def labels(self, info_parameter: str) -> None:
         """
-        Set the labels of the plot frame using the info parameter.
+        Set time-series labels and legend.
 
         Parameters
         ----------
@@ -111,8 +100,7 @@ class PlotTime(Plot):
 
     def statistics(self, info_parameter: str) -> None:
         """
-        Plot the statistics of the data dependent on the simulation time
-        to the plot frame using the info parameter.
+        Plot enabled statistic overlays for the selected time series.
 
         Parameters
         ----------
@@ -210,7 +198,7 @@ class PlotTime(Plot):
 
     def add_value_label(self, x, y) -> None:
         """
-        Add a value label of the last y point to the plot frame.
+        Add a value label for the last y point.
 
         Parameters
         ----------
