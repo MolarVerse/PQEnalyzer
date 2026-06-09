@@ -52,14 +52,16 @@ class FakeApp:
         *,
         mean=False,
         median=False,
+        cummulative_average=False,
+        auto_correlation=False,
         running_average=False,
         window_size="",
     ):
         self.reader = FakeReader(energies)
         self.mean = FakeFlag(mean)
         self.median = FakeFlag(median)
-        self.cummulative_average = FakeFlag(False)
-        self.auto_correlation = FakeFlag(False)
+        self.cummulative_average = FakeFlag(cummulative_average)
+        self.auto_correlation = FakeFlag(auto_correlation)
         self.running_average = FakeFlag(running_average)
         self.window_size = FakeEntry(window_size)
         self.plot_main_data = FakeFlag(False)
@@ -99,3 +101,26 @@ def test_running_average_rejects_invalid_window_size_without_crashing(caplog):
     plot.statistics("PARAMETER")
 
     assert "Window size must be positive" in caplog.text
+
+
+def test_time_statistics_draw_expected_overlay_series():
+    app = FakeApp(
+        [FakeEnergy([1, 2, 3, 4])],
+        mean=True,
+        median=True,
+        cummulative_average=True,
+        auto_correlation=True,
+        running_average=True,
+        window_size="2",
+    )
+    plot = PlotTime(app)
+
+    plot.statistics("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "Mean",
+        "Median",
+        "Cumulative Average",
+        "Auto Correlation",
+        "Running Average (2)",
+    ]

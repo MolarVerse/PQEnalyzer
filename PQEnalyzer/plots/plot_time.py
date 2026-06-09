@@ -4,7 +4,7 @@ for the PQEnalyzer application.
 """
 
 from ..statistics import Statistic
-from ..energy_access import parameter_unit, series
+from ..energy_access import concatenate_series, parameter_unit, series
 from .._logging import get_logger
 from .plot import Plot
 
@@ -124,24 +124,29 @@ class PlotTime(Plot):
         None
         """
 
+        energy_series = concatenate_series(self.reader.energies,
+                                           info_parameter)
+
         if self.mean:
             # calculate mean and plot
-            x, y = Statistic.mean(self.reader.energies, info_parameter)
+            x, y = Statistic.mean_values(energy_series.time,
+                                         energy_series.values)
             self.ax.plot(x, y, label="Mean", linestyle="--")
 
             self.add_value_label(x, y)
 
         if self.median:
             # calculate median and plot
-            x, y = Statistic.median(self.reader.energies, info_parameter)
+            x, y = Statistic.median_values(energy_series.time,
+                                           energy_series.values)
             self.ax.plot(x, y, label="Median", linestyle="--")
 
             self.add_value_label(x, y)
 
         if self.cummulative_average:
             # calculate cumulative average and plot
-            x, y = Statistic.cumulative_average(self.reader.energies,
-                                                info_parameter)
+            x, y = Statistic.cumulative_average_values(
+                energy_series.time, energy_series.values)
             self.ax.plot(
                 x,
                 y,
@@ -153,8 +158,8 @@ class PlotTime(Plot):
 
         if self.auto_correlation:
             # calculate auto correlation and plot
-            x, y = Statistic.auto_correlation(self.reader.energies,
-                                              info_parameter)
+            x, y = Statistic.auto_correlation_values(energy_series.time,
+                                                     energy_series.values)
             self.ax.plot(
                 x,
                 y,
@@ -168,9 +173,11 @@ class PlotTime(Plot):
             # calculate running average and plot
             try:
                 window_size_int = self.__parse_window_size(self.window_size)
-                x, y = Statistic.running_average(self.reader.energies,
-                                                  info_parameter,
-                                                  window_size_int)
+                x, y = Statistic.running_average_values(
+                    energy_series.time,
+                    energy_series.values,
+                    window_size_int,
+                )
             except ValueError as error:
                 logger.warning("%s", error)
                 return None
