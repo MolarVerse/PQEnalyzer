@@ -72,6 +72,10 @@ class FakeWidget:
     def set(self, value):
         self.value = value
 
+    def configure(self, *args, **kwargs):
+        self.configure_args = args
+        self.configure_kwargs = kwargs
+
 
 @pytest.fixture(autouse=True)
 def reset_dummy_plots():
@@ -162,22 +166,27 @@ def test_destroy_closes_plots_and_tk_window(monkeypatch):
     assert calls == [("close", "all"), ("quit", None), ("destroy", None)]
 
 
-def test_build_delegates_to_layout_builders(monkeypatch):
+def test_build_creates_gui_view_classes(monkeypatch):
     app = object.__new__(app_module.App)
     calls = []
 
-    monkeypatch.setattr(app_module, "build_sidebar",
-                        lambda app, callback: calls.append(
-                            ("sidebar", app, callback)))
-    monkeypatch.setattr(app_module, "build_plot_controls",
-                        lambda app, plot_callback, refresh_callback:
-                        calls.append(("plot", app, plot_callback,
-                                      refresh_callback)))
-    monkeypatch.setattr(app_module, "build_parameter_selector",
-                        lambda app, callback: calls.append(
-                            ("parameter", app, callback)))
-    monkeypatch.setattr(app_module, "build_settings_controls",
-                        lambda app: calls.append(("settings", app)))
+    def view_factory(name):
+
+        class FakeView:
+
+            def __init__(self, *args):
+                self.args = args
+                calls.append((name, self, args))
+
+        return FakeView
+
+    monkeypatch.setattr(app_module, "SidebarView", view_factory("sidebar"))
+    monkeypatch.setattr(app_module, "PlotControlsView",
+                        view_factory("plot"))
+    monkeypatch.setattr(app_module, "ParameterSelectorView",
+                        view_factory("parameter"))
+    monkeypatch.setattr(app_module, "StatisticsControlsView",
+                        view_factory("statistics"))
 
     app_module.App.build(app)
 
@@ -185,13 +194,17 @@ def test_build_delegates_to_layout_builders(monkeypatch):
         "sidebar",
         "plot",
         "parameter",
-        "settings",
+        "statistics",
     ]
-    assert all(call[1] is app for call in calls)
-    assert all(call[-1] is not None for call in calls[:3])
+    assert app.sidebar_view is calls[0][1]
+    assert app.plot_controls_view is calls[1][1]
+    assert app.parameter_selector_view is calls[2][1]
+    assert app.statistics_controls_view is calls[3][1]
+    assert all(call[2][0] is app for call in calls)
+    assert all(len(call[2]) > 1 for call in calls[:3])
 
 
-def test_parameter_selector_builder_sets_initial_selection(monkeypatch):
+def test_parameter_selector_view_sets_initial_selection(monkeypatch):
     app = SimpleNamespace(info=["TEMPERATURE", "PRESSURE"])
     selected = []
 
@@ -201,11 +214,39 @@ def test_parameter_selector_builder_sets_initial_selection(monkeypatch):
     monkeypatch.setattr(app_layout.ctk, "CTkFont",
                         lambda *args, **kwargs: ("font", args, kwargs))
 
-    app_layout.build_parameter_selector(app, selected.append)
+    view = app_layout.ParameterSelectorView(app, selected.append)
 
     assert selected == ["TEMPERATURE"]
+    assert app.info_frame is view.frame
+    assert app.info_label is view.label
+    assert app.info_optionmenu is view.optionmenu
     assert app.info_optionmenu.kwargs["values"] == ["TEMPERATURE", "PRESSURE"]
     assert app.info_optionmenu.kwargs["command"] == selected.append
+
+
+def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont",
+                        lambda *args, **kwargs: ("font", args, kwargs))
+
+    view = app_layout.StatisticsControlsView(app)
+
+    assert app.settings_frame is view.frame
+    assert app.mean is view.mean
+    assert app.median is view.median
+    assert app.cummulative_average is view.cumulative_average
+    assert app.auto_correlation is view.auto_correlation
+    assert app.running_average is view.running_average
+    assert app.window_size is view.window_size
 
 
 def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):

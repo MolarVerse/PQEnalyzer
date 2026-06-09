@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 from .._logging import get_logger
 from ..plots import PlotTime, PlotHistogram
 from .app_layout import (
-    build_parameter_selector,
-    build_plot_controls,
-    build_settings_controls,
-    build_sidebar,
     configure_default_theme,
     configure_window,
+    ParameterSelectorView,
+    PlotControlsView,
+    SidebarView,
+    StatisticsControlsView,
 )
 
 
@@ -73,11 +73,13 @@ class App(ctk.CTk):
         """
         Build the main window.
         """
-        build_sidebar(self, self.__change_appearance_mode_event)
-        build_plot_controls(self, self.__plot_button_event,
-                            self.__refresh_plots)
-        build_parameter_selector(self, self.__change_info_event)
-        build_settings_controls(self)
+        self.sidebar_view = SidebarView(
+            self, self.__change_appearance_mode_event)
+        self.plot_controls_view = PlotControlsView(
+            self, self.__plot_button_event, self.__refresh_plots)
+        self.parameter_selector_view = ParameterSelectorView(
+            self, self.__change_info_event)
+        self.statistics_controls_view = StatisticsControlsView(self)
 
     def validate_number(self, value):
         """
