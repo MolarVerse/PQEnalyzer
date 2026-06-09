@@ -48,8 +48,16 @@ class TermApp:
             mandatory=True,
         ).execute()
 
+        difference = False
+        if len(self.reader.energies) == 2:
+            difference = inquirer.confirm(
+                message="Plot difference between the two input files?",
+                default=False,
+                vi_mode=True,
+            ).execute()
+
         termplot = TermPlot(self.reader)
-        termplot.plot(result)
+        termplot.plot(result, difference=difference)
 
         return None
 

@@ -97,6 +97,7 @@ class Plot(metaclass=ABCMeta):
         self.cummulative_average = self.app.cummulative_average.get()
         self.self_correlation_mean = (
             self.app.self_correlation_mean.get())
+        self.difference = self.app.difference.get()
         self.running_average = self.app.running_average.get()
         self.window_size = self.app.window_size.get()
 

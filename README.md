@@ -29,6 +29,13 @@ Plot in the terminal instead of opening the GUI:
 pqenalyzer --no-gui pq_output.en
 ```
 
+Open two aligned example files in terminal mode and answer yes to the
+difference prompt:
+
+```bash
+pqenalyzer --no-gui examples/diff-run-a.en examples/diff-run-b.en
+```
+
 Read QMCFC output:
 
 ```bash
@@ -42,6 +49,9 @@ parameters and units:
 pqenalyzer md-01.en md-02.en md-03.en
 ```
 
+For two aligned runs, the GUI and terminal mode can plot a pointwise difference
+as the first input file minus the second input file.
+
 ## Input Files
 
 PQEnalyzer reads energy output through
@@ -51,6 +61,9 @@ expected to have its matching `.info` sidecar file next to it.
 When multiple files are supplied, their parsed parameter mappings and units must
 match. Files with different columns or incompatible units are rejected before
 plotting.
+
+Difference plots additionally require both files to have the same
+simulation-time axis.
 
 ## Development
 

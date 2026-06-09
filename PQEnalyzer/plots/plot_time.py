@@ -3,7 +3,12 @@ Time-series plotting for PQ energy parameters.
 """
 
 from ..statistics import Statistic
-from ..energy_access import concatenate_series, parameter_unit, series
+from ..energy_access import (
+    concatenate_series,
+    difference_series,
+    parameter_unit,
+    series,
+)
 from .._logging import get_logger
 from .labels import unique_path_labels
 from .plot import Plot
@@ -105,6 +110,23 @@ class PlotTime(Plot):
         -------
         None
         """
+
+        if self.difference:
+            try:
+                delta_series = difference_series(
+                    self.reader.energies, info_parameter)
+            except ValueError as error:
+                logger.warning("%s", error)
+            else:
+                self.ax.plot(
+                    delta_series.time,
+                    delta_series.values,
+                    label="Difference (1 - 2)",
+                    linestyle="--",
+                )
+                self.add_value_label(delta_series.time, delta_series.values)
+
+            return None
 
         energy_series = concatenate_series(self.reader.energies,
                                            info_parameter)

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from PQAnalysis.io import EnergyFileReader
 from PQAnalysis.traj import MDEngineFormat
@@ -7,20 +8,26 @@ from PQEnalyzer.energy_access import (
     concatenate_parameter,
     concatenate_series,
     concatenate_time,
+    difference_series,
     parameter_unit,
     parameter_values,
     series,
     simulation_time,
 )
+from PQEnalyzer.readers import Reader
 
 
 class CustomEnergy:
 
-    def __init__(self):
+    def __init__(self, values=None, time=None):
+        if values is None:
+            values = [10.0, 11.0, 12.0]
+        if time is None:
+            time = [1.0, 2.0, 3.0]
         self.info = {"CUSTOM": "CUSTOM"}
         self.units = {"CUSTOM": "arb"}
-        self.data = {"CUSTOM": np.array([10.0, 11.0, 12.0])}
-        self.simulation_time = np.array([1.0, 2.0, 3.0])
+        self.data = {"CUSTOM": np.array(values)}
+        self.simulation_time = np.array(time)
 
 
 def read_energy(filename):
@@ -71,3 +78,43 @@ def test_concatenate_helpers_join_series_from_multiple_energy_files():
     np.testing.assert_array_equal(energy_series.values, np.arange(1, 11))
     assert energy_series.label == "SIMULATION-TIME"
     assert energy_series.unit == "ps"
+
+
+def test_difference_series_subtracts_two_aligned_series():
+    first = CustomEnergy(values=[10.0, 11.0, 12.0])
+    second = CustomEnergy(values=[1.0, 2.0, 3.0])
+
+    energy_series = difference_series([first, second], "CUSTOM")
+
+    np.testing.assert_array_equal(energy_series.time, [1.0, 2.0, 3.0])
+    np.testing.assert_array_equal(energy_series.values, [9.0, 9.0, 9.0])
+    assert energy_series.label == "CUSTOM"
+    assert energy_series.unit == "arb"
+
+
+def test_difference_series_requires_exactly_two_files():
+    energy = CustomEnergy()
+
+    with pytest.raises(ValueError, match="exactly two input files"):
+        difference_series([energy], "CUSTOM")
+
+
+def test_difference_series_requires_matching_time_axes():
+    first = CustomEnergy(time=[1.0, 2.0, 3.0])
+    second = CustomEnergy(time=[2.0, 3.0, 4.0])
+
+    with pytest.raises(ValueError, match="matching simulation-time axes"):
+        difference_series([first, second], "CUSTOM")
+
+
+def test_difference_examples_have_nonconstant_difference():
+    energies = Reader(
+        ["examples/diff-run-a.en", "examples/diff-run-b.en"],
+        MDEngineFormat.PQ,
+    ).energies
+
+    energy_series = difference_series(energies, "TEMPERATURE")
+
+    np.testing.assert_array_equal(energy_series.time,
+                                  np.arange(6, 16))
+    assert len(np.unique(np.round(energy_series.values, decimals=6))) > 1

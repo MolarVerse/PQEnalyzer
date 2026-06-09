@@ -57,6 +57,7 @@ class FakeApp:
         median=False,
         cummulative_average=False,
         self_correlation_mean=False,
+        difference=False,
         running_average=False,
         window_size="",
         filenames=None,
@@ -66,6 +67,7 @@ class FakeApp:
         self.median = FakeFlag(median)
         self.cummulative_average = FakeFlag(cummulative_average)
         self.self_correlation_mean = FakeFlag(self_correlation_mean)
+        self.difference = FakeFlag(difference)
         self.running_average = FakeFlag(running_average)
         self.window_size = FakeEntry(window_size)
         self.plot_main_data = FakeFlag(False)
@@ -169,6 +171,37 @@ def test_time_statistics_draw_expected_overlay_series():
         "Self-Correlation Mean",
         "Running Average (2)",
     ]
+
+
+def test_time_difference_subtracts_two_aligned_series():
+    app = FakeApp(
+        [FakeEnergy([5, 6, 7]), FakeEnergy([1, 2, 4])],
+        difference=True,
+        mean=True,
+    )
+    plot = PlotTime(app)
+
+    plot.statistics("PARAMETER")
+
+    assert len(plot.ax.lines) == 1
+    line = plot.ax.lines[0]
+
+    assert line.get_label() == "Difference (1 - 2)"
+    assert np.all(line.get_xdata() == [1, 2, 3])
+    assert np.all(line.get_ydata() == [4, 4, 3])
+
+
+def test_time_difference_logs_misaligned_series(caplog):
+    first = FakeEnergy([5, 6, 7])
+    second = FakeEnergy([1, 2, 4])
+    second.simulation_time = np.array([2, 3, 4])
+    app = FakeApp([first, second], difference=True)
+    plot = PlotTime(app)
+
+    plot.statistics("PARAMETER")
+
+    assert len(plot.ax.lines) == 0
+    assert "matching simulation-time axes" in caplog.text
 
 
 def test_time_self_correlation_mean_uses_data_scale():
