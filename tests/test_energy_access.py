@@ -5,6 +5,7 @@ from PQAnalysis.traj import MDEngineFormat
 
 from PQEnalyzer.energy_access import (
     concatenate_parameter,
+    concatenate_series,
     concatenate_time,
     parameter_unit,
     parameter_values,
@@ -64,3 +65,9 @@ def test_concatenate_helpers_join_series_from_multiple_energy_files():
         concatenate_parameter(energies, "SIMULATION-TIME"),
         np.arange(1, 11),
     )
+
+    energy_series = concatenate_series(energies, "SIMULATION-TIME")
+    np.testing.assert_array_equal(energy_series.time, np.arange(1, 11))
+    np.testing.assert_array_equal(energy_series.values, np.arange(1, 11))
+    assert energy_series.label == "SIMULATION-TIME"
+    assert energy_series.unit == "ps"

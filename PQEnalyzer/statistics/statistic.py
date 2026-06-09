@@ -5,7 +5,7 @@ methods to calculate statistics of the data.
 
 import numpy as np
 
-from ..energy_access import concatenate_parameter, concatenate_time
+from ..energy_access import concatenate_series
 
 
 class Statistic:
@@ -79,12 +79,19 @@ class Statistic:
         ([1, 5], [1.0, 1.0])
         """
 
-        time = concatenate_time(energies)
-        data = concatenate_parameter(energies, info_parameter)
+        energy_series = concatenate_series(energies, info_parameter)
+        return Statistic.mean_values(energy_series.time, energy_series.values)
 
+    @staticmethod
+    def mean_values(time, values) -> tuple:
+        """
+        Calculate the mean line for a numeric series.
+        """
+
+        time, data = Statistic.__arrays(time, values)
         mean = np.mean(data)
 
-        return (np.array([time[0], time[-1]]), np.array([mean, mean]))
+        return np.array([time[0], time[-1]]), np.array([mean, mean])
 
     @staticmethod
     def median(energies: list, info_parameter: str) -> tuple:
@@ -109,12 +116,20 @@ class Statistic:
         ([1, 5], [1.0, 1.0])
         """
 
-        time = concatenate_time(energies)
-        data = concatenate_parameter(energies, info_parameter)
+        energy_series = concatenate_series(energies, info_parameter)
+        return Statistic.median_values(energy_series.time,
+                                       energy_series.values)
 
+    @staticmethod
+    def median_values(time, values) -> tuple:
+        """
+        Calculate the median line for a numeric series.
+        """
+
+        time, data = Statistic.__arrays(time, values)
         median = np.median(data)
 
-        return (np.array([time[0], time[-1]]), np.array([median, median]))
+        return np.array([time[0], time[-1]]), np.array([median, median])
 
     @staticmethod
     def cumulative_average(energies: list, info_parameter: str) -> tuple:
@@ -139,11 +154,18 @@ class Statistic:
         ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
         """
 
-        data = concatenate_parameter(energies, info_parameter)
+        energy_series = concatenate_series(energies, info_parameter)
+        return Statistic.cumulative_average_values(energy_series.time,
+                                                   energy_series.values)
 
+    @staticmethod
+    def cumulative_average_values(time, values) -> tuple:
+        """
+        Calculate the cumulative average for a numeric series.
+        """
+
+        time, data = Statistic.__arrays(time, values)
         cumulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
-
-        time = concatenate_time(energies)
 
         return time, cumulative_average
 
@@ -178,7 +200,18 @@ class Statistic:
         ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
         """
 
-        data = concatenate_parameter(energies, info_parameter).astype(float)
+        energy_series = concatenate_series(energies, info_parameter)
+        return Statistic.auto_correlation_values(energy_series.time,
+                                                 energy_series.values)
+
+    @staticmethod
+    def auto_correlation_values(time, values) -> tuple:
+        """
+        Calculate the normalized autocorrelation for a numeric series.
+        """
+
+        time, data = Statistic.__arrays(time, values)
+        data = data.astype(float)
 
         centered_data = data - np.mean(data)
         zero_lag_correlation = np.dot(centered_data, centered_data)
@@ -191,8 +224,6 @@ class Statistic:
                 np.correlate(centered_data, centered_data,
                              mode="full")[len(data) - 1:] /
                 zero_lag_correlation)
-
-        time = concatenate_time(energies)
 
         return time, auto_correlation
 
@@ -227,7 +258,18 @@ class Statistic:
         ([1.5, 2.5, 3.5, 4.5], [10.5, 11.5, 12.5, 13.5])
         """
 
-        data = concatenate_parameter(energies, info_parameter)
+        energy_series = concatenate_series(energies, info_parameter)
+        return Statistic.running_average_values(energy_series.time,
+                                                energy_series.values,
+                                                window_size)
+
+    @staticmethod
+    def running_average_values(time, values, window_size) -> tuple:
+        """
+        Calculate the centered running average for a numeric series.
+        """
+
+        time, data = Statistic.__arrays(time, values)
 
         if window_size < 1:
             raise ValueError("Window size must be positive")
@@ -241,11 +283,17 @@ class Statistic:
             for i in range(len(data) - window_size + 1)
         ])
 
-        # Centered to the middle of the window
-        time = concatenate_time(energies)
         time = np.array([
             np.mean(time[i:i + window_size])
             for i in range(len(data) - window_size + 1)
         ])
 
         return time, running_average
+
+    @staticmethod
+    def __arrays(time, values) -> tuple:
+        """
+        Convert inputs to arrays without tying statistics to energy objects.
+        """
+
+        return np.asarray(time), np.asarray(values)
