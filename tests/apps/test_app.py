@@ -244,7 +244,7 @@ def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     assert app.mean is view.mean
     assert app.median is view.median
     assert app.cummulative_average is view.cumulative_average
-    assert app.auto_correlation is view.auto_correlation
+    assert app.self_correlation_mean is view.self_correlation_mean
     assert app.running_average is view.running_average
     assert app.window_size is view.window_size
 

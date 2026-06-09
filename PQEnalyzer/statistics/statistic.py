@@ -31,10 +31,10 @@ class Statistic:
         Calculate cumulative average values for numeric arrays.
     cummulative_average(energies, info_parameter)
         Backward-compatible alias for cumulative_average.
-    auto_correlation(energies, info_parameter)
-        Calculate normalized autocorrelation for a Reader energy parameter.
-    auto_correlation_values(time, values)
-        Calculate normalized autocorrelation for numeric arrays.
+    self_correlation_mean(energies, info_parameter)
+        Calculate a self-correlation mean for a Reader energy parameter.
+    self_correlation_mean_values(time, values)
+        Calculate a self-correlation mean for numeric arrays.
     running_average(energies, info_parameter, window_size)
         Calculate a centered running average for a Reader energy parameter.
     running_average_values(time, values, window_size)
@@ -155,7 +155,7 @@ class Statistic:
         Examples
         --------
         >>> Statistic.cumulative_average(energies, "ENERGY")
-        ([1, 2, 3, 4, 5], [2.1666, 2.8571, 3.6666, 4., 4.3333])
+        ([1, 2, 3, 4, 5], [1, 1.5, 2, 2.5, 3])
         """
 
         energy_series = concatenate_series(energies, info_parameter)
@@ -185,57 +185,55 @@ class Statistic:
         return Statistic.cumulative_average(energies, info_parameter)
 
     @staticmethod
-    def auto_correlation(energies, info_parameter) -> tuple:
+    def self_correlation_mean(energies, info_parameter) -> tuple:
         """
-        Calculate the normalized autocorrelation of the data.
+        Calculate the self-correlation mean of the data.
 
         Parameters
         ----------
         energies : list
             A list of energy objects.
         info_parameter : str
-            The info parameter to calculate the auto correlation of.
+            The info parameter to calculate the self-correlation mean of.
 
         Returns
         -------
         tuple
-            A tuple containing the time and normalized autocorrelation data.
+            A tuple containing the time and self-correlation mean.
 
         Examples
         --------
-        >>> Statistic.auto_correlation(energies, "ENERGY")
-        ([1, 2, 3, 4, 5], [1., 0.4, -0.1, -0.4, -0.4])
+        >>> Statistic.self_correlation_mean(energies, "ENERGY")
+        ([1, 2, 3, 4, 5], [8.6666, 10, 11, 10, 8.6666])
         """
 
         energy_series = concatenate_series(energies, info_parameter)
-        return Statistic.auto_correlation_values(energy_series.time,
-                                                 energy_series.values)
+        return Statistic.self_correlation_mean_values(
+            energy_series.time, energy_series.values)
 
     @staticmethod
-    def auto_correlation_values(time, values) -> tuple:
+    def self_correlation_mean_values(time, values) -> tuple:
         """
-        Calculate the normalized autocorrelation for a numeric series.
+        Calculate the self-correlation mean for a numeric series.
 
-        Constant series are reported as a unit impulse: one at zero lag and
-        zero afterwards. That keeps the result finite and plot-friendly.
+        The result is divided by the number of overlapping points at each lag
+        so every point is a mean product rather than an edge-biased sum.
         """
 
         time, data = Statistic.__arrays(time, values)
         data = data.astype(float)
 
-        centered_data = data - np.mean(data)
-        zero_lag_correlation = np.dot(centered_data, centered_data)
+        numerator = np.correlate(data, data, mode="same")
+        denominator = np.correlate(
+            np.ones_like(data), np.ones_like(data), mode="same")
+        self_correlation_mean = np.divide(
+            numerator,
+            denominator,
+            out=np.zeros_like(data),
+            where=denominator != 0,
+        )
 
-        if zero_lag_correlation == 0:
-            auto_correlation = np.zeros_like(data)
-            auto_correlation[0] = 1
-        else:
-            auto_correlation = (
-                np.correlate(centered_data, centered_data,
-                             mode="full")[len(data) - 1:] /
-                zero_lag_correlation)
-
-        return time, auto_correlation
+        return time, self_correlation_mean
 
     @staticmethod
     def running_average(energies, info_parameter, window_size) -> tuple:
