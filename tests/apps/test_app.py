@@ -242,6 +242,8 @@ def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     view = app_layout.StatisticsControlsView(app)
 
     assert app.settings_frame is view.frame
+    assert app.statistics_frame is view.statistics_frame
+    assert app.time_series_frame is view.time_series_frame
     assert app.mean is view.mean
     assert app.median is view.median
     assert app.cummulative_average is view.cumulative_average
@@ -249,6 +251,13 @@ def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     assert app.difference is view.difference
     assert app.running_average is view.running_average
     assert app.window_size is view.window_size
+    assert view.mean.args[0] is view.statistics_frame
+    assert view.median.args[0] is view.statistics_frame
+    assert view.cumulative_average.args[0] is view.time_series_frame
+    assert view.self_correlation_mean.args[0] is view.time_series_frame
+    assert view.difference.args[0] is view.time_series_frame
+    assert view.running_average.args[0] is view.time_series_frame
+    assert view.window_size.args[0] is view.time_series_frame
 
 
 def test_difference_checkbox_enables_no_data(monkeypatch):
