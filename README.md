@@ -17,7 +17,8 @@ pip install PQEnalyzer
 
 ## Usage
 
-Open the GUI by passing one or more PQ `.en` energy files:
+Open the GUI by passing one or more supported input files. PQEnalyzer detects
+PQ energy, QMCFC energy, and box files automatically:
 
 ```bash
 pqenalyzer pq_output.en
@@ -42,7 +43,21 @@ Read QMCFC output:
 pqenalyzer --qmcfc pq_output.en
 ```
 
-Multiple input files can be plotted together when they expose the same energy
+Force PQ energy parsing:
+
+```bash
+pqenalyzer --pq pq_output.en
+```
+
+Plot PQ box parameters from a `.box` file:
+
+```bash
+pqenalyzer examples/box-01.box
+```
+
+Use `--box` when a box file does not use the conventional `.box` suffix.
+
+Multiple input files can be plotted together when they expose the same
 parameters and units:
 
 ```bash
@@ -57,6 +72,10 @@ as the first input file minus the second input file.
 PQEnalyzer reads energy output through
 [`PQAnalysis`](https://github.com/MolarVerse/PQAnalysis). Each `.en` file is
 expected to have its matching `.info` sidecar file next to it.
+
+PQEnalyzer also reads PQ box files through `PQAnalysis`. Box files are expected
+to contain `step x y z alpha beta gamma` columns. The plotted parameters are
+`BOX-X`, `BOX-Y`, `BOX-Z`, `ALPHA`, `BETA`, `GAMMA`, and `BOX-VOLUME`.
 
 When multiple files are supplied, their parsed parameter mappings and units must
 match. Files with different columns or incompatible units are rejected before

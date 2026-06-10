@@ -1,10 +1,10 @@
 """
 Command-line entrypoint for PQEnalyzer.
 
-The CLI reads one or more energy files through the Reader wrapper and then
-starts either the graphical CustomTkinter application or the terminal plotting
-flow. GUI imports stay inside main() so terminal mode can start without loading
-Tkinter.
+The CLI reads one or more data files through a PQAnalysis-backed reader and
+then starts either the graphical CustomTkinter application or the terminal
+plotting flow. GUI imports stay inside main() so terminal mode can start
+without loading Tkinter.
 """
 
 import sys
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 def main():
     """
-    Parse command-line arguments, read energy files, and start the chosen UI.
+    Parse command-line arguments, read input files, and start the chosen UI.
 
     PQAnalysis exceptions are allowed to keep their own formatting. Other
     reader errors are logged through the application logger before returning a
@@ -31,11 +31,17 @@ def main():
         "filenames",
         metavar="filenames",
         nargs="+",
-        help="The name of the energy files to read the data from.")
+        help="The name of the files to read the data from.")
+    parser.add_argument("--pq",
+                        action="store_true",
+                        help="Force PQ energy input.")
     parser.add_argument("-q",
                         "--qmcfc",
                         action="store_true",
                         help="Use the QMCFC output as input.")
+    parser.add_argument("--box",
+                        action="store_true",
+                        help="Read PQ box files instead of energy files.")
     parser.add_argument("-n",
                         "--no-gui",
                         action="store_true",
@@ -50,17 +56,22 @@ def main():
     args = parser.parse_args()
     configure_logging()
 
-    from PQAnalysis.traj import MDEngineFormat
+    from .readers import create_reader
 
-    from .readers import Reader
+    forced_formats = [args.pq, args.qmcfc, args.box]
+    if sum(forced_formats) > 1:
+        parser.error("--pq, --qmcfc, and --box are mutually exclusive.")
 
-    md_format = MDEngineFormat.PQ
-
-    if args.qmcfc:
-        md_format = MDEngineFormat.QMCFC
+    input_format = "auto"
+    if args.pq:
+        input_format = "pq"
+    elif args.qmcfc:
+        input_format = "qmcfc"
+    elif args.box:
+        input_format = "box"
 
     try:
-        reader = Reader(args.filenames, md_format)
+        reader = create_reader(args.filenames, input_format=input_format)
     except Exception as e:
         if not e.__class__.__module__.startswith("PQAnalysis"):
             logger.error("%s", e)
