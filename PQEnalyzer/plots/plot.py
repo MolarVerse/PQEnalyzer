@@ -6,7 +6,12 @@ from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from .._logging import get_logger
+from .options import PlotOptions
 from .theme import apply_figure_theme, apply_matplotlib_theme
+
+
+logger = get_logger(__name__)
 
 
 class Plot(metaclass=ABCMeta):
@@ -48,6 +53,7 @@ class Plot(metaclass=ABCMeta):
 
         self.app = app
         self.reader = app.reader
+        self.options = PlotOptions.from_app(app)
 
         # read parameters from the app
         self.get_app_parameters()
@@ -57,6 +63,8 @@ class Plot(metaclass=ABCMeta):
         self.figure = plt.figure(figsize=(9, 5.5))
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
+        self.figure.canvas.mpl_connect("button_press_event",
+                                       self.__select_plot)
 
         # set the signal handler
         signal.signal(
@@ -92,16 +100,15 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        self.mean = self.app.mean.get()
-        self.median = self.app.median.get()
-        self.cummulative_average = self.app.cummulative_average.get()
-        self.self_correlation_mean = (
-            self.app.self_correlation_mean.get())
-        self.difference = self.app.difference.get()
-        self.running_average = self.app.running_average.get()
-        self.window_size = self.app.window_size.get()
+        self.mean = self.options.mean
+        self.median = self.options.median
+        self.cummulative_average = self.options.cummulative_average
+        self.self_correlation_mean = self.options.self_correlation_mean
+        self.difference = self.options.difference
+        self.running_average = self.options.running_average
+        self.window_size = self.options.window_size
 
-        self.plot_main = self.app.plot_main_data.get()
+        self.plot_main = self.options.plot_main
 
         return None
 
@@ -123,6 +130,7 @@ class Plot(metaclass=ABCMeta):
         """
 
         self.info_parameter = info_parameter
+        self.app.select_plot(self)
 
         # if button is not checked, plot main data
         self.plot_data()
@@ -146,9 +154,15 @@ class Plot(metaclass=ABCMeta):
         """
 
         self.info_parameter = info_parameter
+        self.app.select_plot(self)
 
         def update(frame):
-            self.reader.read_last()
+            try:
+                self.reader.read_last()
+            except Exception as error:  # pylint: disable=broad-exception-caught
+                logger.warning("Plot refresh skipped: %s", error)
+                return []
+
             self.ax.clear()
             self.apply_theme()
             self.plot_data()
@@ -173,18 +187,24 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        # Reads the last data
-        self.reader.read_last()
+        try:
+            self.reader.read_last()
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            logger.warning("Plot refresh skipped: %s", error)
+            return None
 
         self.redraw()
 
         # Show the plot
         plt.show()
 
-    def redraw(self) -> None:
+    def redraw(self, options=None) -> None:
         """
         Redraw an existing plot without reading new file contents.
         """
+
+        if options is not None:
+            self.options = options
 
         # Get the new parameters
         self.get_app_parameters()
@@ -197,6 +217,16 @@ class Plot(metaclass=ABCMeta):
         self.plot_data()
 
         self.figure.canvas.draw_idle()
+
+    def __select_plot(self, event):
+        """
+        Select this plot so GUI controls edit its options.
+        """
+
+        if getattr(event, "inaxes", None) is not self.ax:
+            return
+
+        self.app.select_plot(self)
 
     def plot_data(self) -> None:
         """

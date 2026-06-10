@@ -125,7 +125,7 @@ class PlotControlsView:
                         sticky="nsew",
                         padx=(20, 20),
                         pady=(10, 10))
-        self.frame.grid_rowconfigure(4, weight=1)
+        self.frame.grid_rowconfigure(5, weight=1)
         self.frame.grid_columnconfigure(2, weight=1)
 
         self.follow = tkinter.BooleanVar()
@@ -203,13 +203,26 @@ class PlotControlsView:
                                    pady=(10, 10),
                                    sticky="nsew")
 
+        self.dashboard_button = ctk.CTkButton(
+            master=self.frame,
+            border_width=2,
+            text="Dashboard",
+            command=lambda: plot_button_callback(2),
+        )
+        self.dashboard_button.grid(row=4,
+                                   column=0,
+                                   columnspan=2,
+                                   padx=(10, 10),
+                                   pady=(10, 10),
+                                   sticky="nsew")
+
         self.refresh_button = ctk.CTkButton(
             master=self.frame,
             border_width=2,
             text="Refresh",
             command=refresh_callback,
         )
-        self.refresh_button.grid(row=4,
+        self.refresh_button.grid(row=5,
                                  column=0,
                                  columnspan=2,
                                  padx=(10, 10),
@@ -225,6 +238,7 @@ class PlotControlsView:
         app.interval_label = self.interval_label
         app.button_plot = self.plot_button
         app.button_hist = self.histogram_button
+        app.button_dashboard = self.dashboard_button
         app.button_refresh = self.refresh_button
 
 
@@ -279,8 +293,9 @@ class StatisticsControlsView:
     code created inline.
     """
 
-    def __init__(self, app):
+    def __init__(self, app, statistics_changed_callback=None):
         self.app = app
+        self.statistics_changed_callback = statistics_changed_callback
 
         self.frame = ctk.CTkFrame(app, width=200)
         self.frame.grid(row=1,
@@ -314,9 +329,17 @@ class StatisticsControlsView:
             font=ctk.CTkFont(size=15, weight="bold"),
         )
         self.label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.mean = ctk.CTkCheckBox(self.statistics_frame, text="Mean")
+        self.mean = ctk.CTkCheckBox(
+            self.statistics_frame,
+            text="Mean",
+            command=statistics_changed_callback,
+        )
         self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.median = ctk.CTkCheckBox(self.statistics_frame, text="Median")
+        self.median = ctk.CTkCheckBox(
+            self.statistics_frame,
+            text="Median",
+            command=statistics_changed_callback,
+        )
         self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         self.time_series_label = ctk.CTkLabel(
@@ -332,6 +355,7 @@ class StatisticsControlsView:
         self.cumulative_average = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Cumulative Average",
+            command=statistics_changed_callback,
         )
         self.cumulative_average.grid(row=1,
                                      column=0,
@@ -339,7 +363,10 @@ class StatisticsControlsView:
                                      pady=5,
                                      sticky="w")
         self.self_correlation_mean = ctk.CTkCheckBox(
-            self.time_series_frame, text="Self-Correlation Mean")
+            self.time_series_frame,
+            text="Self-Correlation Mean",
+            command=statistics_changed_callback,
+        )
         self.self_correlation_mean.grid(row=2,
                                            column=0,
                                            padx=10,
@@ -349,7 +376,7 @@ class StatisticsControlsView:
         self.difference = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Difference (1 - 2)",
-            command=self.__enable_no_data_for_difference,
+            command=self.__difference_command,
         )
         self.difference.grid(row=3,
                              column=0,
@@ -361,8 +388,8 @@ class StatisticsControlsView:
         self.running_average = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Running Average",
-            command=lambda: app.toggle_entry_state(
-                self.running_average, self.window_size, default="10"))
+            command=self.__running_average_command,
+        )
         self.running_average.grid(row=4,
                                   column=0,
                                   padx=10,
@@ -410,3 +437,25 @@ class StatisticsControlsView:
 
         if self.difference.get():
             self.app.plot_main_data.set(True)
+
+    def __difference_command(self):
+        """
+        Apply difference-specific defaults and notify the app.
+        """
+
+        self.__enable_no_data_for_difference()
+        if self.statistics_changed_callback is not None:
+            self.statistics_changed_callback()
+
+    def __running_average_command(self):
+        """
+        Toggle the window entry and notify the app.
+        """
+
+        self.app.toggle_entry_state(
+            self.running_average,
+            self.window_size,
+            default="10",
+        )
+        if self.statistics_changed_callback is not None:
+            self.statistics_changed_callback()

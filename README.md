@@ -67,6 +67,11 @@ pqenalyzer md-01.en md-02.en md-03.en
 For two aligned runs, the GUI and terminal mode can plot a pointwise difference
 as the first input file minus the second input file.
 
+In GUI mode, `Dashboard` opens a live raw overview with one panel per
+parameter. Double-click a dashboard panel to open a focused plot for that
+parameter. Statistics and time-series overlay controls apply to the selected
+focused plot, while the dashboard stays raw for simulation monitoring.
+
 ## Input Files
 
 PQEnalyzer reads energy output through

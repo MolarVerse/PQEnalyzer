@@ -7,6 +7,7 @@ import pytest
 from PQEnalyzer.apps import app as app_module
 from PQEnalyzer.apps import app_layout
 from PQEnalyzer.apps import termapp as termapp_module
+from PQEnalyzer.plots.options import PlotOptions
 
 
 class FakeFlag:
@@ -16,6 +17,15 @@ class FakeFlag:
 
     def get(self):
         return self.value
+
+    def set(self, value):
+        self.value = value
+
+    def select(self):
+        self.value = True
+
+    def deselect(self):
+        self.value = False
 
 
 class FakeEntry:
@@ -60,6 +70,7 @@ class FakeWidget:
         self.grid_calls = []
         self.configured_rows = []
         self.configured_columns = []
+        self.value = False
 
     def grid(self, *args, **kwargs):
         self.grid_calls.append((args, kwargs))
@@ -72,6 +83,15 @@ class FakeWidget:
 
     def set(self, value):
         self.value = value
+
+    def get(self):
+        return self.value
+
+    def select(self):
+        self.value = True
+
+    def deselect(self):
+        self.value = False
 
     def configure(self, *args, **kwargs):
         self.configure_args = args
@@ -88,6 +108,8 @@ def make_app(follow=False, interval=""):
     app.follow = FakeFlag(follow)
     app.interval = FakeEntry(interval)
     app.list_of_plots = []
+    app.selected_plot = None
+    app._App__syncing_plot_controls = False
     app._App__selected_info = "TEMPERATURE"
     return app
 
@@ -225,6 +247,27 @@ def test_parameter_selector_view_sets_initial_selection(monkeypatch):
     assert app.info_optionmenu.kwargs["command"] == selected.append
 
 
+def test_plot_controls_view_exposes_dashboard_button(monkeypatch):
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkButton", FakeWidget)
+    monkeypatch.setattr(app_layout.tkinter, "BooleanVar",
+                        lambda: FakeFlag(False))
+
+    view = app_layout.PlotControlsView(app, lambda event: event, lambda: None)
+
+    assert app.button_dashboard is view.dashboard_button
+    assert app.button_dashboard.kwargs["text"] == "Dashboard"
+
+
 def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     app = SimpleNamespace(
         register=lambda callback: callback,
@@ -291,6 +334,41 @@ def test_difference_checkbox_enables_no_data(monkeypatch):
     assert app.plot_main_data.value is True
 
 
+def test_statistics_control_callback_runs_after_difference_default(
+        monkeypatch):
+    calls = []
+
+    class FakeBoolean:
+
+        def __init__(self):
+            self.value = False
+
+        def set(self, value):
+            self.value = value
+
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+        plot_main_data=FakeBoolean(),
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont",
+                        lambda *args, **kwargs: ("font", args, kwargs))
+
+    view = app_layout.StatisticsControlsView(app, lambda: calls.append("run"))
+    view.difference.value = True
+
+    view.difference.kwargs["command"]()
+
+    assert app.plot_main_data.value is True
+    assert calls == ["run"]
+
+
 def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):
     app = make_app(follow=True, interval="0")
     monkeypatch.setattr(app_module, "PlotTime", DummyPlot)
@@ -320,6 +398,17 @@ def test_plot_button_runs_simple_histogram(monkeypatch):
 
     assert app.list_of_plots == DummyPlot.instances
     assert DummyPlot.instances[0].calls == [("simple", "TEMPERATURE")]
+
+
+def test_plot_button_runs_dashboard(monkeypatch):
+    app = make_app(follow=False)
+    monkeypatch.setattr(app_module, "PlotDashboard", DummyPlot)
+
+    app_module.App._App__plot_button_event(app, 2)
+
+    assert app.list_of_plots == DummyPlot.instances
+    assert DummyPlot.instances[0].calls == [("simple", None)]
+    assert app.selected_plot is None
 
 
 def test_plot_button_rejects_unknown_event():
@@ -361,6 +450,108 @@ def test_change_appearance_mode_updates_matplotlib_and_open_plots(monkeypatch):
     assert app.appearance_mode == "Dark"
     assert app.list_of_plots == [open_plot]
     assert calls == [("ctk", "Dark"), ("mpl", "Dark"), ("redraw", 1)]
+
+
+def test_select_plot_syncs_plot_options_to_controls(monkeypatch):
+    app = make_app()
+    app.mean = FakeFlag(False)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(False)
+    app.running_average = FakeFlag(False)
+    app.plot_main_data = FakeFlag(False)
+    app.window_size = FakeEntry("")
+
+    plot = SimpleNamespace(
+        figure=SimpleNamespace(number=1),
+        options=PlotOptions(
+            mean=True,
+            median=True,
+            cummulative_average=True,
+            self_correlation_mean=True,
+            difference=True,
+            running_average=True,
+            window_size="25",
+            plot_main=True,
+        ),
+    )
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App.select_plot(app, plot)
+
+    assert app.selected_plot is plot
+    assert app.mean.value is True
+    assert app.median.value is True
+    assert app.cummulative_average.value is True
+    assert app.self_correlation_mean.value is True
+    assert app.difference.value is True
+    assert app.running_average.value is True
+    assert app.plot_main_data.value is True
+    assert app.window_size.value == "25"
+    assert app.window_size.state == "normal"
+
+
+def test_statistics_controls_redraw_selected_plot(monkeypatch):
+    app = make_app()
+    app.mean = FakeFlag(True)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(False)
+    app.running_average = FakeFlag(True)
+    app.plot_main_data = FakeFlag(False)
+    app.window_size = FakeEntry("5")
+    calls = []
+
+    class SelectedPlot:
+        figure = SimpleNamespace(number=1)
+
+        def redraw(self, options=None):
+            calls.append(options)
+
+    app.selected_plot = SelectedPlot()
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App._App__statistics_control_event(app)
+
+    assert len(calls) == 1
+    assert calls[0].mean is True
+    assert calls[0].running_average is True
+    assert calls[0].window_size == "5"
+
+
+def test_refresh_applies_controls_to_selected_plot(monkeypatch):
+    app = make_app()
+    app.mean = FakeFlag(False)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(False)
+    app.running_average = FakeFlag(True)
+    app.plot_main_data = FakeFlag(False)
+    app.window_size = FakeEntry("15")
+
+    class SelectedPlot:
+
+        def __init__(self):
+            self.figure = SimpleNamespace(number=1)
+            self.options = PlotOptions()
+            self.refreshed = False
+
+        def refresh(self):
+            self.refreshed = True
+
+    plot = SelectedPlot()
+    app.selected_plot = plot
+    app.list_of_plots = [plot]
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App._App__refresh_plots(app)
+
+    assert plot.refreshed is True
+    assert plot.options.running_average is True
+    assert plot.options.window_size == "15"
 
 
 def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):

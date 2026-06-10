@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from types import SimpleNamespace
 
+from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
 from PQEnalyzer.plots.plot_time import PlotTime
 
@@ -12,6 +14,9 @@ class FakeFlag:
 
     def get(self):
         return self.value
+
+    def set(self, value):
+        self.value = value
 
 
 class FakeEntry:
@@ -32,6 +37,27 @@ class FakeEnergy:
         self.simulation_time = np.arange(1, len(values) + 1)
 
 
+class FakeDashboardEnergy:
+
+    def __init__(self):
+        self.info = {
+            "SIMULATION-TIME": "SIMULATION-TIME",
+            "TEMPERATURE": "TEMPERATURE",
+            "PRESSURE": "PRESSURE",
+        }
+        self.units = {
+            "SIMULATION-TIME": "step",
+            "TEMPERATURE": "K",
+            "PRESSURE": "bar",
+        }
+        self.data = {
+            "SIMULATION-TIME": np.array([1, 2, 3]),
+            "TEMPERATURE": np.array([300.0, 301.0, 302.0]),
+            "PRESSURE": np.array([1.0, 1.5, 1.25]),
+        }
+        self.simulation_time = self.data["SIMULATION-TIME"]
+
+
 class FakeReader:
 
     def __init__(self, energies, filenames=None):
@@ -45,6 +71,12 @@ class FakeReader:
 
     def read_last(self):
         return None
+
+
+class FailingReader(FakeReader):
+
+    def read_last(self):
+        raise ValueError("file is being written")
 
 
 class FakeApp:
@@ -71,6 +103,15 @@ class FakeApp:
         self.running_average = FakeFlag(running_average)
         self.window_size = FakeEntry(window_size)
         self.plot_main_data = FakeFlag(False)
+        self.info = ["TEMPERATURE", "PRESSURE"]
+        self.focus_calls = []
+        self.appearance_mode = "Light"
+
+    def select_plot(self, plot):
+        self.selected_plot = plot
+
+    def open_focus_plot(self, parameter):
+        self.focus_calls.append(parameter)
 
 
 def teardown_function():
@@ -218,3 +259,41 @@ def test_time_self_correlation_mean_uses_data_scale():
     assert np.allclose(line.get_ydata(),
                        [8.6666, 10, 11, 10, 8.6666],
                        rtol=1e-4)
+
+
+def test_dashboard_plots_all_parameters_as_raw_overview():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert plot.axis_parameters[plot.axes[0]] == "TEMPERATURE"
+    assert plot.axis_parameters[plot.axes[1]] == "PRESSURE"
+    assert plot.axes[0].get_title() == "TEMPERATURE / K"
+    assert plot.axes[1].get_title() == "PRESSURE / bar"
+    assert len(plot.axes[0].lines) == 1
+    assert len(plot.axes[1].lines) == 1
+    assert len(plot.figure.legends) == 1
+
+
+def test_dashboard_double_click_opens_focused_parameter_plot():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+    plot.redraw()
+
+    event = SimpleNamespace(dblclick=True, inaxes=plot.axes[1])
+
+    plot._PlotDashboard__button_press_event(event)
+
+    assert app.focus_calls == ["PRESSURE"]
+
+
+def test_dashboard_refresh_keeps_existing_plot_on_read_error(caplog):
+    app = FakeApp([FakeDashboardEnergy()])
+    app.reader = FailingReader([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+    plot.redraw()
+
+    plot.refresh()
+
+    assert "Dashboard refresh skipped: file is being written" in caplog.text
