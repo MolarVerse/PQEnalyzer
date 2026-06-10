@@ -42,6 +42,12 @@ Read QMCFC output:
 pqenalyzer --qmcfc pq_output.en
 ```
 
+Plot PQ box parameters from a `.box` file:
+
+```bash
+pqenalyzer --box examples/box-01.box
+```
+
 Multiple input files can be plotted together when they expose the same energy
 parameters and units:
 
@@ -57,6 +63,11 @@ as the first input file minus the second input file.
 PQEnalyzer reads energy output through
 [`PQAnalysis`](https://github.com/MolarVerse/PQAnalysis). Each `.en` file is
 expected to have its matching `.info` sidecar file next to it.
+
+With `--box`, PQEnalyzer reads PQ box files through `PQAnalysis` instead. Box
+files are expected to contain `step x y z alpha beta gamma` columns. The plotted
+parameters are `BOX-X`, `BOX-Y`, `BOX-Z`, `ALPHA`, `BETA`, `GAMMA`, and
+`BOX-VOLUME`.
 
 When multiple files are supplied, their parsed parameter mappings and units must
 match. Files with different columns or incompatible units are rejected before

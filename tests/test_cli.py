@@ -64,3 +64,26 @@ def test_cli_does_not_duplicate_upstream_reader_errors():
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
     assert result.stderr.count(f"File {missing_file} not found.") == 1
+
+
+def test_cli_rejects_box_with_qmcfc():
+    project_root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "--box",
+            "--qmcfc",
+            "examples/box-01.box",
+        ],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert "--box cannot be combined with --qmcfc." in result.stderr

@@ -1,10 +1,10 @@
 """
 Command-line entrypoint for PQEnalyzer.
 
-The CLI reads one or more energy files through the Reader wrapper and then
-starts either the graphical CustomTkinter application or the terminal plotting
-flow. GUI imports stay inside main() so terminal mode can start without loading
-Tkinter.
+The CLI reads one or more data files through a PQAnalysis-backed reader and
+then starts either the graphical CustomTkinter application or the terminal
+plotting flow. GUI imports stay inside main() so terminal mode can start
+without loading Tkinter.
 """
 
 import sys
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 def main():
     """
-    Parse command-line arguments, read energy files, and start the chosen UI.
+    Parse command-line arguments, read input files, and start the chosen UI.
 
     PQAnalysis exceptions are allowed to keep their own formatting. Other
     reader errors are logged through the application logger before returning a
@@ -36,6 +36,9 @@ def main():
                         "--qmcfc",
                         action="store_true",
                         help="Use the QMCFC output as input.")
+    parser.add_argument("--box",
+                        action="store_true",
+                        help="Read PQ box files instead of energy files.")
     parser.add_argument("-n",
                         "--no-gui",
                         action="store_true",
@@ -52,15 +55,21 @@ def main():
 
     from PQAnalysis.traj import MDEngineFormat
 
-    from .readers import Reader
+    from .readers import BoxReader, Reader
 
     md_format = MDEngineFormat.PQ
+
+    if args.box and args.qmcfc:
+        parser.error("--box cannot be combined with --qmcfc.")
 
     if args.qmcfc:
         md_format = MDEngineFormat.QMCFC
 
     try:
-        reader = Reader(args.filenames, md_format)
+        if args.box:
+            reader = BoxReader(args.filenames)
+        else:
+            reader = Reader(args.filenames, md_format)
     except Exception as e:
         if not e.__class__.__module__.startswith("PQAnalysis"):
             logger.error("%s", e)

@@ -14,7 +14,7 @@ from PQEnalyzer.energy_access import (
     series,
     simulation_time,
 )
-from PQEnalyzer.readers import Reader
+from PQEnalyzer.readers import BoxReader, Reader
 
 
 class CustomEnergy:
@@ -118,3 +118,18 @@ def test_difference_examples_have_nonconstant_difference():
     np.testing.assert_array_equal(energy_series.time,
                                   np.arange(6, 16))
     assert len(np.unique(np.round(energy_series.values, decimals=6))) > 1
+
+
+def test_energy_access_supports_box_reader_adapter():
+    box_data = BoxReader(["examples/box-01.box"]).energies[0]
+
+    np.testing.assert_array_equal(simulation_time(box_data),
+                                  np.array([1, 2, 3, 4, 5]))
+    np.testing.assert_allclose(parameter_values(box_data, "BOX-Y"),
+                               np.array([22.0, 22.2, 22.4, 22.5, 22.7]))
+    assert parameter_unit(box_data, "BOX-Y") == "A"
+
+    box_series = series(box_data, "BOX-VOLUME")
+    assert box_series.label == "BOX-VOLUME"
+    assert box_series.unit == "A^3"
+    assert box_series.values.shape == (5, )
