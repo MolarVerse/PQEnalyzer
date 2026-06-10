@@ -7,10 +7,18 @@ uses for energy data: ``info``, ``units``, ``data`` and ``simulation_time``.
 """
 
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 from PQAnalysis.core.cell import Cell
-from PQAnalysis.io import read_box
+
+try:  # pragma: no cover
+    from PQAnalysis.io import BoxReader as PQANALYSIS_BOX_READER
+except ImportError:  # pragma: no cover
+    try:  # pragma: no cover
+        from PQAnalysis.io.box_reader import BoxReader as PQANALYSIS_BOX_READER
+    except ImportError:  # pragma: no cover
+        PQANALYSIS_BOX_READER = None
 
 
 BOX_PARAMETER_UNITS = (
@@ -113,8 +121,40 @@ class BoxReader:
         Read one box file through PQAnalysis and adapt it for plotting.
         """
 
-        steps, box_lengths, box_angles = read_box(filename)
+        if PQANALYSIS_BOX_READER is not None:  # pragma: no cover
+            steps, box_lengths, box_angles = PQANALYSIS_BOX_READER(
+                filename).read()
+        else:
+            steps, box_lengths, box_angles = self.__read_box_file_compat(
+                filename)
+
         return BoxData.from_pqanalysis(steps, box_lengths, box_angles)
+
+    def __read_box_file_compat(self, filename):
+        """
+        Read one box file when the installed PQAnalysis has no box reader.
+        """
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="loadtxt: input contained no data",
+                category=UserWarning,
+            )
+            raw_data = np.loadtxt(filename, comments="#", ndmin=2)
+        if raw_data.size == 0:
+            raise ValueError(f"Box file {filename} does not contain box data.")
+
+        if raw_data.shape[1] != 7:
+            raise ValueError(
+                "Box files must contain 7 columns: "
+                "step x y z alpha beta gamma.")
+
+        return (
+            raw_data[:, 0].astype(int),
+            raw_data[:, 1:4],
+            raw_data[:, 4:7],
+        )
 
     def __validate_filenames(self):
         """

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from PQAnalysis.core.cell import Cell
 
+from PQEnalyzer.readers import box_reader as box_reader_module
 from PQEnalyzer.readers import BoxReader
 from PQEnalyzer.readers.box_reader import BoxData
 
@@ -61,6 +62,44 @@ def test_box_reader_supports_multiple_files_and_refresh():
 def test_box_reader_rejects_empty_input():
     with pytest.raises(ValueError, match="list of filenames is empty"):
         BoxReader([])
+
+
+def test_box_reader_falls_back_without_pqanalysis_box_reader(monkeypatch,
+                                                             tmp_path):
+    filename = tmp_path / "single.box"
+    filename.write_text(
+        "# step x y z alpha beta gamma\n"
+        "10 2.0 3.0 4.0 90.0 90.0 90.0\n"
+    )
+    monkeypatch.setattr(box_reader_module, "PQANALYSIS_BOX_READER", None)
+
+    reader = BoxReader([str(filename)])
+
+    box_data = reader.energies[0]
+    np.testing.assert_array_equal(box_data.simulation_time, np.array([10]))
+    np.testing.assert_allclose(box_data.box_lengths,
+                               np.array([[2.0, 3.0, 4.0]]))
+    np.testing.assert_allclose(box_data.box_angles,
+                               np.array([[90.0, 90.0, 90.0]]))
+
+
+def test_box_reader_fallback_rejects_empty_box_data(monkeypatch, tmp_path):
+    filename = tmp_path / "empty.box"
+    filename.write_text("# step x y z alpha beta gamma\n")
+    monkeypatch.setattr(box_reader_module, "PQANALYSIS_BOX_READER", None)
+
+    with pytest.raises(ValueError, match="does not contain box data"):
+        BoxReader([str(filename)])
+
+
+def test_box_reader_fallback_rejects_wrong_column_count(monkeypatch,
+                                                        tmp_path):
+    filename = tmp_path / "invalid.box"
+    filename.write_text("1 2.0 3.0 4.0\n")
+    monkeypatch.setattr(box_reader_module, "PQANALYSIS_BOX_READER", None)
+
+    with pytest.raises(ValueError, match="7 columns"):
+        BoxReader([str(filename)])
 
 
 def test_box_data_from_pqanalysis_preserves_source_arrays():
