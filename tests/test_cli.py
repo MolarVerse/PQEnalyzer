@@ -66,7 +66,7 @@ def test_cli_does_not_duplicate_upstream_reader_errors():
     assert result.stderr.count(f"File {missing_file} not found.") == 1
 
 
-def test_cli_rejects_box_with_qmcfc():
+def test_cli_rejects_multiple_forced_input_formats():
     project_root = Path(__file__).resolve().parents[1]
 
     result = subprocess.run(
@@ -86,4 +86,5 @@ def test_cli_rejects_box_with_qmcfc():
 
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
-    assert "--box cannot be combined with --qmcfc." in result.stderr
+    assert "--pq, --qmcfc, and --box are mutually exclusive." in (
+        result.stderr)

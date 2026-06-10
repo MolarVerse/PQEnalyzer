@@ -31,7 +31,10 @@ def main():
         "filenames",
         metavar="filenames",
         nargs="+",
-        help="The name of the energy files to read the data from.")
+        help="The name of the files to read the data from.")
+    parser.add_argument("--pq",
+                        action="store_true",
+                        help="Force PQ energy input.")
     parser.add_argument("-q",
                         "--qmcfc",
                         action="store_true",
@@ -53,23 +56,22 @@ def main():
     args = parser.parse_args()
     configure_logging()
 
-    from PQAnalysis.traj import MDEngineFormat
+    from .readers import create_reader
 
-    from .readers import BoxReader, Reader
+    forced_formats = [args.pq, args.qmcfc, args.box]
+    if sum(forced_formats) > 1:
+        parser.error("--pq, --qmcfc, and --box are mutually exclusive.")
 
-    md_format = MDEngineFormat.PQ
-
-    if args.box and args.qmcfc:
-        parser.error("--box cannot be combined with --qmcfc.")
-
-    if args.qmcfc:
-        md_format = MDEngineFormat.QMCFC
+    input_format = "auto"
+    if args.pq:
+        input_format = "pq"
+    elif args.qmcfc:
+        input_format = "qmcfc"
+    elif args.box:
+        input_format = "box"
 
     try:
-        if args.box:
-            reader = BoxReader(args.filenames)
-        else:
-            reader = Reader(args.filenames, md_format)
+        reader = create_reader(args.filenames, input_format=input_format)
     except Exception as e:
         if not e.__class__.__module__.startswith("PQAnalysis"):
             logger.error("%s", e)
