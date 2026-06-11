@@ -5,7 +5,7 @@ from scipy.stats import gaussian_kde
 import numpy as np
 
 from ..statistics import Statistic
-from ..energy_access import concatenate_series, parameter_unit, parameter_values
+from ..energy_access import concatenate_series, parameter_values
 from .._logging import get_logger
 from .labels import unique_path_labels
 from .plot import Plot
@@ -76,7 +76,22 @@ class PlotHistogram(Plot):
             )
 
             y = kde(x)
-            self.ax.plot(x, y, label=f"{labels[i]} KDE")
+            line = self.ax.plot(
+                x,
+                y,
+                label=f"{labels[i]} KDE",
+                linewidth=1.8,
+                alpha=0.95,
+                zorder=3,
+            )[0]
+            self.ax.fill_between(
+                x,
+                y,
+                color=line.get_color(),
+                alpha=0.12,
+                linewidth=0,
+                zorder=2,
+            )
 
         return None
 
@@ -94,14 +109,13 @@ class PlotHistogram(Plot):
         None
         """
 
-        self.ax.set_ylabel("Density")
-
-        self.ax.ticklabel_format(axis="both", style="sci")
-
-        self.ax.set_xlabel(
-            f"{info_parameter} / "
-            f"{parameter_unit(self.reader.energies[0], info_parameter)}"
+        self.style_single_plot(
+            title=f"{info_parameter} distribution",
+            xlabel=self.parameter_axis_label(info_parameter),
+            ylabel="Density",
         )
+        self.ax.margins(x=0.04, y=0.12)
+        self.ax.set_ylim(bottom=0)
 
         _, labels = self.ax.get_legend_handles_labels()
         if not labels:
@@ -132,12 +146,26 @@ class PlotHistogram(Plot):
             # calculate mean and plot
             _, y = Statistic.mean_values(energy_series.time,
                                          energy_series.values)
-            self.ax.axvline(float(y[0]), label="Mean", linestyle="--")
+            self.ax.axvline(
+                float(y[0]),
+                label="Mean",
+                linestyle="--",
+                linewidth=1.35,
+                alpha=0.9,
+                zorder=4,
+            )
 
         if self.median:
             # calculate median and plot
             _, y = Statistic.median_values(energy_series.time,
                                            energy_series.values)
-            self.ax.axvline(float(y[0]), label="Median", linestyle="--")
+            self.ax.axvline(
+                float(y[0]),
+                label="Median",
+                linestyle=":",
+                linewidth=1.6,
+                alpha=0.95,
+                zorder=4,
+            )
 
         return None

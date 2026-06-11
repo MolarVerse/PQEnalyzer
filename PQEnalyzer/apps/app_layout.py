@@ -109,15 +109,19 @@ class PlotControlsView:
     """
     Plot command controls.
 
-    This view exposes the ``follow``, ``plot_main_data`` and interval widgets on
-    the app because ``Plot`` reads that state when a plot window is created or
-    refreshed.
+    This view exposes plot state widgets on the app because ``Plot`` reads that
+    state when a plot window is created or refreshed.
     """
 
-    def __init__(self, app, plot_button_callback, refresh_callback):
+    def __init__(
+        self,
+        app,
+        plot_button_callback,
+        auto_refresh_callback,
+    ):
         self.app = app
         self.plot_button_callback = plot_button_callback
-        self.refresh_callback = refresh_callback
+        self.auto_refresh_callback = auto_refresh_callback
 
         self.frame = ctk.CTkFrame(app, width=200)
         self.frame.grid(row=2,
@@ -128,19 +132,20 @@ class PlotControlsView:
         self.frame.grid_rowconfigure(4, weight=1)
         self.frame.grid_columnconfigure(2, weight=1)
 
-        self.follow = tkinter.BooleanVar()
-        self.follow_checkbox = ctk.CTkCheckBox(
+        self.auto_refresh = tkinter.BooleanVar()
+        self.auto_refresh.set(True)
+        self.auto_refresh_checkbox = ctk.CTkCheckBox(
             master=self.frame,
             border_width=2,
-            text="Follow",
-            variable=self.follow,
-            command=lambda: app.toggle_entry_state(
-                self.follow_checkbox, self.interval_entry, default="1.0"))
-        self.follow_checkbox.grid(row=0,
-                                  column=1,
-                                  padx=(10, 10),
-                                  pady=(10, 10),
-                                  sticky="nsew")
+            text="Auto-Refresh",
+            variable=self.auto_refresh,
+            command=auto_refresh_callback,
+        )
+        self.auto_refresh_checkbox.grid(row=0,
+                                        column=1,
+                                        padx=(10, 10),
+                                        pady=(10, 10),
+                                        sticky="nsew")
 
         self.plot_main_data = tkinter.BooleanVar()
         self.no_data_checkbox = ctk.CTkCheckBox(
@@ -155,27 +160,17 @@ class PlotControlsView:
                                    pady=(10, 10),
                                    sticky="nsew")
 
-        self.interval_entry = ctk.CTkEntry(
+        self.auto_refresh_status_label = ctk.CTkLabel(
             self.frame,
-            width=10,
-            validate="key",
-            validatecommand=(app.register(app.validate_number), "%P"),
+            text="Watching for file changes",
+            anchor="w",
         )
-        self.interval_entry.grid(row=1,
-                                 column=1,
-                                 padx=10,
-                                 pady=5,
-                                 sticky="we")
-        self.interval_entry.configure(state="disabled")
-
-        self.interval_label = ctk.CTkLabel(self.frame,
-                                           text="Interval (s):",
-                                           anchor="w")
-        self.interval_label.grid(row=1,
-                                 column=0,
-                                 padx=10,
-                                 pady=5,
-                                 sticky="w")
+        self.auto_refresh_status_label.grid(row=1,
+                                            column=0,
+                                            columnspan=2,
+                                            padx=10,
+                                            pady=(0, 5),
+                                            sticky="w")
 
         self.plot_button = ctk.CTkButton(
             master=self.frame,
@@ -203,29 +198,28 @@ class PlotControlsView:
                                    pady=(10, 10),
                                    sticky="nsew")
 
-        self.refresh_button = ctk.CTkButton(
+        self.dashboard_button = ctk.CTkButton(
             master=self.frame,
             border_width=2,
-            text="Refresh",
-            command=refresh_callback,
+            text="Live Monitor",
+            command=lambda: plot_button_callback(2),
         )
-        self.refresh_button.grid(row=4,
-                                 column=0,
-                                 columnspan=2,
-                                 padx=(10, 10),
-                                 pady=(10, 10),
-                                 sticky="nsew")
+        self.dashboard_button.grid(row=4,
+                                   column=0,
+                                   columnspan=2,
+                                   padx=(10, 10),
+                                   pady=(10, 10),
+                                   sticky="nsew")
 
         app.plot_frame = self.frame
-        app.follow = self.follow
-        app.check_follow = self.follow_checkbox
+        app.auto_refresh = self.auto_refresh
+        app.check_auto_refresh = self.auto_refresh_checkbox
         app.plot_main_data = self.plot_main_data
         app.check_nodata = self.no_data_checkbox
-        app.interval = self.interval_entry
-        app.interval_label = self.interval_label
+        app.auto_refresh_status_label = self.auto_refresh_status_label
         app.button_plot = self.plot_button
         app.button_hist = self.histogram_button
-        app.button_refresh = self.refresh_button
+        app.button_dashboard = self.dashboard_button
 
 
 class ParameterSelectorView:
@@ -279,8 +273,9 @@ class StatisticsControlsView:
     code created inline.
     """
 
-    def __init__(self, app):
+    def __init__(self, app, statistics_changed_callback=None):
         self.app = app
+        self.statistics_changed_callback = statistics_changed_callback
 
         self.frame = ctk.CTkFrame(app, width=200)
         self.frame.grid(row=1,
@@ -314,9 +309,17 @@ class StatisticsControlsView:
             font=ctk.CTkFont(size=15, weight="bold"),
         )
         self.label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.mean = ctk.CTkCheckBox(self.statistics_frame, text="Mean")
+        self.mean = ctk.CTkCheckBox(
+            self.statistics_frame,
+            text="Mean",
+            command=statistics_changed_callback,
+        )
         self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.median = ctk.CTkCheckBox(self.statistics_frame, text="Median")
+        self.median = ctk.CTkCheckBox(
+            self.statistics_frame,
+            text="Median",
+            command=statistics_changed_callback,
+        )
         self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         self.time_series_label = ctk.CTkLabel(
@@ -332,6 +335,7 @@ class StatisticsControlsView:
         self.cumulative_average = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Cumulative Average",
+            command=statistics_changed_callback,
         )
         self.cumulative_average.grid(row=1,
                                      column=0,
@@ -339,7 +343,10 @@ class StatisticsControlsView:
                                      pady=5,
                                      sticky="w")
         self.self_correlation_mean = ctk.CTkCheckBox(
-            self.time_series_frame, text="Self-Correlation Mean")
+            self.time_series_frame,
+            text="Self-Correlation Mean",
+            command=statistics_changed_callback,
+        )
         self.self_correlation_mean.grid(row=2,
                                            column=0,
                                            padx=10,
@@ -349,7 +356,7 @@ class StatisticsControlsView:
         self.difference = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Difference (1 - 2)",
-            command=self.__enable_no_data_for_difference,
+            command=self.__difference_command,
         )
         self.difference.grid(row=3,
                              column=0,
@@ -361,8 +368,8 @@ class StatisticsControlsView:
         self.running_average = ctk.CTkCheckBox(
             self.time_series_frame,
             text="Running Average",
-            command=lambda: app.toggle_entry_state(
-                self.running_average, self.window_size, default="10"))
+            command=self.__running_average_command,
+        )
         self.running_average.grid(row=4,
                                   column=0,
                                   padx=10,
@@ -410,3 +417,25 @@ class StatisticsControlsView:
 
         if self.difference.get():
             self.app.plot_main_data.set(True)
+
+    def __difference_command(self):
+        """
+        Apply difference-specific defaults and notify the app.
+        """
+
+        self.__enable_no_data_for_difference()
+        if self.statistics_changed_callback is not None:
+            self.statistics_changed_callback()
+
+    def __running_average_command(self):
+        """
+        Toggle the window entry and notify the app.
+        """
+
+        self.app.toggle_entry_state(
+            self.running_average,
+            self.window_size,
+            default="10",
+        )
+        if self.statistics_changed_callback is not None:
+            self.statistics_changed_callback()

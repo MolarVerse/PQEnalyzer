@@ -6,7 +6,13 @@ from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from ..energy_access import parameter_unit
+from .._logging import get_logger
+from .options import PlotOptions
 from .theme import apply_figure_theme, apply_matplotlib_theme
+
+
+logger = get_logger(__name__)
 
 
 class Plot(metaclass=ABCMeta):
@@ -48,15 +54,19 @@ class Plot(metaclass=ABCMeta):
 
         self.app = app
         self.reader = app.reader
+        self.options = PlotOptions.from_app(app)
 
         # read parameters from the app
         self.get_app_parameters()
 
         # create the plot
-        apply_matplotlib_theme(getattr(self.app, "appearance_mode", None))
+        self.palette = apply_matplotlib_theme(
+            getattr(self.app, "appearance_mode", None))
         self.figure = plt.figure(figsize=(9, 5.5))
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
+        self.figure.canvas.mpl_connect("button_press_event",
+                                       self.__select_plot)
 
         # set the signal handler
         signal.signal(
@@ -92,16 +102,15 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        self.mean = self.app.mean.get()
-        self.median = self.app.median.get()
-        self.cummulative_average = self.app.cummulative_average.get()
-        self.self_correlation_mean = (
-            self.app.self_correlation_mean.get())
-        self.difference = self.app.difference.get()
-        self.running_average = self.app.running_average.get()
-        self.window_size = self.app.window_size.get()
+        self.mean = self.options.mean
+        self.median = self.options.median
+        self.cummulative_average = self.options.cummulative_average
+        self.self_correlation_mean = self.options.self_correlation_mean
+        self.difference = self.options.difference
+        self.running_average = self.options.running_average
+        self.window_size = self.options.window_size
 
-        self.plot_main = self.app.plot_main_data.get()
+        self.plot_main = self.options.plot_main
 
         return None
 
@@ -123,6 +132,7 @@ class Plot(metaclass=ABCMeta):
         """
 
         self.info_parameter = info_parameter
+        self.app.select_plot(self)
 
         # if button is not checked, plot main data
         self.plot_data()
@@ -146,9 +156,15 @@ class Plot(metaclass=ABCMeta):
         """
 
         self.info_parameter = info_parameter
+        self.app.select_plot(self)
 
         def update(frame):
-            self.reader.read_last()
+            try:
+                self.reader.read_last()
+            except Exception as error:  # pylint: disable=broad-exception-caught
+                logger.warning("Plot refresh skipped: %s", error)
+                return []
+
             self.ax.clear()
             self.apply_theme()
             self.plot_data()
@@ -164,7 +180,7 @@ class Plot(metaclass=ABCMeta):
 
         plt.show()
 
-    def refresh(self) -> None:
+    def refresh(self, show=True) -> None:
         """
         Refresh an existing plot with the latest file contents and options.
 
@@ -173,18 +189,25 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        # Reads the last data
-        self.reader.read_last()
+        try:
+            self.reader.read_last()
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            logger.warning("Plot refresh skipped: %s", error)
+            return None
 
         self.redraw()
 
         # Show the plot
-        plt.show()
+        if show:
+            plt.show()
 
-    def redraw(self) -> None:
+    def redraw(self, options=None) -> None:
         """
         Redraw an existing plot without reading new file contents.
         """
+
+        if options is not None:
+            self.options = options
 
         # Get the new parameters
         self.get_app_parameters()
@@ -197,6 +220,16 @@ class Plot(metaclass=ABCMeta):
         self.plot_data()
 
         self.figure.canvas.draw_idle()
+
+    def __select_plot(self, event):
+        """
+        Select this plot so GUI controls edit its options.
+        """
+
+        if getattr(event, "inaxes", None) is not self.ax:
+            return
+
+        self.app.select_plot(self)
 
     def plot_data(self) -> None:
         """
@@ -214,7 +247,7 @@ class Plot(metaclass=ABCMeta):
 
         self.labels(self.info_parameter)
         self.apply_theme()
-        self.figure.tight_layout()
+        self.figure.tight_layout(pad=2.0)
 
         return None
 
@@ -235,12 +268,59 @@ class Plot(metaclass=ABCMeta):
         self.ax.legend(**legend_options)
         return True
 
+    def parameter_axis_label(self, info_parameter: str) -> str:
+        """
+        Return a parameter label including the reader-reported unit.
+        """
+
+        unit = parameter_unit(self.reader.energies[0], info_parameter)
+        return f"{info_parameter} / {unit}"
+
+    def style_single_plot(
+        self,
+        *,
+        title: str,
+        xlabel: str,
+        ylabel: str,
+    ) -> None:
+        """
+        Apply shared single-plot labels and framing.
+        """
+
+        self.set_window_title(title)
+        self.ax.set_title(title, loc="left", pad=10)
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+        self.ax.ticklabel_format(axis="both", style="sci")
+        self.ax.margins(x=0.02, y=0.08)
+
+    def annotation_box(self):
+        """
+        Return a themed rounded label box for latest-value annotations.
+        """
+
+        return dict(
+            boxstyle="round,pad=0.22",
+            facecolor=self.palette["annotation.facecolor"],
+            edgecolor=self.palette["annotation.edgecolor"],
+            alpha=0.88,
+        )
+
+    def set_window_title(self, title: str) -> None:
+        """
+        Name the native matplotlib window when the backend supports it.
+        """
+
+        manager = getattr(self.figure.canvas, "manager", None)
+        if manager is not None and hasattr(manager, "set_window_title"):
+            manager.set_window_title(f"PQEnalyzer - {title}")
+
     def apply_theme(self) -> None:
         """
         Apply the active application appearance mode to this plot.
         """
 
-        apply_figure_theme(
+        self.palette = apply_figure_theme(
             self.figure,
             self.ax,
             getattr(self.app, "appearance_mode", None),
