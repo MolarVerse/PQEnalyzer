@@ -125,6 +125,7 @@ def test_histogram_skips_constant_series_and_plots_remaining_data(caplog):
     plot.main_data("PARAMETER")
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
+    assert len(plot.ax.collections) == 1
     assert "Data zero. No histogram available." in caplog.text
 
 
@@ -141,6 +142,7 @@ def test_histogram_disambiguates_duplicate_filenames():
         "run-a/md.en KDE",
         "run-b/md.en KDE",
     ]
+    assert len(plot.ax.collections) == 2
 
 
 def test_histogram_statistics_draw_single_mean_and_median_lines():
@@ -151,7 +153,21 @@ def test_histogram_statistics_draw_single_mean_and_median_lines():
 
     assert plot.ax.get_legend_handles_labels()[1] == ["Mean", "Median"]
     assert len(plot.ax.lines) == 2
-    assert all(line.get_linestyle() == "--" for line in plot.ax.lines)
+    assert [line.get_linestyle() for line in plot.ax.lines] == ["--", ":"]
+    assert [line.get_zorder() for line in plot.ax.lines] == [4, 4]
+
+
+def test_histogram_labels_use_distribution_title_and_density_axis():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotHistogram(app)
+
+    plot.main_data("PARAMETER")
+    plot.labels("PARAMETER")
+
+    assert plot.ax.get_title(loc="left") == "PARAMETER distribution"
+    assert plot.ax.get_xlabel() == "PARAMETER / unit"
+    assert plot.ax.get_ylabel() == "Density"
+    assert plot.ax.get_ylim()[0] == 0
 
 
 def test_time_main_data_uses_readable_filenames_and_value_labels():
@@ -161,8 +177,23 @@ def test_time_main_data_uses_readable_filenames_and_value_labels():
     plot.main_data("PARAMETER")
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-0.en"]
+    assert plot.ax.lines[0].get_linewidth() == 1.6
+    assert plot.ax.lines[0].get_alpha() == 0.92
+    assert plot.ax.lines[0].get_zorder() == 2
     assert len(plot.ax.texts) == 1
     assert plot.ax.texts[0].get_text() == "4.000e+00"
+
+
+def test_time_labels_use_time_series_title_and_parameter_axis():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+    plot.labels("PARAMETER")
+
+    assert plot.ax.get_title(loc="left") == "PARAMETER time series"
+    assert plot.ax.get_xlabel() == "Simulation step"
+    assert plot.ax.get_ylabel() == "PARAMETER / unit"
 
 
 def test_time_main_data_disambiguates_duplicate_filenames():
@@ -212,6 +243,13 @@ def test_time_statistics_draw_expected_overlay_series():
         "Self-Correlation Mean",
         "Running Average (2)",
     ]
+    assert [line.get_linestyle() for line in plot.ax.lines[:3]] == [
+        "--",
+        ":",
+        "-.",
+    ]
+    assert plot.ax.lines[-1].get_linestyle() == "-"
+    assert plot.ax.lines[-1].get_zorder() == 4
 
 
 def test_time_difference_subtracts_two_aligned_series():
