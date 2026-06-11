@@ -657,6 +657,7 @@ def test_auto_refresh_redraws_open_plots_without_show(monkeypatch):
 def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):
     calls = []
     reader = SimpleNamespace(
+        filenames=["first.en", "second.en"],
         energies=[
             SimpleNamespace(info={"SIMULATION-TIME": "TIME",
                                   "PARAMETER": "PARAMETER"}),
@@ -690,3 +691,71 @@ def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):
     termapp_module.TermApp(reader).run()
 
     assert calls == [(reader, "PARAMETER", True)]
+
+
+def test_terminal_app_plots_selected_parameter_without_prompt(monkeypatch):
+    calls = []
+    reader = SimpleNamespace(
+        filenames=["run.en"],
+        energies=[
+            SimpleNamespace(
+                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
+                units={"PARAMETER": "unit"},
+                data={"PARAMETER": [1, 2, 3]},
+                simulation_time=[1, 2, 3],
+            )
+        ],
+    )
+
+    class FakeTermPlot:
+
+        def __init__(self, plot_reader):
+            self.reader = plot_reader
+
+        def plot(self, info_parameter, difference=False):
+            calls.append((self.reader, info_parameter, difference))
+
+    monkeypatch.setattr(termapp_module, "TermPlot", FakeTermPlot)
+
+    termapp_module.TermApp(reader).plot("parameter", difference=False)
+
+    assert calls == [(reader, "PARAMETER", False)]
+
+
+def test_terminal_app_summary_lists_files_rows_and_units():
+    reader = SimpleNamespace(
+        filenames=["run.en"],
+        energies=[
+            SimpleNamespace(
+                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
+                units={"PARAMETER": "unit"},
+                data={"PARAMETER": [1, 2, 3]},
+                simulation_time=[1, 2, 3],
+            )
+        ],
+    )
+
+    summary = termapp_module.TermApp(reader).summary()
+
+    assert "PQEnalyzer input summary" in summary
+    assert "Files: 1" in summary
+    assert "  run.en: 3 rows" in summary
+    assert "Parameters: 1" in summary
+    assert "  PARAMETER [unit]" in summary
+
+
+def test_terminal_app_rejects_unknown_parameter():
+    reader = SimpleNamespace(
+        filenames=["run.en"],
+        energies=[
+            SimpleNamespace(
+                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
+                units={"PARAMETER": "unit"},
+                data={"PARAMETER": [1, 2, 3]},
+                simulation_time=[1, 2, 3],
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="Unknown parameter: missing"):
+        termapp_module.TermApp(reader).plot("missing")
