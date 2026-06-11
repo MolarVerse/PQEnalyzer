@@ -66,6 +66,8 @@ class PlotTime(Plot):
                 energy_series.time,
                 energy_series.values,
                 label=labels[i],
+                linewidth=1.6,
+                alpha=0.92,
             )
             self.add_value_label(energy_series.time, energy_series.values)
 
@@ -84,6 +86,12 @@ class PlotTime(Plot):
         """
 
         self.ax.set_xlabel("Simulation step")
+        self.ax.set_title(
+            f"{info_parameter} / "
+            f"{parameter_unit(self.reader.energies[0], info_parameter)}",
+            loc="left",
+            pad=10,
+        )
 
         self.ax.ticklabel_format(axis="both", style="sci")
 
@@ -122,7 +130,9 @@ class PlotTime(Plot):
                     delta_series.time,
                     delta_series.values,
                     label="Difference (1 - 2)",
-                    linestyle="--",
+                    linestyle="-",
+                    linewidth=1.9,
+                    alpha=0.95,
                 )
                 self.add_value_label(delta_series.time, delta_series.values)
 
@@ -135,7 +145,14 @@ class PlotTime(Plot):
             # calculate mean and plot
             x, y = Statistic.mean_values(energy_series.time,
                                          energy_series.values)
-            self.ax.plot(x, y, label="Mean", linestyle="--")
+            self.ax.plot(
+                x,
+                y,
+                label="Mean",
+                linestyle="--",
+                linewidth=1.15,
+                alpha=0.85,
+            )
 
             self.add_value_label(x, y)
 
@@ -143,7 +160,14 @@ class PlotTime(Plot):
             # calculate median and plot
             x, y = Statistic.median_values(energy_series.time,
                                            energy_series.values)
-            self.ax.plot(x, y, label="Median", linestyle="--")
+            self.ax.plot(
+                x,
+                y,
+                label="Median",
+                linestyle=":",
+                linewidth=1.35,
+                alpha=0.9,
+            )
 
             self.add_value_label(x, y)
 
@@ -155,7 +179,9 @@ class PlotTime(Plot):
                 x,
                 y,
                 label="Cumulative Average",
-                linestyle="--",
+                linestyle="-.",
+                linewidth=1.45,
+                alpha=0.9,
             )
 
             self.add_value_label(x, y)
@@ -167,7 +193,9 @@ class PlotTime(Plot):
                 x,
                 y,
                 label="Self-Correlation Mean",
-                linestyle="--",
+                linestyle=(0, (2, 2)),
+                linewidth=1.45,
+                alpha=0.9,
             )
 
             self.add_value_label(x, y)
@@ -189,7 +217,9 @@ class PlotTime(Plot):
                 x,
                 y,
                 label="Running Average (" + str(window_size_int) + ")",
-                linestyle="--",
+                linestyle="-",
+                linewidth=2.0,
+                alpha=0.95,
             )
 
             self.add_value_label(x, y)
@@ -235,7 +265,10 @@ class PlotTime(Plot):
             fontsize=8,
             horizontalalignment="left",
             verticalalignment="center",
-            bbox=dict(facecolor="white", alpha=0.5, edgecolor="white"),
+            bbox=dict(boxstyle="round,pad=0.2",
+                      facecolor="white",
+                      alpha=0.55,
+                      edgecolor="white"),
         )
 
         return None

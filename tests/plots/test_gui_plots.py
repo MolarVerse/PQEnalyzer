@@ -269,8 +269,8 @@ def test_dashboard_plots_all_parameters_as_raw_overview():
 
     assert plot.axis_parameters[plot.axes[0]] == "TEMPERATURE"
     assert plot.axis_parameters[plot.axes[1]] == "PRESSURE"
-    assert plot.axes[0].get_title() == "TEMPERATURE / K"
-    assert plot.axes[1].get_title() == "PRESSURE / bar"
+    assert plot.axes[0].get_title(loc="left") == "TEMPERATURE / K"
+    assert plot.axes[1].get_title(loc="left") == "PRESSURE / bar"
     assert len(plot.axes[0].lines) == 1
     assert len(plot.axes[1].lines) == 1
     assert len(plot.figure.legends) == 1
@@ -288,6 +288,27 @@ def test_dashboard_double_click_opens_focused_parameter_plot():
     assert app.focus_calls == ["PRESSURE"]
 
 
+def test_dashboard_single_click_highlights_panel_without_opening_focus():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+    plot.redraw()
+
+    event = SimpleNamespace(dblclick=False, inaxes=plot.axes[1])
+
+    plot._PlotDashboard__button_press_event(event)
+
+    assert plot.selected_parameter == "PRESSURE"
+    assert app.focus_calls == []
+    assert all(
+        np.isclose(spine.get_linewidth(), 2.1)
+        for spine in plot.axes[1].spines.values()
+    )
+    assert all(
+        np.isclose(spine.get_linewidth(), 1.0)
+        for spine in plot.axes[0].spines.values()
+    )
+
+
 def test_dashboard_refresh_keeps_existing_plot_on_read_error(caplog):
     app = FakeApp([FakeDashboardEnergy()])
     app.reader = FailingReader([FakeDashboardEnergy()])
@@ -297,3 +318,5 @@ def test_dashboard_refresh_keeps_existing_plot_on_read_error(caplog):
     plot.refresh()
 
     assert "Dashboard refresh skipped: file is being written" in caplog.text
+    assert "refresh skipped: file is being written" in plot.subtitle_text.get_text()
+    assert len(plot.axes[0].lines) == 1

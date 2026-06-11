@@ -8,33 +8,57 @@ from cycler import cycler
 
 
 LIGHT_PALETTE = {
-    "figure.facecolor": "#f8fafc",
+    "figure.facecolor": "#f4f7fb",
     "axes.facecolor": "#ffffff",
-    "axes.edgecolor": "#64748b",
+    "axes.edgecolor": "#cbd5e1",
     "axes.labelcolor": "#0f172a",
     "text.color": "#0f172a",
-    "tick.color": "#334155",
-    "grid.color": "#cbd5e1",
+    "subtle.text": "#64748b",
+    "tick.color": "#475569",
+    "grid.color": "#e2e8f0",
     "legend.facecolor": "#ffffff",
     "legend.edgecolor": "#cbd5e1",
     "annotation.facecolor": "#f1f5f9",
     "annotation.edgecolor": "#cbd5e1",
-    "colors": ["#2563eb", "#e11d48", "#059669", "#7c3aed", "#d97706"],
+    "selected.edgecolor": "#2563eb",
+    "warning.color": "#b45309",
+    "colors": [
+        "#2563eb",
+        "#e11d48",
+        "#059669",
+        "#7c3aed",
+        "#d97706",
+        "#0891b2",
+        "#be123c",
+        "#16a34a",
+    ],
 }
 
 DARK_PALETTE = {
-    "figure.facecolor": "#111827",
-    "axes.facecolor": "#0f172a",
-    "axes.edgecolor": "#94a3b8",
+    "figure.facecolor": "#0b1120",
+    "axes.facecolor": "#111827",
+    "axes.edgecolor": "#334155",
     "axes.labelcolor": "#e5e7eb",
     "text.color": "#e5e7eb",
+    "subtle.text": "#94a3b8",
     "tick.color": "#cbd5e1",
-    "grid.color": "#334155",
-    "legend.facecolor": "#111827",
+    "grid.color": "#1e293b",
+    "legend.facecolor": "#0f172a",
     "legend.edgecolor": "#475569",
-    "annotation.facecolor": "#1e293b",
+    "annotation.facecolor": "#0f172a",
     "annotation.edgecolor": "#475569",
-    "colors": ["#60a5fa", "#fb7185", "#34d399", "#c084fc", "#fbbf24"],
+    "selected.edgecolor": "#60a5fa",
+    "warning.color": "#fbbf24",
+    "colors": [
+        "#60a5fa",
+        "#fb7185",
+        "#34d399",
+        "#c084fc",
+        "#fbbf24",
+        "#22d3ee",
+        "#f43f5e",
+        "#4ade80",
+    ],
 }
 
 
@@ -75,11 +99,15 @@ def apply_matplotlib_theme(appearance_mode=None):
         "axes.labelcolor": palette["axes.labelcolor"],
         "axes.grid": True,
         "axes.prop_cycle": cycler(color=palette["colors"]),
+        "axes.titleweight": "semibold",
+        "axes.titlesize": "medium",
+        "lines.linewidth": 1.45,
+        "lines.solid_capstyle": "round",
         "text.color": palette["text.color"],
         "xtick.color": palette["tick.color"],
         "ytick.color": palette["tick.color"],
         "grid.color": palette["grid.color"],
-        "grid.alpha": 0.35,
+        "grid.alpha": 0.55,
         "legend.facecolor": palette["legend.facecolor"],
         "legend.edgecolor": palette["legend.edgecolor"],
         "legend.framealpha": 0.95,
@@ -98,7 +126,7 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
 
     figure.patch.set_facecolor(palette["figure.facecolor"])
     axes.set_facecolor(palette["axes.facecolor"])
-    axes.grid(True, color=palette["grid.color"], alpha=0.35)
+    axes.grid(True, color=palette["grid.color"], alpha=0.55, linewidth=0.8)
     axes.tick_params(colors=palette["tick.color"])
     axes.xaxis.label.set_color(palette["axes.labelcolor"])
     axes.yaxis.label.set_color(palette["axes.labelcolor"])
@@ -106,6 +134,7 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
 
     for spine in axes.spines.values():
         spine.set_color(palette["axes.edgecolor"])
+        spine.set_linewidth(1.0)
 
     legend = axes.get_legend()
     if legend is not None:
