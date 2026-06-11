@@ -180,7 +180,7 @@ class Plot(metaclass=ABCMeta):
 
         plt.show()
 
-    def refresh(self) -> None:
+    def refresh(self, show=True) -> None:
         """
         Refresh an existing plot with the latest file contents and options.
 
@@ -198,7 +198,8 @@ class Plot(metaclass=ABCMeta):
         self.redraw()
 
         # Show the plot
-        plt.show()
+        if show:
+            plt.show()
 
     def redraw(self, options=None) -> None:
         """
