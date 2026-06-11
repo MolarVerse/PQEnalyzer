@@ -30,11 +30,22 @@ Plot in the terminal instead of opening the GUI:
 pqenalyzer --no-gui pq_output.en
 ```
 
-Open two aligned example files in terminal mode and answer yes to the
-difference prompt:
+Plot one parameter in terminal mode without prompts:
 
 ```bash
-pqenalyzer --no-gui examples/diff-run-a.en examples/diff-run-b.en
+pqenalyzer --no-gui --plot TEMPERATURE pq_output.en
+```
+
+Print the detected files, row counts, and available parameters:
+
+```bash
+pqenalyzer --no-gui --summary pq_output.en
+```
+
+Plot the difference between two aligned example files without prompts:
+
+```bash
+pqenalyzer --no-gui --plot TEMPERATURE --diff examples/diff-run-a.en examples/diff-run-b.en
 ```
 
 Read QMCFC output:
@@ -56,6 +67,44 @@ pqenalyzer examples/box-01.box
 ```
 
 Use `--box` when a box file does not use the conventional `.box` suffix.
+
+## Shell Completion
+
+PQEnalyzer uses `argcomplete` for shell completion and can print installable
+completion scripts.
+
+Package managers can install the generated scripts into their shell completion
+directories so users get completion after installing the package.
+
+Enable bash completion for the current shell session:
+
+```bash
+eval "$(pqenalyzer completion bash)"
+```
+
+Enable zsh completion for the current shell session:
+
+```bash
+eval "$(pqenalyzer completion zsh)"
+```
+
+Install fish completion persistently:
+
+```bash
+mkdir -p ~/.config/fish/completions
+pqenalyzer completion fish > ~/.config/fish/completions/pqenalyzer.fish
+```
+
+To enable automatic argcomplete discovery for installed Python CLIs, run this
+once and restart the shell:
+
+```bash
+activate-global-python-argcomplete --user -y
+```
+
+After completion is active, `--plot` completes common PQ and box parameters.
+When input files are already present on the command line, it completes the
+parameters detected from those files.
 
 Multiple input files can be plotted together when they expose the same
 parameters and units:
