@@ -88,7 +88,7 @@ class PlotDashboard:
         )
         plt.show()
 
-    def refresh(self) -> None:
+    def refresh(self, show=True) -> None:
         """
         Refresh the dashboard while keeping the previous view on read errors.
         """
@@ -99,7 +99,8 @@ class PlotDashboard:
             return None
 
         self.redraw()
-        plt.show()
+        if show:
+            plt.show()
 
     def redraw(self) -> None:
         """
@@ -295,14 +296,22 @@ class PlotDashboard:
         palette = palette_for_appearance_mode(
             getattr(self.app, "appearance_mode", None))
         if self.refresh_warning:
-            subtitle = f"raw live monitor - refresh skipped: {self.refresh_warning}"
+            subtitle = (
+                "watching for file changes - refresh skipped: "
+                f"{self.refresh_warning}"
+            )
             color = palette["warning.color"]
+        elif getattr(self.app, "auto_refresh", None) is not None and (
+            not self.app.auto_refresh.get()
+        ):
+            subtitle = "auto-refresh paused - double-click a panel to focus"
+            color = palette["subtle.text"]
         else:
-            subtitle = "raw live monitor - double-click a panel to focus"
+            subtitle = "watching for file changes - double-click a panel to focus"
             color = palette["subtle.text"]
 
         self.figure.suptitle(
-            "Simulation Dashboard",
+            "Simulation Monitor",
             x=0.012,
             y=0.995,
             ha="left",
@@ -332,4 +341,4 @@ class PlotDashboard:
 
         manager = getattr(self.figure.canvas, "manager", None)
         if manager is not None and hasattr(manager, "set_window_title"):
-            manager.set_window_title("PQEnalyzer Dashboard")
+            manager.set_window_title("PQEnalyzer - Live Monitor")

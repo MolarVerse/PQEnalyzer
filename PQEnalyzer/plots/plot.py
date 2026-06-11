@@ -6,6 +6,7 @@ from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from ..energy_access import parameter_unit
 from .._logging import get_logger
 from .options import PlotOptions
 from .theme import apply_figure_theme, apply_matplotlib_theme
@@ -59,7 +60,8 @@ class Plot(metaclass=ABCMeta):
         self.get_app_parameters()
 
         # create the plot
-        apply_matplotlib_theme(getattr(self.app, "appearance_mode", None))
+        self.palette = apply_matplotlib_theme(
+            getattr(self.app, "appearance_mode", None))
         self.figure = plt.figure(figsize=(9, 5.5))
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
@@ -178,7 +180,7 @@ class Plot(metaclass=ABCMeta):
 
         plt.show()
 
-    def refresh(self) -> None:
+    def refresh(self, show=True) -> None:
         """
         Refresh an existing plot with the latest file contents and options.
 
@@ -196,7 +198,8 @@ class Plot(metaclass=ABCMeta):
         self.redraw()
 
         # Show the plot
-        plt.show()
+        if show:
+            plt.show()
 
     def redraw(self, options=None) -> None:
         """
@@ -244,7 +247,7 @@ class Plot(metaclass=ABCMeta):
 
         self.labels(self.info_parameter)
         self.apply_theme()
-        self.figure.tight_layout()
+        self.figure.tight_layout(pad=2.0)
 
         return None
 
@@ -265,12 +268,59 @@ class Plot(metaclass=ABCMeta):
         self.ax.legend(**legend_options)
         return True
 
+    def parameter_axis_label(self, info_parameter: str) -> str:
+        """
+        Return a parameter label including the reader-reported unit.
+        """
+
+        unit = parameter_unit(self.reader.energies[0], info_parameter)
+        return f"{info_parameter} / {unit}"
+
+    def style_single_plot(
+        self,
+        *,
+        title: str,
+        xlabel: str,
+        ylabel: str,
+    ) -> None:
+        """
+        Apply shared single-plot labels and framing.
+        """
+
+        self.set_window_title(title)
+        self.ax.set_title(title, loc="left", pad=10)
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+        self.ax.ticklabel_format(axis="both", style="sci")
+        self.ax.margins(x=0.02, y=0.08)
+
+    def annotation_box(self):
+        """
+        Return a themed rounded label box for latest-value annotations.
+        """
+
+        return dict(
+            boxstyle="round,pad=0.22",
+            facecolor=self.palette["annotation.facecolor"],
+            edgecolor=self.palette["annotation.edgecolor"],
+            alpha=0.88,
+        )
+
+    def set_window_title(self, title: str) -> None:
+        """
+        Name the native matplotlib window when the backend supports it.
+        """
+
+        manager = getattr(self.figure.canvas, "manager", None)
+        if manager is not None and hasattr(manager, "set_window_title"):
+            manager.set_window_title(f"PQEnalyzer - {title}")
+
     def apply_theme(self) -> None:
         """
         Apply the active application appearance mode to this plot.
         """
 
-        apply_figure_theme(
+        self.palette = apply_figure_theme(
             self.figure,
             self.ax,
             getattr(self.app, "appearance_mode", None),

@@ -29,6 +29,7 @@ def test_apply_figure_theme_updates_existing_plot_elements():
         axes.plot([1, 2], [3, 4], label="data")
         axes.set_xlabel("Simulation step")
         axes.set_ylabel("Energy")
+        axes.set_title("Energy trace", loc="left")
         axes.text(
             2,
             4,
@@ -43,6 +44,8 @@ def test_apply_figure_theme_updates_existing_plot_elements():
         assert axes.get_facecolor() == to_rgba(palette["axes.facecolor"])
         assert axes.xaxis.label.get_color() == palette["axes.labelcolor"]
         assert axes.yaxis.label.get_color() == palette["axes.labelcolor"]
+        assert axes.get_title(loc="left") == "Energy trace"
+        assert axes._left_title.get_color() == palette["text.color"]
         assert axes.get_legend().get_texts()[0].get_color() == palette[
             "text.color"]
         assert axes.texts[0].get_color() == palette["text.color"]

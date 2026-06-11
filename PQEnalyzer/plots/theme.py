@@ -130,7 +130,13 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
     axes.tick_params(colors=palette["tick.color"])
     axes.xaxis.label.set_color(palette["axes.labelcolor"])
     axes.yaxis.label.set_color(palette["axes.labelcolor"])
-    axes.title.set_color(palette["text.color"])
+    for title in (
+        axes.title,
+        getattr(axes, "_left_title", None),
+        getattr(axes, "_right_title", None),
+    ):
+        if title is not None:
+            title.set_color(palette["text.color"])
 
     for spine in axes.spines.values():
         spine.set_color(palette["axes.edgecolor"])

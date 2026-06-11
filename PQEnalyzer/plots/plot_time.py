@@ -6,7 +6,6 @@ from ..statistics import Statistic
 from ..energy_access import (
     concatenate_series,
     difference_series,
-    parameter_unit,
     series,
 )
 from .._logging import get_logger
@@ -68,6 +67,7 @@ class PlotTime(Plot):
                 label=labels[i],
                 linewidth=1.6,
                 alpha=0.92,
+                zorder=2,
             )
             self.add_value_label(energy_series.time, energy_series.values)
 
@@ -85,19 +85,10 @@ class PlotTime(Plot):
         None
         """
 
-        self.ax.set_xlabel("Simulation step")
-        self.ax.set_title(
-            f"{info_parameter} / "
-            f"{parameter_unit(self.reader.energies[0], info_parameter)}",
-            loc="left",
-            pad=10,
-        )
-
-        self.ax.ticklabel_format(axis="both", style="sci")
-
-        self.ax.set_ylabel(
-            f"{info_parameter} / "
-            f"{parameter_unit(self.reader.energies[0], info_parameter)}"
+        self.style_single_plot(
+            title=f"{info_parameter} time series",
+            xlabel="Simulation step",
+            ylabel=self.parameter_axis_label(info_parameter),
         )
 
         if not self.show_legend(loc="best"):
@@ -133,6 +124,7 @@ class PlotTime(Plot):
                     linestyle="-",
                     linewidth=1.9,
                     alpha=0.95,
+                    zorder=4,
                 )
                 self.add_value_label(delta_series.time, delta_series.values)
 
@@ -152,6 +144,7 @@ class PlotTime(Plot):
                 linestyle="--",
                 linewidth=1.15,
                 alpha=0.85,
+                zorder=3,
             )
 
             self.add_value_label(x, y)
@@ -167,6 +160,7 @@ class PlotTime(Plot):
                 linestyle=":",
                 linewidth=1.35,
                 alpha=0.9,
+                zorder=3,
             )
 
             self.add_value_label(x, y)
@@ -182,6 +176,7 @@ class PlotTime(Plot):
                 linestyle="-.",
                 linewidth=1.45,
                 alpha=0.9,
+                zorder=3,
             )
 
             self.add_value_label(x, y)
@@ -196,6 +191,7 @@ class PlotTime(Plot):
                 linestyle=(0, (2, 2)),
                 linewidth=1.45,
                 alpha=0.9,
+                zorder=3,
             )
 
             self.add_value_label(x, y)
@@ -220,6 +216,7 @@ class PlotTime(Plot):
                 linestyle="-",
                 linewidth=2.0,
                 alpha=0.95,
+                zorder=4,
             )
 
             self.add_value_label(x, y)
@@ -265,10 +262,8 @@ class PlotTime(Plot):
             fontsize=8,
             horizontalalignment="left",
             verticalalignment="center",
-            bbox=dict(boxstyle="round,pad=0.2",
-                      facecolor="white",
-                      alpha=0.55,
-                      edgecolor="white"),
+            bbox=self.annotation_box(),
+            zorder=5,
         )
 
         return None

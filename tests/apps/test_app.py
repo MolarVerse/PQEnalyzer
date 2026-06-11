@@ -103,14 +103,18 @@ def reset_dummy_plots():
     DummyPlot.instances = []
 
 
-def make_app(follow=False, interval=""):
+def make_app(auto_refresh=True):
     app = object.__new__(app_module.App)
-    app.follow = FakeFlag(follow)
-    app.interval = FakeEntry(interval)
+    app.auto_refresh = FakeFlag(auto_refresh)
+    app.reader = SimpleNamespace(filenames=["/tmp/md.en"])
     app.list_of_plots = []
     app.selected_plot = None
     app._App__syncing_plot_controls = False
+    app._App__file_watcher = None
+    app._App__auto_refresh_after_id = None
     app._App__selected_info = "TEMPERATURE"
+    app.after = lambda delay, callback: "after-id"
+    app.after_cancel = lambda after_id: None
     return app
 
 
@@ -262,10 +266,18 @@ def test_plot_controls_view_exposes_dashboard_button(monkeypatch):
     monkeypatch.setattr(app_layout.tkinter, "BooleanVar",
                         lambda: FakeFlag(False))
 
-    view = app_layout.PlotControlsView(app, lambda event: event, lambda: None)
+    view = app_layout.PlotControlsView(
+        app,
+        lambda event: event,
+        lambda: None,
+    )
 
     assert app.button_dashboard is view.dashboard_button
-    assert app.button_dashboard.kwargs["text"] == "Dashboard"
+    assert app.button_dashboard.kwargs["text"] == "Live Monitor"
+    assert app.check_auto_refresh is view.auto_refresh_checkbox
+    assert app.check_auto_refresh.kwargs["text"] == "Auto-Refresh"
+    assert app.auto_refresh.value is True
+    assert not hasattr(app, "button_refresh")
 
 
 def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
@@ -369,29 +381,18 @@ def test_statistics_control_callback_runs_after_difference_default(
     assert calls == ["run"]
 
 
-def test_plot_button_rejects_invalid_follow_interval(monkeypatch, caplog):
-    app = make_app(follow=True, interval="0")
-    monkeypatch.setattr(app_module, "PlotTime", DummyPlot)
-
-    app_module.App._App__plot_button_event(app, 0)
-
-    assert app.list_of_plots == []
-    assert DummyPlot.instances == []
-    assert "Interval must be greater than zero" in caplog.text
-
-
-def test_plot_button_passes_valid_follow_interval(monkeypatch):
-    app = make_app(follow=True, interval="2.5")
+def test_plot_button_runs_simple_time_plot_with_auto_refresh(monkeypatch):
+    app = make_app(auto_refresh=True)
     monkeypatch.setattr(app_module, "PlotTime", DummyPlot)
 
     app_module.App._App__plot_button_event(app, 0)
 
     assert app.list_of_plots == DummyPlot.instances
-    assert DummyPlot.instances[0].calls == [("follow", "TEMPERATURE", 2.5)]
+    assert DummyPlot.instances[0].calls == [("simple", "TEMPERATURE")]
 
 
 def test_plot_button_runs_simple_histogram(monkeypatch):
-    app = make_app(follow=False)
+    app = make_app(auto_refresh=False)
     monkeypatch.setattr(app_module, "PlotHistogram", DummyPlot)
 
     app_module.App._App__plot_button_event(app, 1)
@@ -401,7 +402,7 @@ def test_plot_button_runs_simple_histogram(monkeypatch):
 
 
 def test_plot_button_runs_dashboard(monkeypatch):
-    app = make_app(follow=False)
+    app = make_app(auto_refresh=False)
     monkeypatch.setattr(app_module, "PlotDashboard", DummyPlot)
 
     app_module.App._App__plot_button_event(app, 2)
@@ -539,8 +540,9 @@ def test_refresh_applies_controls_to_selected_plot(monkeypatch):
             self.options = PlotOptions()
             self.refreshed = False
 
-        def refresh(self):
+        def refresh(self, show=True):
             self.refreshed = True
+            self.show = show
 
     plot = SelectedPlot()
     app.selected_plot = plot
@@ -550,8 +552,106 @@ def test_refresh_applies_controls_to_selected_plot(monkeypatch):
     app_module.App._App__refresh_plots(app)
 
     assert plot.refreshed is True
+    assert plot.show is True
     assert plot.options.running_average is True
     assert plot.options.window_size == "15"
+
+
+def test_auto_refresh_control_starts_and_stops_file_watcher(monkeypatch):
+    app = make_app(auto_refresh=True)
+    status = FakeWidget()
+    app.auto_refresh_status_label = status
+    created_watchers = []
+
+    class FakeWatcher:
+
+        def __init__(self, filenames, callback):
+            self.filenames = filenames
+            self.callback = callback
+            self.started = False
+            self.stopped = False
+            created_watchers.append(self)
+
+        def start(self):
+            self.started = True
+            return True
+
+        def stop(self):
+            self.stopped = True
+
+    monkeypatch.setattr(app_module, "FileChangeWatcher", FakeWatcher)
+
+    app_module.App._App__auto_refresh_control_event(app)
+
+    assert created_watchers[0].filenames == ["/tmp/md.en"]
+    assert created_watchers[0].started is True
+    assert status.configure_kwargs["text"] == "Watching for file changes"
+
+    app.auto_refresh.set(False)
+    app_module.App._App__auto_refresh_control_event(app)
+
+    assert created_watchers[0].stopped is True
+    assert app._App__file_watcher is None
+    assert status.configure_kwargs["text"] == "Auto-refresh paused"
+
+
+def test_auto_refresh_control_disables_toggle_when_watcher_unavailable(
+        monkeypatch):
+    app = make_app(auto_refresh=True)
+    status = FakeWidget()
+    app.auto_refresh_status_label = status
+
+    class FakeWatcher:
+
+        def __init__(self, filenames, callback):
+            pass
+
+        def start(self):
+            return False
+
+    monkeypatch.setattr(app_module, "FileChangeWatcher", FakeWatcher)
+
+    app_module.App._App__auto_refresh_control_event(app)
+
+    assert app.auto_refresh.value is False
+    assert status.configure_kwargs["text"] == "Auto-refresh unavailable"
+
+
+def test_auto_refresh_debounces_file_events():
+    app = make_app(auto_refresh=True)
+    calls = []
+
+    app._App__auto_refresh_after_id = "old"
+    app.after_cancel = lambda after_id: calls.append(("cancel", after_id))
+    app.after = lambda delay, callback: calls.append(
+        ("after", delay, callback.__name__)) or "new"
+
+    app_module.App._App__schedule_auto_refresh(app)
+
+    assert app._App__auto_refresh_after_id == "new"
+    assert calls == [
+        ("cancel", "old"),
+        ("after", 250, "__auto_refresh_plots"),
+    ]
+
+
+def test_auto_refresh_redraws_open_plots_without_show(monkeypatch):
+    app = make_app(auto_refresh=True)
+    calls = []
+
+    class OpenPlot:
+        figure = SimpleNamespace(number=1)
+
+        def refresh(self, show=True):
+            calls.append(show)
+
+    app.list_of_plots = [OpenPlot()]
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App._App__auto_refresh_plots(app)
+
+    assert app._App__auto_refresh_after_id is None
+    assert calls == [False]
 
 
 def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):
