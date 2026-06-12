@@ -6,7 +6,6 @@ import pytest
 
 from PQEnalyzer.apps import app as app_module
 from PQEnalyzer.apps import app_layout
-from PQEnalyzer.apps import termapp as termapp_module
 from PQEnalyzer.plots.options import PlotOptions
 
 
@@ -127,8 +126,12 @@ def test_apps_package_does_not_import_gui_module_for_terminal_app():
 
     apps = importlib.import_module("PQEnalyzer.apps")
 
-    assert apps.TermApp.__name__ == "TermApp"
+    assert apps.TuiApp.__name__ == "TuiApp"
     assert "PQEnalyzer.apps.app" not in sys.modules
+
+
+def test_gui_icon_path_resolves_from_layout_module():
+    assert app_layout.ICON_PATH.is_file()
 
 
 @pytest.mark.parametrize(
@@ -652,110 +655,3 @@ def test_auto_refresh_redraws_open_plots_without_show(monkeypatch):
 
     assert app._App__auto_refresh_after_id is None
     assert calls == [False]
-
-
-def test_terminal_app_passes_difference_choice_for_two_files(monkeypatch):
-    calls = []
-    reader = SimpleNamespace(
-        filenames=["first.en", "second.en"],
-        energies=[
-            SimpleNamespace(info={"SIMULATION-TIME": "TIME",
-                                  "PARAMETER": "PARAMETER"}),
-            SimpleNamespace(info={"SIMULATION-TIME": "TIME",
-                                  "PARAMETER": "PARAMETER"}),
-        ],
-    )
-
-    class FakePrompt:
-
-        def __init__(self, result):
-            self.result = result
-
-        def execute(self):
-            return self.result
-
-    class FakeTermPlot:
-
-        def __init__(self, plot_reader):
-            self.reader = plot_reader
-
-        def plot(self, info_parameter, difference=False):
-            calls.append((self.reader, info_parameter, difference))
-
-    monkeypatch.setattr(termapp_module.inquirer, "select",
-                        lambda **kwargs: FakePrompt("PARAMETER"))
-    monkeypatch.setattr(termapp_module.inquirer, "confirm",
-                        lambda **kwargs: FakePrompt(True))
-    monkeypatch.setattr(termapp_module, "TermPlot", FakeTermPlot)
-
-    termapp_module.TermApp(reader).run()
-
-    assert calls == [(reader, "PARAMETER", True)]
-
-
-def test_terminal_app_plots_selected_parameter_without_prompt(monkeypatch):
-    calls = []
-    reader = SimpleNamespace(
-        filenames=["run.en"],
-        energies=[
-            SimpleNamespace(
-                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
-                units={"PARAMETER": "unit"},
-                data={"PARAMETER": [1, 2, 3]},
-                simulation_time=[1, 2, 3],
-            )
-        ],
-    )
-
-    class FakeTermPlot:
-
-        def __init__(self, plot_reader):
-            self.reader = plot_reader
-
-        def plot(self, info_parameter, difference=False):
-            calls.append((self.reader, info_parameter, difference))
-
-    monkeypatch.setattr(termapp_module, "TermPlot", FakeTermPlot)
-
-    termapp_module.TermApp(reader).plot("parameter", difference=False)
-
-    assert calls == [(reader, "PARAMETER", False)]
-
-
-def test_terminal_app_summary_lists_files_rows_and_units():
-    reader = SimpleNamespace(
-        filenames=["run.en"],
-        energies=[
-            SimpleNamespace(
-                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
-                units={"PARAMETER": "unit"},
-                data={"PARAMETER": [1, 2, 3]},
-                simulation_time=[1, 2, 3],
-            )
-        ],
-    )
-
-    summary = termapp_module.TermApp(reader).summary()
-
-    assert "PQEnalyzer input summary" in summary
-    assert "Files: 1" in summary
-    assert "  run.en: 3 rows" in summary
-    assert "Parameters: 1" in summary
-    assert "  PARAMETER [unit]" in summary
-
-
-def test_terminal_app_rejects_unknown_parameter():
-    reader = SimpleNamespace(
-        filenames=["run.en"],
-        energies=[
-            SimpleNamespace(
-                info={"SIMULATION-TIME": "TIME", "PARAMETER": "PARAMETER"},
-                units={"PARAMETER": "unit"},
-                data={"PARAMETER": [1, 2, 3]},
-                simulation_time=[1, 2, 3],
-            )
-        ],
-    )
-
-    with pytest.raises(ValueError, match="Unknown parameter: missing"):
-        termapp_module.TermApp(reader).plot("missing")

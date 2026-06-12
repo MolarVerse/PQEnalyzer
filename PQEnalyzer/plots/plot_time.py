@@ -2,13 +2,9 @@
 Time-series plotting for PQ energy parameters.
 """
 
-from ..statistics import Statistic
-from ..energy_access import (
-    concatenate_series,
-    difference_series,
-    series,
-)
+from ..energy_access import series
 from .._logging import get_logger
+from .features import iter_time_series_overlays
 from .labels import unique_path_labels
 from .plot import Plot
 
@@ -110,133 +106,23 @@ class PlotTime(Plot):
         None
         """
 
-        if self.difference:
-            try:
-                delta_series = difference_series(
-                    self.reader.energies, info_parameter)
-            except ValueError as error:
-                logger.warning("%s", error)
-            else:
+        try:
+            for overlay in iter_time_series_overlays(
+                self.reader.energies,
+                info_parameter,
+                self.options,
+            ):
                 self.ax.plot(
-                    delta_series.time,
-                    delta_series.values,
-                    label="Difference (1 - 2)",
-                    linestyle="-",
-                    linewidth=1.9,
-                    alpha=0.95,
-                    zorder=4,
+                    overlay.time,
+                    overlay.values,
+                    label=overlay.label,
+                    **overlay.feature.matplotlib_style,
                 )
-                self.add_value_label(delta_series.time, delta_series.values)
-
-            return None
-
-        energy_series = concatenate_series(self.reader.energies,
-                                           info_parameter)
-
-        if self.mean:
-            # calculate mean and plot
-            x, y = Statistic.mean_values(energy_series.time,
-                                         energy_series.values)
-            self.ax.plot(
-                x,
-                y,
-                label="Mean",
-                linestyle="--",
-                linewidth=1.15,
-                alpha=0.85,
-                zorder=3,
-            )
-
-            self.add_value_label(x, y)
-
-        if self.median:
-            # calculate median and plot
-            x, y = Statistic.median_values(energy_series.time,
-                                           energy_series.values)
-            self.ax.plot(
-                x,
-                y,
-                label="Median",
-                linestyle=":",
-                linewidth=1.35,
-                alpha=0.9,
-                zorder=3,
-            )
-
-            self.add_value_label(x, y)
-
-        if self.cummulative_average:
-            # calculate cumulative average and plot
-            x, y = Statistic.cumulative_average_values(
-                energy_series.time, energy_series.values)
-            self.ax.plot(
-                x,
-                y,
-                label="Cumulative Average",
-                linestyle="-.",
-                linewidth=1.45,
-                alpha=0.9,
-                zorder=3,
-            )
-
-            self.add_value_label(x, y)
-
-        if self.self_correlation_mean:
-            x, y = Statistic.self_correlation_mean_values(
-                energy_series.time, energy_series.values)
-            self.ax.plot(
-                x,
-                y,
-                label="Self-Correlation Mean",
-                linestyle=(0, (2, 2)),
-                linewidth=1.45,
-                alpha=0.9,
-                zorder=3,
-            )
-
-            self.add_value_label(x, y)
-
-        if self.running_average:
-            # calculate running average and plot
-            try:
-                window_size_int = self.__parse_window_size(self.window_size)
-                x, y = Statistic.running_average_values(
-                    energy_series.time,
-                    energy_series.values,
-                    window_size_int,
-                )
-            except ValueError as error:
-                logger.warning("%s", error)
-                return None
-
-            self.ax.plot(
-                x,
-                y,
-                label="Running Average (" + str(window_size_int) + ")",
-                linestyle="-",
-                linewidth=2.0,
-                alpha=0.95,
-                zorder=4,
-            )
-
-            self.add_value_label(x, y)
+                self.add_value_label(overlay.time, overlay.values)
+        except ValueError as error:
+            logger.warning("%s", error)
 
         return None
-
-    def __parse_window_size(self, window_size):
-        """
-        Parse the running-average window size from a GUI entry string.
-        """
-        stripped_window_size = window_size.strip()
-
-        if stripped_window_size in {"", "."}:
-            return 1000
-
-        parsed_window_size = int(float(stripped_window_size))
-        if parsed_window_size < 1:
-            raise ValueError("Window size must be positive")
-
-        return parsed_window_size
 
     def add_value_label(self, x, y) -> None:
         """

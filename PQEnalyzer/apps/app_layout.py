@@ -7,13 +7,14 @@ keeps ``App`` as the coordinator while making layout sections independently
 testable.
 """
 
-import os
 import tkinter
+from pathlib import Path
 
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
-from .. import __base__
+ICON_PATH = Path(__file__).resolve().parents[1] / "icons" / "icon.png"
+from ..plots.features import STATISTIC_FEATURES, TIME_SERIES_FEATURES
 
 
 def configure_default_theme():
@@ -35,7 +36,7 @@ def configure_window(app):
 
     app.title("PQEnalyzer - MolarVerse")
 
-    image = Image.open(os.path.join(__base__, "icons", "icon.png"))
+    image = Image.open(ICON_PATH)
     app.iconphoto(False, ImageTk.PhotoImage(image))
 
     app.resizable(False, False)
@@ -63,7 +64,7 @@ class SidebarView:
         self.frame.grid_columnconfigure(0, weight=1)
 
         self.logo = ctk.CTkImage(
-            Image.open(os.path.join(__base__, "icons", "icon.png")),
+            Image.open(ICON_PATH),
             size=(100, 100),
         )
         self.image_label = ctk.CTkLabel(self.frame,
@@ -300,7 +301,10 @@ class StatisticsControlsView:
                                     sticky="nsew",
                                     padx=0,
                                     pady=0)
-        self.time_series_frame.grid_rowconfigure(7, weight=1)
+        self.time_series_frame.grid_rowconfigure(
+            len(TIME_SERIES_FEATURES) + 4,
+            weight=1,
+        )
         self.time_series_frame.grid_columnconfigure(0, weight=1)
 
         self.label = ctk.CTkLabel(
@@ -309,18 +313,13 @@ class StatisticsControlsView:
             font=ctk.CTkFont(size=15, weight="bold"),
         )
         self.label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.mean = ctk.CTkCheckBox(
-            self.statistics_frame,
-            text="Mean",
-            command=statistics_changed_callback,
-        )
-        self.mean.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.median = ctk.CTkCheckBox(
-            self.statistics_frame,
-            text="Median",
-            command=statistics_changed_callback,
-        )
-        self.median.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.feature_controls = {}
+        for row, feature in enumerate(STATISTIC_FEATURES, start=1):
+            self.__create_feature_control(
+                self.statistics_frame,
+                feature,
+                row,
+            )
 
         self.time_series_label = ctk.CTkLabel(
             self.time_series_frame,
@@ -332,53 +331,18 @@ class StatisticsControlsView:
                                     padx=10,
                                     pady=5,
                                     sticky="w")
-        self.cumulative_average = ctk.CTkCheckBox(
-            self.time_series_frame,
-            text="Cumulative Average",
-            command=statistics_changed_callback,
-        )
-        self.cumulative_average.grid(row=1,
-                                     column=0,
-                                     padx=10,
-                                     pady=5,
-                                     sticky="w")
-        self.self_correlation_mean = ctk.CTkCheckBox(
-            self.time_series_frame,
-            text="Self-Correlation Mean",
-            command=statistics_changed_callback,
-        )
-        self.self_correlation_mean.grid(row=2,
-                                           column=0,
-                                           padx=10,
-                                           pady=5,
-                                           sticky="w")
-
-        self.difference = ctk.CTkCheckBox(
-            self.time_series_frame,
-            text="Difference (1 - 2)",
-            command=self.__difference_command,
-        )
-        self.difference.grid(row=3,
-                             column=0,
-                             padx=10,
-                             pady=5,
-                             sticky="w")
+        for row, feature in enumerate(TIME_SERIES_FEATURES, start=1):
+            self.__create_feature_control(
+                self.time_series_frame,
+                feature,
+                row,
+            )
 
         self.window_size = None
-        self.running_average = ctk.CTkCheckBox(
-            self.time_series_frame,
-            text="Running Average",
-            command=self.__running_average_command,
-        )
-        self.running_average.grid(row=4,
-                                  column=0,
-                                  padx=10,
-                                  pady=5,
-                                  sticky="w")
         self.window_size_label = ctk.CTkLabel(self.time_series_frame,
                                               text="Window Size:",
                                               anchor="w")
-        self.window_size_label.grid(row=5,
+        self.window_size_label.grid(row=len(TIME_SERIES_FEATURES) + 1,
                                     column=0,
                                     padx=10,
                                     pady=5,
@@ -389,7 +353,7 @@ class StatisticsControlsView:
             validate="key",
             validatecommand=(app.register(app.validate_number), "%P"),
         )
-        self.window_size.grid(row=6,
+        self.window_size.grid(row=len(TIME_SERIES_FEATURES) + 2,
                               column=0,
                               padx=10,
                               pady=5,
@@ -401,41 +365,56 @@ class StatisticsControlsView:
         app.time_series_frame = self.time_series_frame
         app.settings_label = self.label
         app.time_series_label = self.time_series_label
-        app.mean = self.mean
-        app.median = self.median
-        app.cummulative_average = self.cumulative_average
-        app.self_correlation_mean = self.self_correlation_mean
-        app.difference = self.difference
-        app.running_average = self.running_average
         app.running_average_window_size_label = self.window_size_label
         app.window_size = self.window_size
 
-    def __enable_no_data_for_difference(self):
+    def __create_feature_control(self, frame, feature, row):
+        """
+        Create one registry-backed checkbox and expose it on the app.
+        """
+
+        control = ctk.CTkCheckBox(
+            frame,
+            text=feature.label,
+            command=self.__feature_command(feature),
+        )
+        control.grid(row=row, column=0, padx=10, pady=5, sticky="w")
+
+        setattr(self, feature.gui_attribute, control)
+        setattr(self.app, feature.option_attribute, control)
+        self.feature_controls[feature.key] = control
+
+    def __enable_no_data_for_difference(self, feature):
         """
         Hide raw series by default when plotting a derived difference.
         """
 
-        if self.difference.get():
+        if feature.key == "difference" and self.difference.get():
             self.app.plot_main_data.set(True)
 
-    def __difference_command(self):
+    def __toggle_running_average_entry(self, feature):
         """
-        Apply difference-specific defaults and notify the app.
+        Toggle the running-average window entry for the running-average feature.
         """
 
-        self.__enable_no_data_for_difference()
-        if self.statistics_changed_callback is not None:
-            self.statistics_changed_callback()
-
-    def __running_average_command(self):
-        """
-        Toggle the window entry and notify the app.
-        """
+        if feature.key != "running_average":
+            return
 
         self.app.toggle_entry_state(
             self.running_average,
             self.window_size,
             default="10",
         )
-        if self.statistics_changed_callback is not None:
-            self.statistics_changed_callback()
+
+    def __feature_command(self, feature):
+        """
+        Return the GUI command for a registry-backed feature control.
+        """
+
+        def command():
+            self.__enable_no_data_for_difference(feature)
+            self.__toggle_running_average_entry(feature)
+            if self.statistics_changed_callback is not None:
+                self.statistics_changed_callback()
+
+        return command

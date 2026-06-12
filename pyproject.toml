@@ -24,13 +24,12 @@ dependencies = [
     "beartype",
     "customtkinter",
     "matplotlib",
-    "argcomplete",
     "numpy",
     "tk",
     "Pillow",
     "scipy",
     "plotext",
-    "InquirerPy",
+    "textual>=0.86,<9",
     "watchdog",
 ]
 

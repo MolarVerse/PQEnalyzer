@@ -1,8 +1,8 @@
 """
-This module includes the App class that is used to run the application.
+Application frontends for PQEnalyzer.
 """
 
-__all__ = ["App", "TermApp"]
+__all__ = ["App", "TuiApp"]
 
 
 def __getattr__(name):
@@ -11,9 +11,9 @@ def __getattr__(name):
 
         return App
 
-    if name == "TermApp":
-        from .termapp import TermApp
+    if name == "TuiApp":
+        from .tui import TuiApp
 
-        return TermApp
+        return TuiApp
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
