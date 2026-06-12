@@ -4,9 +4,9 @@ Histogram/KDE plotting for PQ energy parameters.
 from scipy.stats import gaussian_kde
 import numpy as np
 
-from ..statistics import Statistic
-from ..energy_access import concatenate_series, parameter_values
+from ..energy_access import parameter_values
 from .._logging import get_logger
+from .features import iter_histogram_guides
 from .labels import unique_path_labels
 from .plot import Plot
 
@@ -139,33 +139,18 @@ class PlotHistogram(Plot):
         None
         """
 
-        energy_series = concatenate_series(self.reader.energies,
-                                           info_parameter)
-
-        if self.mean:
-            # calculate mean and plot
-            _, y = Statistic.mean_values(energy_series.time,
-                                         energy_series.values)
+        for guide in iter_histogram_guides(
+            self.reader.energies,
+            info_parameter,
+            self.options,
+        ):
+            style = guide.feature.matplotlib_style.copy()
+            style["linewidth"] = max(style["linewidth"], 1.35)
+            style["zorder"] = 4
             self.ax.axvline(
-                float(y[0]),
-                label="Mean",
-                linestyle="--",
-                linewidth=1.35,
-                alpha=0.9,
-                zorder=4,
-            )
-
-        if self.median:
-            # calculate median and plot
-            _, y = Statistic.median_values(energy_series.time,
-                                           energy_series.values)
-            self.ax.axvline(
-                float(y[0]),
-                label="Median",
-                linestyle=":",
-                linewidth=1.6,
-                alpha=0.95,
-                zorder=4,
+                guide.value,
+                label=guide.label,
+                **style,
             )
 
         return None

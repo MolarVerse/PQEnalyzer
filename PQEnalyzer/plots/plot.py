@@ -8,6 +8,7 @@ import matplotlib.animation as animation
 
 from ..energy_access import parameter_unit
 from .._logging import get_logger
+from .features import PLOT_FEATURES
 from .options import PlotOptions
 from .theme import apply_figure_theme, apply_matplotlib_theme
 
@@ -102,12 +103,12 @@ class Plot(metaclass=ABCMeta):
         None
         """
 
-        self.mean = self.options.mean
-        self.median = self.options.median
-        self.cummulative_average = self.options.cummulative_average
-        self.self_correlation_mean = self.options.self_correlation_mean
-        self.difference = self.options.difference
-        self.running_average = self.options.running_average
+        for feature in PLOT_FEATURES:
+            setattr(
+                self,
+                feature.option_attribute,
+                getattr(self.options, feature.option_attribute),
+            )
         self.window_size = self.options.window_size
 
         self.plot_main = self.options.plot_main

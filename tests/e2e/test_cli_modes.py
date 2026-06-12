@@ -60,13 +60,31 @@ def _terminate_process(process):
         process.wait(timeout=5)
 
 
+def _wait_for_exit(process, fd, *, timeout):
+    deadline = time.monotonic() + timeout
+
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            return
+
+        remaining = deadline - time.monotonic()
+        readable, _, _ = select.select([fd], [], [], min(0.1, remaining))
+        if fd in readable:
+            try:
+                os.read(fd, 8192)
+            except OSError:
+                break
+
+    process.wait(timeout=0)
+
+
 @pytest.mark.e2e
 def test_gui_mode_starts_and_can_be_terminated():
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         pytest.skip("GUI e2e test requires a display; run with xvfb-run.")
 
     process = subprocess.Popen(
-        [sys.executable, "-m", "PQEnalyzer", str(EXAMPLE_FILE)],
+        [sys.executable, "-m", "PQEnalyzer", "gui", str(EXAMPLE_FILE)],
         cwd=PROJECT_ROOT,
         env=_subprocess_environment(),
         stdout=subprocess.PIPE,
@@ -98,6 +116,7 @@ def test_gui_mode_starts_with_box_file_and_can_be_terminated():
             sys.executable,
             "-m",
             "PQEnalyzer",
+            "gui",
             str(BOX_EXAMPLE_FILE),
         ],
         cwd=PROJECT_ROOT,
@@ -122,10 +141,16 @@ def test_gui_mode_starts_with_box_file_and_can_be_terminated():
 
 
 @pytest.mark.e2e
-def test_no_gui_mode_renders_terminal_plot_and_exits():
+def test_tui_mode_opens_dashboard_and_chart_views():
     master_fd, slave_fd = os.openpty()
     process = subprocess.Popen(
-        [sys.executable, "-m", "PQEnalyzer", "--no-gui", str(EXAMPLE_FILE)],
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "tui",
+            str(EXAMPLE_FILE),
+        ],
         cwd=PROJECT_ROOT,
         env=_subprocess_environment(),
         stdin=slave_fd,
@@ -136,19 +161,25 @@ def test_no_gui_mode_renders_terminal_plot_and_exits():
     os.close(slave_fd)
 
     try:
-        _read_until(master_fd,
-                    b"Select the information parameter to plot",
-                    timeout=10)
+        dashboard_output = _read_until(master_fd,
+                                       b"TEMPERATURE",
+                                       timeout=10)
+        assert b"Rows" in dashboard_output
+
         os.write(master_fd, b"\r")
+        chart_output = _read_until(master_fd,
+                                   b"Simulation Time",
+                                   timeout=10)
+        assert b"TEMPERATURE / K" in chart_output
 
-        plot_output = _read_until(master_fd,
-                                  b"Do you want to exit?",
-                                  timeout=10)
-        assert b"TEMPERATURE / K" in plot_output
-        assert b"Simulation Time" in plot_output
+        os.write(master_fd, b"\x1b")
+        dashboard_output = _read_until(master_fd,
+                                       b"Parameter",
+                                       timeout=10)
+        assert b"TEMPERATURE" in dashboard_output
 
-        os.write(master_fd, b"y\r")
-        process.wait(timeout=10)
+        os.write(master_fd, b"q")
+        _wait_for_exit(process, master_fd, timeout=10)
 
         assert process.returncode == 0
     finally:
@@ -157,14 +188,14 @@ def test_no_gui_mode_renders_terminal_plot_and_exits():
 
 
 @pytest.mark.e2e
-def test_no_gui_mode_renders_box_plot_and_exits():
+def test_tui_mode_starts_with_box_file_and_can_be_quit():
     master_fd, slave_fd = os.openpty()
     process = subprocess.Popen(
         [
             sys.executable,
             "-m",
             "PQEnalyzer",
-            "--no-gui",
+            "tui",
             str(BOX_EXAMPLE_FILE),
         ],
         cwd=PROJECT_ROOT,
@@ -177,19 +208,13 @@ def test_no_gui_mode_renders_box_plot_and_exits():
     os.close(slave_fd)
 
     try:
-        _read_until(master_fd,
-                    b"Select the information parameter to plot",
-                    timeout=10)
-        os.write(master_fd, b"\r")
+        dashboard_output = _read_until(master_fd,
+                                       b"BOX-VOLUME",
+                                       timeout=10)
+        assert b"BOX-X" in dashboard_output
 
-        plot_output = _read_until(master_fd,
-                                  b"Do you want to exit?",
-                                  timeout=10)
-        assert b"BOX-X / A" in plot_output
-        assert b"Simulation Time" in plot_output
-
-        os.write(master_fd, b"y\r")
-        process.wait(timeout=10)
+        os.write(master_fd, b"q")
+        _wait_for_exit(process, master_fd, timeout=10)
 
         assert process.returncode == 0
     finally:

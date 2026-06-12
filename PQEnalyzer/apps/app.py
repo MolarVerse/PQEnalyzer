@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from .._logging import get_logger
 from ..plots import PlotDashboard, PlotTime, PlotHistogram
+from ..plots.features import PLOT_FEATURES
 from ..plots.options import PlotOptions
 from ..plots.theme import apply_matplotlib_theme, resolve_appearance_mode
 from .file_watcher import FileChangeWatcher
@@ -362,19 +363,11 @@ class App(ctk.CTk):
 
         self.__syncing_plot_controls = True
         try:
-            self.__set_checkbox(self.mean, options.mean)
-            self.__set_checkbox(self.median, options.median)
-            self.__set_checkbox(
-                self.cummulative_average,
-                options.cummulative_average,
-            )
-            self.__set_checkbox(
-                self.self_correlation_mean,
-                options.self_correlation_mean,
-            )
-            self.__set_checkbox(self.difference, options.difference)
-            self.__set_checkbox(self.running_average,
-                                options.running_average)
+            for feature in PLOT_FEATURES:
+                self.__set_checkbox(
+                    getattr(self, feature.option_attribute),
+                    getattr(options, feature.option_attribute),
+                )
             self.__set_checkbox(self.plot_main_data, options.plot_main)
             self.__set_entry(self.window_size, options.window_size)
             if options.running_average:
