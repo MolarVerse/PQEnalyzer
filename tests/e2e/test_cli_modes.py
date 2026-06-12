@@ -75,7 +75,10 @@ def _wait_for_exit(process, fd, *, timeout):
             except OSError:
                 break
 
-    process.wait(timeout=0)
+    if process.poll() is not None:
+        return
+
+    process.wait(timeout=1)
 
 
 @pytest.mark.e2e
