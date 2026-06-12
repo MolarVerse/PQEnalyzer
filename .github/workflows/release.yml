@@ -115,7 +115,11 @@ jobs:
         if [ ! -s CHANGELOG.md ]; then
           printf '# Changelog\n\n<!-- insertion marker -->\n' > CHANGELOG.md
         fi
-        git-changelog --sections ci,doc,feat,fix,perf,test -o CHANGELOG.md -c angular --in-place
+        if grep -Fq "releases/tag/$GITHUB_REF_NAME" CHANGELOG.md; then
+          echo "$GITHUB_REF_NAME already exists in CHANGELOG.md."
+        else
+          git-changelog --sections ci,doc,feat,fix,perf,test -o CHANGELOG.md -c angular --in-place
+        fi
 
     - name: Add CHANGELOG.md to commit
       run: |
