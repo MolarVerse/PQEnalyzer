@@ -16,6 +16,7 @@ from .theme import (
     apply_matplotlib_theme,
     palette_for_appearance_mode,
 )
+from .value_readout import ValueReadoutEntry, format_readout_value
 
 
 logger = get_logger(__name__)
@@ -35,6 +36,7 @@ class PlotDashboard:
         self.reader = app.reader
         self.parameters = list(app.info)
         self.axis_parameters = {}
+        self.latest_values = {}
         self.selected_parameter = None
         self.refresh_warning = None
         self.subtitle_text = None
@@ -116,6 +118,7 @@ class PlotDashboard:
             )
 
         self.axis_parameters = {}
+        self.latest_values = {}
         labels = unique_path_labels(self.reader.filenames)
 
         for index, parameter in enumerate(self.parameters):
@@ -130,7 +133,9 @@ class PlotDashboard:
 
         self.__show_legend()
         self.__set_title()
-        self.figure.tight_layout(rect=(0, 0.03, 1, 0.91), h_pad=1.0)
+        self.figure.tight_layout(rect=(0, 0.03, 1, 0.92),
+                                 h_pad=1.0,
+                                 w_pad=1.2)
         self.figure.canvas.draw_idle()
 
     def __plot_parameter(self, ax, parameter, labels):
@@ -140,15 +145,19 @@ class PlotDashboard:
 
         for index, energy in enumerate(self.reader.energies):
             energy_series = series(energy, parameter)
-            ax.plot(
+            line = ax.plot(
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
                 linewidth=1.45,
                 alpha=0.92,
+            )[0]
+            self.__add_latest_value(
+                parameter,
+                labels[index],
+                line,
+                energy_series.values,
             )
-            self.__add_latest_value(ax, energy_series.time,
-                                    energy_series.values)
 
     def __label_axis(self, ax, parameter, index):
         """
@@ -156,7 +165,16 @@ class PlotDashboard:
         """
 
         unit = parameter_unit(self.reader.energies[0], parameter)
+        palette = palette_for_appearance_mode(
+            getattr(self.app, "appearance_mode", None))
         ax.set_title(f"{parameter} / {unit}", fontsize=9, loc="left", pad=6)
+        ax.set_title(
+            self.__latest_value_title(parameter),
+            fontsize=8,
+            loc="right",
+            pad=6,
+            color=palette["subtle.text"],
+        )
         ax.ticklabel_format(axis="both", style="sci")
         ax.tick_params(labelsize=8)
 
@@ -164,27 +182,55 @@ class PlotDashboard:
         if index // ncols == nrows - 1:
             ax.set_xlabel("Simulation step", fontsize=8)
 
-    def __add_latest_value(self, ax, x, y):
+    def __add_latest_value(self, parameter, label, line, values):
         """
-        Add a compact latest-value label to one dashboard line.
+        Store one dashboard line's latest value for the axis title.
         """
 
-        if len(x) == 0 or len(y) == 0:
+        if len(values) == 0:
             return
 
-        ax.annotate(
-            f"{y[-1]:.3e}",
-            xy=(x[-1], y[-1]),
-            xytext=(4, 0),
-            textcoords="offset points",
-            fontsize=6.5,
-            horizontalalignment="left",
-            verticalalignment="center",
-            bbox=dict(boxstyle="round,pad=0.18",
-                      facecolor="white",
-                      alpha=0.5,
-                      edgecolor="white"),
-        )
+        unit = parameter_unit(self.reader.energies[0], parameter)
+        self.latest_values.setdefault(parameter, []).append(
+            ValueReadoutEntry(
+                label=label,
+                value=float(values[-1]),
+                color=line.get_color(),
+                unit=unit,
+            ))
+
+    def __latest_value_title(self, parameter):
+        """
+        Return the compact latest-value text for a dashboard axis.
+        """
+
+        entries = self.latest_values.get(parameter, [])
+        if not entries:
+            return ""
+
+        if len(entries) == 1:
+            return entries[0].formatted_value
+
+        visible_entries = entries[:2]
+        title = self.__multi_value_title(visible_entries)
+        remaining = len(entries) - len(visible_entries)
+        if remaining > 0:
+            title = f"{title} | +{remaining}"
+        return title
+
+    def __multi_value_title(self, entries):
+        """
+        Return compact values for multi-file dashboard headers.
+        """
+
+        units = {entry.unit for entry in entries if entry.unit}
+        if len(units) == 1:
+            unit = entries[0].unit
+            values = " | ".join(
+                format_readout_value(entry.value) for entry in entries)
+            return f"{values} {unit}".rstrip()
+
+        return " | ".join(entry.formatted_value for entry in entries)
 
     def __show_legend(self):
         """
@@ -198,7 +244,7 @@ class PlotDashboard:
                     handles,
                     labels,
                     loc="upper right",
-                    bbox_to_anchor=(0.995, 0.995),
+                    bbox_to_anchor=(0.995, 0.985),
                     ncol=min(4, len(labels)),
                     fontsize="small",
                     frameon=True,
@@ -313,7 +359,7 @@ class PlotDashboard:
         self.figure.suptitle(
             "Simulation Monitor",
             x=0.012,
-            y=0.995,
+            y=0.985,
             ha="left",
             va="top",
             fontsize=14,
@@ -323,7 +369,7 @@ class PlotDashboard:
         if self.subtitle_text is None:
             self.subtitle_text = self.figure.text(
                 0.012,
-                0.955,
+                0.952,
                 subtitle,
                 ha="left",
                 va="top",
