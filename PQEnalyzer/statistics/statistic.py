@@ -204,7 +204,7 @@ class Statistic:
         Examples
         --------
         >>> Statistic.self_correlation_mean(energies, "ENERGY")
-        ([1, 2, 3, 4, 5], [8.6666, 10, 11, 10, 8.6666])
+        ([1, 2, 3, 4, 5], [2, 2.5, 3, 3.5, 4])
         """
 
         energy_series = concatenate_series(energies, info_parameter)
@@ -216,21 +216,22 @@ class Statistic:
         """
         Calculate the self-correlation mean for a numeric series.
 
-        The result is divided by the number of overlapping points at each lag
-        so every point is a mean product rather than an edge-biased sum.
+        The result stays on the original data scale. Each output point is the
+        mean of the values that overlap that lag, which avoids the squared
+        magnitude returned by an unnormalized product correlation.
         """
 
         time, data = Statistic.__arrays(time, values)
         data = data.astype(float)
 
-        numerator = np.correlate(data, data, mode="same")
-        denominator = np.correlate(
+        numerator = np.correlate(data, np.ones_like(data), mode="same")
+        overlap = np.correlate(
             np.ones_like(data), np.ones_like(data), mode="same")
         self_correlation_mean = np.divide(
             numerator,
-            denominator,
+            overlap,
             out=np.zeros_like(data),
-            where=denominator != 0,
+            where=overlap != 0,
         )
 
         return time, self_correlation_mean

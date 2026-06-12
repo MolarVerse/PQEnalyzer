@@ -81,8 +81,7 @@ class TestStatistic:
         assert np.all(time == [1, 2, 3, 4, 5])
         assert np.allclose(
             self_correlation_mean,
-            [8.6666, 10, 11, 10, 8.6666],
-            rtol=1e-4,
+            [2, 2.5, 3, 3.5, 4],
         )
 
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
@@ -91,8 +90,7 @@ class TestStatistic:
         assert np.all(time == [1, 2, 3, 4, 5])
         assert np.allclose(
             self_correlation_mean,
-            [8.6666, 10, 11, 10, 8.6666],
-            rtol=1e-4,
+            [2, 2.5, 3, 3.5, 4],
         )
 
         energies2 = Reader(["tests/data/md-02.en"], MDEngineFormat.PQ).energies
@@ -101,8 +99,7 @@ class TestStatistic:
         assert np.all(time == [6, 7, 8, 9, 10])
         assert np.allclose(
             self_correlation_mean,
-            [63.6666, 65, 66, 65, 63.6666],
-            rtol=1e-4,
+            [7, 7.5, 8, 8.5, 9],
         )
 
     def test_self_correlation_mean_constant_data(self):
@@ -111,7 +108,7 @@ class TestStatistic:
                 [1, 2, 3, 4, 5], [2, 2, 2, 2, 2]))
 
         assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(self_correlation_mean == [4, 4, 4, 4, 4])
+        assert np.all(self_correlation_mean == [2, 2, 2, 2, 2])
 
         energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
 

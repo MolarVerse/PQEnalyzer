@@ -5,6 +5,11 @@ from types import SimpleNamespace
 from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
 from PQEnalyzer.plots.plot_time import PlotTime
+from PQEnalyzer.plots.value_readout import (
+    ValueReadoutEntry,
+    format_readout_value,
+    latest_value_label,
+)
 
 
 class FakeFlag:
@@ -170,18 +175,38 @@ def test_histogram_labels_use_distribution_title_and_density_axis():
     assert plot.ax.get_ylim()[0] == 0
 
 
-def test_time_main_data_uses_readable_filenames_and_value_labels():
+def test_time_main_data_uses_readable_filenames_and_latest_readout():
     app = FakeApp([FakeEnergy([1, 2, 3, 4])])
     plot = PlotTime(app)
 
     plot.main_data("PARAMETER")
 
-    assert plot.ax.get_legend_handles_labels()[1] == ["series-0.en"]
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-0.en (4 unit)"
+    ]
     assert plot.ax.lines[0].get_linewidth() == 1.6
     assert plot.ax.lines[0].get_alpha() == 0.92
     assert plot.ax.lines[0].get_zorder() == 2
-    assert len(plot.ax.texts) == 1
-    assert plot.ax.texts[0].get_text() == "4.000e+00"
+    assert len(plot.ax.texts) == 0
+
+
+def test_time_plot_renders_latest_values_in_legend_without_axis_labels():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])],
+                  mean=True,
+                  median=True)
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+
+    plot.plot_data()
+
+    assert len(plot.ax.texts) == 0
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-0.en (4 unit)",
+        "Mean (2.5 unit)",
+        "Median (2.5 unit)",
+    ]
+    assert plot.ax.get_legend() is not None
+    assert plot.ax.get_legend().get_title().get_text() == ""
 
 
 def test_time_labels_use_time_series_title_and_parameter_axis():
@@ -206,8 +231,8 @@ def test_time_main_data_disambiguates_duplicate_filenames():
     plot.main_data("PARAMETER")
 
     assert plot.ax.get_legend_handles_labels()[1] == [
-        "run-a/md.en",
-        "run-b/md.en",
+        "run-a/md.en (4 unit)",
+        "run-b/md.en (5 unit)",
     ]
 
 
@@ -237,11 +262,11 @@ def test_time_statistics_draw_expected_overlay_series():
     plot.statistics("PARAMETER")
 
     assert plot.ax.get_legend_handles_labels()[1] == [
-        "Mean",
-        "Median",
-        "Cumulative Average",
-        "Self-Correlation Mean",
-        "Running Average (2)",
+        "Mean (2.5 unit)",
+        "Median (2.5 unit)",
+        "Cumulative Average (2.5 unit)",
+        "Self-Correlation Mean (3 unit)",
+        "Running Average (2) (3.5 unit)",
     ]
     assert [line.get_linestyle() for line in plot.ax.lines[:3]] == [
         "--",
@@ -265,7 +290,7 @@ def test_time_difference_subtracts_two_aligned_series():
     assert len(plot.ax.lines) == 1
     line = plot.ax.lines[0]
 
-    assert line.get_label() == "Difference (1 - 2)"
+    assert line.get_label() == "Difference (1 - 2) (3 unit)"
     assert np.all(line.get_xdata() == [1, 2, 3])
     assert np.all(line.get_ydata() == [4, 4, 3])
 
@@ -292,11 +317,9 @@ def test_time_self_correlation_mean_uses_data_scale():
 
     line = plot.ax.lines[0]
 
-    assert line.get_label() == "Self-Correlation Mean"
+    assert line.get_label() == "Self-Correlation Mean (4 unit)"
     assert np.all(line.get_xdata() == [1, 2, 3, 4, 5])
-    assert np.allclose(line.get_ydata(),
-                       [8.6666, 10, 11, 10, 8.6666],
-                       rtol=1e-4)
+    assert np.allclose(line.get_ydata(), [2, 2.5, 3, 3.5, 4])
 
 
 def test_dashboard_plots_all_parameters_as_raw_overview():
@@ -309,9 +332,50 @@ def test_dashboard_plots_all_parameters_as_raw_overview():
     assert plot.axis_parameters[plot.axes[1]] == "PRESSURE"
     assert plot.axes[0].get_title(loc="left") == "TEMPERATURE / K"
     assert plot.axes[1].get_title(loc="left") == "PRESSURE / bar"
+    assert plot.axes[0].get_title(loc="right") == "302 K"
+    assert plot.axes[1].get_title(loc="right") == "1.25 bar"
     assert len(plot.axes[0].lines) == 1
     assert len(plot.axes[1].lines) == 1
+    assert len(plot.axes[0].texts) == 0
+    assert len(plot.axes[1].texts) == 0
     assert len(plot.figure.legends) == 1
+
+
+def test_dashboard_uses_compact_latest_titles_for_multiple_files():
+    first = FakeDashboardEnergy()
+    second = FakeDashboardEnergy()
+    second.data["TEMPERATURE"] = np.array([301.0, 303.0, 304.0])
+    second.simulation_time = second.data["SIMULATION-TIME"]
+    app = FakeApp([first, second])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert plot.axes[0].get_title(loc="right") == "302 | 304 K"
+
+
+def test_dashboard_multi_value_title_keeps_mixed_units():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+
+    title = plot._PlotDashboard__multi_value_title([
+        ValueReadoutEntry("a", 302.0, "#000000", "K"),
+        ValueReadoutEntry("b", 1.25, "#000000", "bar"),
+    ])
+
+    assert title == "302 K | 1.25 bar"
+
+
+def test_readout_value_formatting_uses_scientific_notation_selectively():
+    assert format_readout_value(302.123456, "K") == "302.12 K"
+    assert format_readout_value(0.0000123, "bar") == "1.2300e-05 bar"
+    assert format_readout_value(np.nan, "K") == "n/a K"
+
+
+def test_latest_value_label_uses_last_finite_value():
+    assert latest_value_label("Temperature", [300.0, np.nan, 302.0],
+                              "K") == "Temperature (302 K)"
+    assert latest_value_label("Temperature", [np.nan], "K") == "Temperature"
 
 
 def test_dashboard_double_click_opens_focused_parameter_plot():

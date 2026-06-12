@@ -295,18 +295,6 @@ class Plot(metaclass=ABCMeta):
         self.ax.ticklabel_format(axis="both", style="sci")
         self.ax.margins(x=0.02, y=0.08)
 
-    def annotation_box(self):
-        """
-        Return a themed rounded label box for latest-value annotations.
-        """
-
-        return dict(
-            boxstyle="round,pad=0.22",
-            facecolor=self.palette["annotation.facecolor"],
-            edgecolor=self.palette["annotation.edgecolor"],
-            alpha=0.88,
-        )
-
     def set_window_title(self, title: str) -> None:
         """
         Name the native matplotlib window when the backend supports it.
