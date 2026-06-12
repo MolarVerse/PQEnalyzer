@@ -53,6 +53,8 @@ jobs:
         path: dist/
     - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
 
   github-release:
     name: >-
@@ -110,7 +112,9 @@ jobs:
 
     - name: Build CHANGELOG.md
       run: |
-        touch CHANGELOG.md
+        if [ ! -s CHANGELOG.md ]; then
+          printf '# Changelog\n\n<!-- insertion marker -->\n' > CHANGELOG.md
+        fi
         git-changelog --sections ci,doc,feat,fix,perf,test -o CHANGELOG.md -c angular --in-place
 
     - name: Add CHANGELOG.md to commit
