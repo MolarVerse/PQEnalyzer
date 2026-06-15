@@ -140,10 +140,11 @@ def concatenate_series(energies: list, info_parameter: str) -> EnergySeries:
 
 def difference_series(energies: list, info_parameter: str) -> EnergySeries:
     """
-    Return the pointwise difference between two aligned energy series.
+    Return the pointwise difference between two energy series.
 
-    The returned values are ``first - second``. Simulation-time axes must match
-    exactly so the subtraction never hides shifted or differently sampled runs.
+    The returned values are ``first - second`` on shared simulation-time
+    values. This lets users compare runs that overlap without requiring both
+    files to start and stop at exactly the same step.
     """
 
     if len(energies) != 2:
@@ -154,16 +155,30 @@ def difference_series(energies: list, info_parameter: str) -> EnergySeries:
     second = series(energies[1], info_parameter)
 
     if (
-        first.time.shape != second.time.shape
-        or first.values.shape != second.values.shape
-        or not np.array_equal(first.time, second.time)
+        first.time.shape != first.values.shape
+        or second.time.shape != second.values.shape
     ):
         raise ValueError(
-            "Difference plotting requires matching simulation-time axes.")
+            "Difference plotting requires one value per simulation-time point."
+        )
+
+    _, first_indices, second_indices = np.intersect1d(
+        first.time,
+        second.time,
+        assume_unique=False,
+        return_indices=True,
+    )
+    if first_indices.size == 0:
+        raise ValueError(
+            "Difference plotting requires shared simulation-time values.")
+
+    first_order = np.argsort(first_indices)
+    first_indices = first_indices[first_order]
+    second_indices = second_indices[first_order]
 
     return EnergySeries(
-        time=first.time,
-        values=first.values - second.values,
+        time=first.time[first_indices],
+        values=first.values[first_indices] - second.values[second_indices],
         label=info_parameter,
         unit=first.unit,
     )

@@ -110,6 +110,35 @@ def test_gui_mode_starts_and_can_be_terminated():
 
 
 @pytest.mark.e2e
+def test_default_gui_mode_starts_and_can_be_terminated():
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        pytest.skip("GUI e2e test requires a display; run with xvfb-run.")
+
+    process = subprocess.Popen(
+        [sys.executable, "-m", "PQEnalyzer", str(EXAMPLE_FILE)],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(2)
+
+        if process.poll() is not None:
+            stdout, stderr = process.communicate(timeout=5)
+            pytest.fail(
+                "Default GUI mode exited before the startup smoke window "
+                "elapsed.\n"
+                f"returncode={process.returncode}\n"
+                f"stdout={stdout}\n"
+                f"stderr={stderr}")
+    finally:
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
 def test_gui_mode_starts_with_box_file_and_can_be_terminated():
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         pytest.skip("GUI e2e test requires a display; run with xvfb-run.")

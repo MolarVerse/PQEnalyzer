@@ -33,9 +33,34 @@ def test_cli_help_mentions_gui_and_tui_modes():
     assert result.returncode == 0
     assert "Traceback" not in result.stderr
     assert "{gui,tui}" in result.stdout
+    assert "gui" in result.stdout
+    assert "tui" in result.stdout
 
 
-def test_gui_mode_logs_reader_validation_errors():
+def test_default_gui_mode_logs_reader_validation_errors():
+    project_root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "tests/data/md-01.en",
+            "tests/data/md-02.en",
+        ],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert "ERROR: The energy files do not have the same info parameters" in (
+        result.stderr)
+
+
+def test_explicit_gui_mode_still_logs_reader_validation_errors():
     project_root = Path(__file__).resolve().parents[1]
 
     result = subprocess.run(
@@ -106,11 +131,42 @@ def test_cli_rejects_multiple_forced_input_formats():
     assert "not allowed with argument" in result.stderr
 
 
-def test_cli_requires_app_mode():
+def test_cli_defaults_to_gui_mode():
     project_root = Path(__file__).resolve().parents[1]
 
     result = subprocess.run(
-        [sys.executable, "-m", "PQEnalyzer", "examples/md-01.en"],
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "tests/data/md-01.en",
+            "tests/data/md-02.en",
+        ],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert "invalid choice" not in result.stderr
+    assert "ERROR: The energy files do not have the same info parameters" in (
+        result.stderr)
+
+
+def test_default_gui_mode_accepts_input_format_flags():
+    project_root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "--box",
+            "--qmcfc",
+            "examples/box-01.box",
+        ],
         cwd=project_root,
         capture_output=True,
         text=True,
@@ -119,4 +175,4 @@ def test_cli_requires_app_mode():
 
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
-    assert "invalid choice" in result.stderr
+    assert "not allowed with argument" in result.stderr

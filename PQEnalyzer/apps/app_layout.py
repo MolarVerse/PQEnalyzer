@@ -358,6 +358,8 @@ class StatisticsControlsView:
                               padx=10,
                               pady=5,
                               sticky="we")
+        self.window_size.bind("<KeyRelease>",
+                              self.__window_size_changed)
         self.window_size.configure(state="disabled")
 
         app.settings_frame = self.frame
@@ -405,6 +407,14 @@ class StatisticsControlsView:
             self.window_size,
             default="10",
         )
+
+    def __window_size_changed(self, event=None):
+        """
+        Redraw the selected plot when the running-average window changes.
+        """
+
+        if self.statistics_changed_callback is not None:
+            self.statistics_changed_callback()
 
     def __feature_command(self, feature):
         """
