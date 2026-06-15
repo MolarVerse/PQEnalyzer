@@ -15,6 +15,26 @@ from ._logging import configure_logging, get_logger
 
 
 logger = get_logger(__name__)
+APP_MODES = {"gui", "tui"}
+
+
+def _argv_with_default_mode(argv):
+    """
+    Default bare file arguments to GUI mode.
+
+    ``argparse`` subparsers normally treat the first positional argument as a
+    required mode. For the common GUI path, allow users to omit that mode and
+    pass files directly.
+    """
+
+    argv = list(argv)
+    if not argv:
+        return argv
+
+    if argv[0] in {"-h", "--help", "-v", "--version", *APP_MODES}:
+        return argv
+
+    return ["gui", *argv]
 
 
 def _add_input_arguments(parser):
@@ -89,7 +109,7 @@ def main():
     )
     _add_input_arguments(tui_parser)
 
-    args = parser.parse_args()
+    args = parser.parse_args(_argv_with_default_mode(sys.argv[1:]))
     configure_logging()
 
     from .readers import create_reader

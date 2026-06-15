@@ -295,7 +295,7 @@ def test_time_difference_subtracts_two_aligned_series():
     assert np.all(line.get_ydata() == [4, 4, 3])
 
 
-def test_time_difference_logs_misaligned_series(caplog):
+def test_time_difference_uses_shared_time_axis_values():
     first = FakeEnergy([5, 6, 7])
     second = FakeEnergy([1, 2, 4])
     second.simulation_time = np.array([2, 3, 4])
@@ -304,8 +304,24 @@ def test_time_difference_logs_misaligned_series(caplog):
 
     plot.statistics("PARAMETER")
 
+    assert len(plot.ax.lines) == 1
+    line = plot.ax.lines[0]
+    assert line.get_label() == "Difference (1 - 2) (5 unit)"
+    assert np.all(line.get_xdata() == [2, 3])
+    assert np.all(line.get_ydata() == [5, 5])
+
+
+def test_time_difference_logs_non_overlapping_series(caplog):
+    first = FakeEnergy([5, 6, 7])
+    second = FakeEnergy([1, 2, 4])
+    second.simulation_time = np.array([20, 30, 40])
+    app = FakeApp([first, second], difference=True)
+    plot = PlotTime(app)
+
+    plot.statistics("PARAMETER")
+
     assert len(plot.ax.lines) == 0
-    assert "matching simulation-time axes" in caplog.text
+    assert "shared simulation-time values" in caplog.text
 
 
 def test_time_self_correlation_mean_uses_data_scale():

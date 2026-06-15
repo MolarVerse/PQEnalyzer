@@ -99,11 +99,33 @@ def test_difference_series_requires_exactly_two_files():
         difference_series([energy], "CUSTOM")
 
 
-def test_difference_series_requires_matching_time_axes():
-    first = CustomEnergy(time=[1.0, 2.0, 3.0])
-    second = CustomEnergy(time=[2.0, 3.0, 4.0])
+def test_difference_series_uses_shared_time_axis_values():
+    first = CustomEnergy(time=[1.0, 2.0, 3.0, 4.0],
+                         values=[10.0, 20.0, 30.0, 40.0])
+    second = CustomEnergy(time=[3.0, 4.0, 5.0],
+                          values=[1.0, 2.0, 3.0])
 
-    with pytest.raises(ValueError, match="matching simulation-time axes"):
+    energy_series = difference_series([first, second], "CUSTOM")
+
+    np.testing.assert_array_equal(energy_series.time, [3.0, 4.0])
+    np.testing.assert_array_equal(energy_series.values, [29.0, 38.0])
+
+
+def test_difference_series_requires_shared_time_axis_values():
+    first = CustomEnergy(time=[1.0, 2.0, 3.0])
+    second = CustomEnergy(time=[4.0, 5.0, 6.0])
+
+    with pytest.raises(ValueError, match="shared simulation-time values"):
+        difference_series([first, second], "CUSTOM")
+
+
+def test_difference_series_requires_values_aligned_to_time():
+    first = CustomEnergy(time=[1.0, 2.0, 3.0],
+                         values=[10.0, 20.0])
+    second = CustomEnergy(time=[1.0, 2.0, 3.0],
+                          values=[1.0, 2.0, 3.0])
+
+    with pytest.raises(ValueError, match="one value per simulation-time"):
         difference_series([first, second], "CUSTOM")
 
 
@@ -118,6 +140,22 @@ def test_difference_examples_have_nonconstant_difference():
     np.testing.assert_array_equal(energy_series.time,
                                   np.arange(6, 16))
     assert len(np.unique(np.round(energy_series.values, decimals=6))) > 1
+
+
+def test_difference_series_supports_box_reader_adapter():
+    energies = BoxReader([
+        "examples/box-01.box",
+        "examples/box-02.box",
+    ]).energies
+
+    energy_series = difference_series(energies, "BOX-X")
+
+    np.testing.assert_array_equal(energy_series.time,
+                                  np.array([1, 2, 3, 4, 5]))
+    np.testing.assert_allclose(
+        energy_series.values,
+        [0.1, 0.1, 0.1, -0.2, 0.2],
+    )
 
 
 def test_energy_access_supports_box_reader_adapter():

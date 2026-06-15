@@ -67,6 +67,7 @@ class FakeWidget:
         self.args = args
         self.kwargs = kwargs
         self.grid_calls = []
+        self.bind_calls = []
         self.configured_rows = []
         self.configured_columns = []
         self.value = False
@@ -95,6 +96,9 @@ class FakeWidget:
     def configure(self, *args, **kwargs):
         self.configure_args = args
         self.configure_kwargs = kwargs
+
+    def bind(self, *args, **kwargs):
+        self.bind_calls.append((args, kwargs))
 
 
 @pytest.fixture(autouse=True)
@@ -381,6 +385,31 @@ def test_statistics_control_callback_runs_after_difference_default(
     view.difference.kwargs["command"]()
 
     assert app.plot_main_data.value is True
+    assert calls == ["run"]
+
+
+def test_window_size_entry_runs_statistics_control_callback(monkeypatch):
+    calls = []
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+        plot_main_data=FakeFlag(False),
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont",
+                        lambda *args, **kwargs: ("font", args, kwargs))
+
+    view = app_layout.StatisticsControlsView(app, lambda: calls.append("run"))
+    event_name, callback = view.window_size.bind_calls[0][0]
+
+    callback(None)
+
+    assert event_name == "<KeyRelease>"
     assert calls == ["run"]
 
 
