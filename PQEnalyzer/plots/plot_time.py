@@ -91,7 +91,6 @@ class PlotTime(Plot):
 
         if not self.show_legend(
             loc="best",
-            fontsize="x-small",
             framealpha=0.82,
             borderpad=0.35,
             labelspacing=0.28,

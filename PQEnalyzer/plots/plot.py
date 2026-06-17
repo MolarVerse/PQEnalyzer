@@ -14,6 +14,7 @@ from .theme import apply_figure_theme, apply_matplotlib_theme
 
 
 logger = get_logger(__name__)
+SINGLE_PLOT_FIGURE_SIZE = (11, 7)
 
 
 class Plot(metaclass=ABCMeta):
@@ -63,7 +64,7 @@ class Plot(metaclass=ABCMeta):
         # create the plot
         self.palette = apply_matplotlib_theme(
             getattr(self.app, "appearance_mode", None))
-        self.figure = plt.figure(figsize=(9, 5.5))
+        self.figure = plt.figure(figsize=SINGLE_PLOT_FIGURE_SIZE)
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
         self.figure.canvas.mpl_connect("button_press_event",
@@ -119,8 +120,8 @@ class Plot(metaclass=ABCMeta):
         """
         Render a static plot for one info parameter.
 
-        Main data is plotted unless the "No Data" option is selected. Enabled
-        statistics are overlaid by the subclass implementation.
+        Main data is plotted unless the "Hide Raw Data" option is selected.
+        Enabled statistics are overlaid by the subclass implementation.
 
         Parameters
         ----------
@@ -262,7 +263,7 @@ class Plot(metaclass=ABCMeta):
             return False
 
         legend_options = {
-            "fontsize": "small",
+            "fontsize": "medium",
             "frameon": True,
         }
         legend_options.update(kwargs)

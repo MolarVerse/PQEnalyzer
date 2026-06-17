@@ -119,10 +119,12 @@ class PlotControlsView:
         app,
         plot_button_callback,
         auto_refresh_callback,
+        plot_options_callback=None,
     ):
         self.app = app
         self.plot_button_callback = plot_button_callback
         self.auto_refresh_callback = auto_refresh_callback
+        self.plot_options_callback = plot_options_callback
 
         self.frame = ctk.CTkFrame(app, width=200)
         self.frame.grid(row=2,
@@ -152,8 +154,9 @@ class PlotControlsView:
         self.no_data_checkbox = ctk.CTkCheckBox(
             master=self.frame,
             border_width=2,
-            text="No Data",
+            text="Hide Raw Data",
             variable=self.plot_main_data,
+            command=plot_options_callback,
         )
         self.no_data_checkbox.grid(row=0,
                                    column=0,
