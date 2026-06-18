@@ -316,7 +316,6 @@ class App(ctk.CTk):
         Open a focused time-series plot for one dashboard parameter.
         """
 
-        self.__change_info_event(info_parameter)
         plot = PlotTime(self)
         self.list_of_plots.append(plot)
 
