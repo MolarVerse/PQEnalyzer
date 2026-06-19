@@ -6,6 +6,14 @@ import customtkinter as ctk
 import matplotlib
 from cycler import cycler
 
+PLOT_FONT_SIZES = {
+    "base": 12.0,
+    "title": 16.0,
+    "axis_label": 14.0,
+    "tick": 12.0,
+    "legend": 12.0,
+}
+
 
 LIGHT_PALETTE = {
     "figure.facecolor": "#f4f7fb",
@@ -93,23 +101,28 @@ def apply_matplotlib_theme(appearance_mode=None):
     palette = palette_for_appearance_mode(appearance_mode)
 
     matplotlib.rcParams.update({
+        "font.size": PLOT_FONT_SIZES["base"],
         "figure.facecolor": palette["figure.facecolor"],
         "axes.facecolor": palette["axes.facecolor"],
         "axes.edgecolor": palette["axes.edgecolor"],
         "axes.labelcolor": palette["axes.labelcolor"],
+        "axes.labelsize": PLOT_FONT_SIZES["axis_label"],
         "axes.grid": True,
         "axes.prop_cycle": cycler(color=palette["colors"]),
         "axes.titleweight": "semibold",
-        "axes.titlesize": "medium",
+        "axes.titlesize": PLOT_FONT_SIZES["title"],
         "lines.linewidth": 1.45,
         "lines.solid_capstyle": "round",
         "text.color": palette["text.color"],
         "xtick.color": palette["tick.color"],
+        "xtick.labelsize": PLOT_FONT_SIZES["tick"],
         "ytick.color": palette["tick.color"],
+        "ytick.labelsize": PLOT_FONT_SIZES["tick"],
         "grid.color": palette["grid.color"],
         "grid.alpha": 0.55,
         "legend.facecolor": palette["legend.facecolor"],
         "legend.edgecolor": palette["legend.edgecolor"],
+        "legend.fontsize": PLOT_FONT_SIZES["legend"],
         "legend.framealpha": 0.95,
         "savefig.facecolor": palette["figure.facecolor"],
     })
@@ -127,9 +140,14 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
     figure.patch.set_facecolor(palette["figure.facecolor"])
     axes.set_facecolor(palette["axes.facecolor"])
     axes.grid(True, color=palette["grid.color"], alpha=0.55, linewidth=0.8)
-    axes.tick_params(colors=palette["tick.color"])
+    axes.tick_params(
+        colors=palette["tick.color"],
+        labelsize=PLOT_FONT_SIZES["tick"],
+    )
     axes.xaxis.label.set_color(palette["axes.labelcolor"])
+    axes.xaxis.label.set_size(PLOT_FONT_SIZES["axis_label"])
     axes.yaxis.label.set_color(palette["axes.labelcolor"])
+    axes.yaxis.label.set_size(PLOT_FONT_SIZES["axis_label"])
     for title in (
         axes.title,
         getattr(axes, "_left_title", None),
@@ -137,6 +155,7 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
     ):
         if title is not None:
             title.set_color(palette["text.color"])
+            title.set_size(PLOT_FONT_SIZES["title"])
 
     for spine in axes.spines.values():
         spine.set_color(palette["axes.edgecolor"])
@@ -149,6 +168,8 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
         legend.get_frame().set_alpha(0.95)
         for text in legend.get_texts():
             text.set_color(palette["text.color"])
+            text.set_size(PLOT_FONT_SIZES["legend"])
+        legend.get_title().set_size(PLOT_FONT_SIZES["legend"])
 
     for text in axes.texts:
         text.set_color(palette["text.color"])

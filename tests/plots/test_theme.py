@@ -21,6 +21,14 @@ def test_apply_matplotlib_theme_sets_dark_defaults():
         assert mpl.rcParams["text.color"] == palette["text.color"]
         assert mpl.rcParams["axes.prop_cycle"].by_key()["color"] == palette[
             "colors"]
+        assert mpl.rcParams["axes.titlesize"] == theme.PLOT_FONT_SIZES[
+            "title"]
+        assert mpl.rcParams["axes.labelsize"] == theme.PLOT_FONT_SIZES[
+            "axis_label"]
+        assert mpl.rcParams["xtick.labelsize"] == theme.PLOT_FONT_SIZES[
+            "tick"]
+        assert mpl.rcParams["legend.fontsize"] == theme.PLOT_FONT_SIZES[
+            "legend"]
 
 
 def test_apply_figure_theme_updates_existing_plot_elements():
@@ -44,9 +52,17 @@ def test_apply_figure_theme_updates_existing_plot_elements():
         assert axes.get_facecolor() == to_rgba(palette["axes.facecolor"])
         assert axes.xaxis.label.get_color() == palette["axes.labelcolor"]
         assert axes.yaxis.label.get_color() == palette["axes.labelcolor"]
+        assert axes.xaxis.label.get_size() == theme.PLOT_FONT_SIZES[
+            "axis_label"]
+        assert axes.yaxis.label.get_size() == theme.PLOT_FONT_SIZES[
+            "axis_label"]
+        assert axes.get_xticklabels()[0].get_size() == theme.PLOT_FONT_SIZES[
+            "tick"]
         assert axes.get_title(loc="left") == "Energy trace"
         assert axes._left_title.get_color() == palette["text.color"]
-        assert axes.get_legend().get_texts()[0].get_color() == palette[
-            "text.color"]
+        assert axes._left_title.get_size() == theme.PLOT_FONT_SIZES["title"]
+        legend_text = axes.get_legend().get_texts()[0]
+        assert legend_text.get_color() == palette["text.color"]
+        assert legend_text.get_size() == theme.PLOT_FONT_SIZES["legend"]
         assert axes.texts[0].get_color() == palette["text.color"]
         assert axes.texts[0].get_bbox_patch().get_alpha() == 0.85

@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
+from PQEnalyzer.plots.plot import SINGLE_PLOT_FIGURE_SIZE
 from PQEnalyzer.plots.plot_time import PlotTime
+from PQEnalyzer.plots.theme import PLOT_FONT_SIZES
 from PQEnalyzer.plots.value_readout import (
     ValueReadoutEntry,
     format_readout_value,
@@ -209,6 +211,32 @@ def test_time_plot_renders_latest_values_in_legend_without_axis_labels():
     assert plot.ax.get_legend().get_title().get_text() == ""
 
 
+def test_time_plot_uses_readable_single_plot_typography():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+
+    plot.plot_data()
+
+    assert plot.ax.get_title(loc="left") == "PARAMETER time series"
+    assert plot.ax._left_title.get_size() == PLOT_FONT_SIZES["title"]
+    assert plot.ax.xaxis.label.get_size() == PLOT_FONT_SIZES["axis_label"]
+    assert plot.ax.yaxis.label.get_size() == PLOT_FONT_SIZES["axis_label"]
+    assert plot.ax.get_xticklabels()[0].get_size() == PLOT_FONT_SIZES["tick"]
+    legend_text = plot.ax.get_legend().get_texts()[0]
+    assert legend_text.get_size() == PLOT_FONT_SIZES["legend"]
+
+
+def test_single_plot_uses_roomier_initial_window_size():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+
+    np.testing.assert_allclose(
+        plot.figure.get_size_inches(),
+        SINGLE_PLOT_FIGURE_SIZE,
+    )
+
+
 def test_time_labels_use_time_series_title_and_parameter_axis():
     app = FakeApp([FakeEnergy([1, 2, 3, 4])])
     plot = PlotTime(app)
@@ -309,6 +337,45 @@ def test_time_difference_uses_shared_time_axis_values():
     assert line.get_label() == "Difference (1 - 2) (5 unit)"
     assert np.all(line.get_xdata() == [2, 3])
     assert np.all(line.get_ydata() == [5, 5])
+
+
+def test_time_difference_remains_active_when_raw_data_is_visible():
+    app = FakeApp(
+        [FakeEnergy([5, 6, 7]), FakeEnergy([1, 2, 4])],
+        difference=True,
+    )
+    app.plot_main_data.set(False)
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+
+    plot.plot_data()
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-0.en (7 unit)",
+        "series-1.en (4 unit)",
+        "Difference (1 - 2) (3 unit)",
+    ]
+    assert len(plot.ax.lines) == 3
+    assert np.all(plot.ax.lines[-1].get_ydata() == [4, 4, 3])
+
+
+def test_time_difference_with_raw_data_uses_overlap_for_shifted_axes():
+    first = FakeEnergy([10, 20, 30, 40, 50])
+    second = FakeEnergy([3, 5, 7])
+    second.simulation_time = np.array([3, 5, 7])
+    app = FakeApp([first, second], difference=True)
+    app.plot_main_data.set(False)
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+
+    plot.plot_data()
+
+    assert len(plot.ax.lines) == 3
+    np.testing.assert_array_equal(plot.ax.lines[0].get_xdata(),
+                                  [1, 2, 3, 4, 5])
+    np.testing.assert_array_equal(plot.ax.lines[1].get_xdata(), [3, 5, 7])
+    np.testing.assert_array_equal(plot.ax.lines[2].get_xdata(), [3, 5])
+    np.testing.assert_array_equal(plot.ax.lines[2].get_ydata(), [27, 45])
 
 
 def test_time_difference_logs_non_overlapping_series(caplog):

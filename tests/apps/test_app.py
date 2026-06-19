@@ -281,10 +281,40 @@ def test_plot_controls_view_exposes_dashboard_button(monkeypatch):
 
     assert app.button_dashboard is view.dashboard_button
     assert app.button_dashboard.kwargs["text"] == "Live Monitor"
+    assert app.check_nodata is view.no_data_checkbox
+    assert app.check_nodata.kwargs["text"] == "Hide Raw Data"
     assert app.check_auto_refresh is view.auto_refresh_checkbox
     assert app.check_auto_refresh.kwargs["text"] == "Auto-Refresh"
     assert app.auto_refresh.value is True
     assert not hasattr(app, "button_refresh")
+
+
+def test_no_data_checkbox_runs_plot_options_callback(monkeypatch):
+    calls = []
+    app = SimpleNamespace(
+        register=lambda callback: callback,
+        validate_number=lambda value: True,
+        toggle_entry_state=lambda event, entry, default="": None,
+    )
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkCheckBox", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkEntry", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkButton", FakeWidget)
+    monkeypatch.setattr(app_layout.tkinter, "BooleanVar",
+                        lambda: FakeFlag(False))
+
+    view = app_layout.PlotControlsView(
+        app,
+        lambda event: event,
+        lambda: None,
+        lambda: calls.append("redraw"),
+    )
+
+    view.no_data_checkbox.kwargs["command"]()
+
+    assert calls == ["redraw"]
 
 
 def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
@@ -552,6 +582,36 @@ def test_statistics_controls_redraw_selected_plot(monkeypatch):
     assert calls[0].mean is True
     assert calls[0].running_average is True
     assert calls[0].window_size == "5"
+
+
+def test_statistics_controls_do_not_force_no_data_for_active_difference(
+        monkeypatch):
+    app = make_app()
+    app.mean = FakeFlag(False)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(True)
+    app.running_average = FakeFlag(False)
+    app.plot_main_data = FakeFlag(False)
+    app.window_size = FakeEntry("")
+    calls = []
+
+    class SelectedPlot:
+        figure = SimpleNamespace(number=1)
+
+        def redraw(self, options=None):
+            calls.append(options)
+
+    app.selected_plot = SelectedPlot()
+    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
+
+    app_module.App._App__statistics_control_event(app)
+
+    assert app.plot_main_data.value is False
+    assert len(calls) == 1
+    assert calls[0].difference is True
+    assert calls[0].plot_main is False
 
 
 def test_refresh_applies_controls_to_selected_plot(monkeypatch):

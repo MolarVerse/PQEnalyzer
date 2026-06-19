@@ -88,6 +88,7 @@ class App(ctk.CTk):
             self,
             self.__plot_button_event,
             self.__auto_refresh_control_event,
+            self.__statistics_control_event,
         )
         self.parameter_selector_view = ParameterSelectorView(
             self, self.__change_info_event)
@@ -343,9 +344,6 @@ class App(ctk.CTk):
 
         if self.__syncing_plot_controls:
             return None
-
-        if self.difference.get():
-            self.plot_main_data.set(True)
 
         if self.selected_plot is None:
             return None
