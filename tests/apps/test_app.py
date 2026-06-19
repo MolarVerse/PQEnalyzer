@@ -474,6 +474,21 @@ def test_plot_button_runs_dashboard(monkeypatch):
     assert app.selected_plot is None
 
 
+def test_dashboard_focus_plot_does_not_change_selected_dropdown_parameter(
+        monkeypatch):
+    app = make_app(auto_refresh=False)
+    monkeypatch.setattr(app_module, "PlotTime", DummyPlot)
+
+    app_module.App.open_focus_plot(app, "PRESSURE")
+    app_module.App._App__plot_button_event(app, 0)
+
+    assert [plot.calls for plot in DummyPlot.instances] == [
+        [("simple", "PRESSURE")],
+        [("simple", "TEMPERATURE")],
+    ]
+    assert app._App__selected_info == "TEMPERATURE"
+
+
 def test_plot_button_rejects_unknown_event():
     with pytest.raises(ValueError, match="Unknown plot event"):
         app_module.App._App__plot_button_event(make_app(), 3)
