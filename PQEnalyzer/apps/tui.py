@@ -149,7 +149,7 @@ def feature_help_text() -> str:
         for feature in PLOT_FEATURES[5:]
     )
     return "\n".join([
-        "up/j down/k move  enter focus chart",
+        "up/k down/j move  enter focus chart",
         "esc back  q quit  r refresh  w watch",
         first_row,
         second_row,
@@ -668,7 +668,7 @@ class TuiApp(App):
 
         controls = Text()
         controls.append(
-            "up/j down/k move  esc back  q quit  r refresh\n",
+            "up/k down/j move  esc back  q quit  r refresh\n",
             style="#8b949e",
         )
         controls.append("Stats: ", style="bold #8b949e")
