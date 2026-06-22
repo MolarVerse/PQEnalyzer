@@ -126,7 +126,7 @@ def test_tui_app_renders_parameter_dashboard():
             assert "Chart stats: mean, median" in str(detail.content)
             assert feature_help_text() == str(help_widget.content)
             assert help_widget._render_markup is False
-            assert "up/j down/k move" in str(help_widget.content)
+            assert "up/k down/j move" in str(help_widget.content)
             assert "esc back" in str(help_widget.content)
             assert "- / + window" not in str(help_widget.content)
 
@@ -150,7 +150,7 @@ def test_tui_app_switches_between_dashboard_and_chart():
             assert "Mean" in str(chart.content)
             assert "Median" in str(chart.content)
             assert "m mean" in str(controls.content)
-            assert "up/j down/k move" in str(controls.content)
+            assert "up/k down/j move" in str(controls.content)
             assert "esc back" in str(controls.content)
             assert "b back" not in str(controls.content)
             assert "- / +" not in str(controls.content)
