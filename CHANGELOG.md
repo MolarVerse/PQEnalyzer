@@ -1,6 +1,14 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.8.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.2) - 2026-06-19
+
+<small>[Compare with v0.8.1](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.1...v0.8.2)</small>
+
+### Docs
+
+- update changelog ([3a7e86d](https://github.com/MolarVerse/PQEnalyzer/commit/3a7e86de8ae8a406d9b1c29ed7224c9d94ea317b) by github-actions[bot]).
+
 ## [v0.8.1](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.1) - 2026-06-15
 
 <small>[Compare with v0.8.0](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.0...v0.8.1)</small>
