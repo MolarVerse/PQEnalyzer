@@ -7,7 +7,7 @@
 
 ### Docs
 
-- update changelog ([7122849](https://github.com/MolarVerse/PQEnalyzer/commit/7122849d1145d873d79390915d25655d32b1e10f) by github-actions[bot]).
+- update usage docs and TUI help ([75d63be](https://github.com/MolarVerse/PQEnalyzer/commit/75d63beedebe3be9dd991a5b411176eec5f0c0ee) by Josef M. Gallmetzer).
 
 ## [v0.8.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.2) - 2026-06-19
 
