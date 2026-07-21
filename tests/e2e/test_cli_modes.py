@@ -11,6 +11,9 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_FILE = PROJECT_ROOT / "examples" / "md-02.en"
 BOX_EXAMPLE_FILE = PROJECT_ROOT / "examples" / "box-01.box"
+SINGLE_COLUMN_EXAMPLE_FILE = (
+    PROJECT_ROOT / "tests" / "data" / "single-column-output.en"
+)
 
 
 def _subprocess_environment():
@@ -173,6 +176,35 @@ def test_gui_mode_starts_with_box_file_and_can_be_terminated():
 
 
 @pytest.mark.e2e
+def test_default_gui_mode_starts_with_single_column_info():
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        pytest.skip("GUI e2e test requires a display; run with xvfb-run.")
+
+    process = subprocess.Popen(
+        [sys.executable, "-m", "PQEnalyzer", str(SINGLE_COLUMN_EXAMPLE_FILE)],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(2)
+
+        if process.poll() is not None:
+            stdout, stderr = process.communicate(timeout=5)
+            pytest.fail(
+                "GUI mode exited while opening single-column PQ info.\n"
+                f"returncode={process.returncode}\n"
+                f"stdout={stdout}\n"
+                f"stderr={stderr}"
+            )
+    finally:
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
 def test_tui_mode_opens_dashboard_and_chart_views():
     master_fd, slave_fd = os.openpty()
     process = subprocess.Popen(
@@ -244,6 +276,39 @@ def test_tui_mode_starts_with_box_file_and_can_be_quit():
                                        b"BOX-VOLUME",
                                        timeout=10)
         assert b"BOX-X" in dashboard_output
+
+        os.write(master_fd, b"q")
+        _wait_for_exit(process, master_fd, timeout=10)
+
+        assert process.returncode == 0
+    finally:
+        os.close(master_fd)
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
+def test_tui_mode_starts_with_single_column_info_and_can_be_quit():
+    master_fd, slave_fd = os.openpty()
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "tui",
+            str(SINGLE_COLUMN_EXAMPLE_FILE),
+        ],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdin=slave_fd,
+        stdout=slave_fd,
+        stderr=slave_fd,
+        close_fds=True,
+    )
+    os.close(slave_fd)
+
+    try:
+        dashboard_output = _read_until(master_fd, b"N(SM-MOL)", timeout=10)
+        assert b"Rows" in dashboard_output
 
         os.write(master_fd, b"q")
         _wait_for_exit(process, master_fd, timeout=10)

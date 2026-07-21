@@ -173,6 +173,17 @@ def test_probe_energy_format_detects_pq_info_file():
     ) is False
 
 
+def test_probe_energy_format_detects_single_column_pq_info_file():
+    assert factory._probe_energy_format(
+        ["tests/data/single-column-output.en"],
+        MDEngineFormat.PQ,
+    ) is True
+    assert factory._probe_energy_format(
+        ["tests/data/single-column-output.en"],
+        MDEngineFormat.QMCFC,
+    ) is False
+
+
 def test_probe_energy_format_detects_qmcfc_info_file(tmp_path):
     energy_file = tmp_path / "qmcfc.en"
     energy_file.write_text("1 2 3 4\n")

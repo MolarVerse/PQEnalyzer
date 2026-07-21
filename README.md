@@ -108,7 +108,8 @@ self-correlation mean, `x` toggles difference, and `a` toggles running average.
 PQEnalyzer reads energy output through
 [`PQAnalysis`](https://github.com/MolarVerse/PQAnalysis). Each `.en` file is
 expected to have its matching `.info` sidecar file next to it. The `.info` file
-is also used for automatic PQ versus QMCFC energy-file detection.
+is also used for automatic PQ versus QMCFC energy-file detection. PQ `.info`
+rows with a single left-side parameter entry are supported.
 
 PQEnalyzer also reads PQ box files through `PQAnalysis`. Box files are expected
 to contain `step x y z alpha beta gamma` columns. The plotted parameters are
