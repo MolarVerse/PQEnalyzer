@@ -29,6 +29,44 @@ PARAMETER_ATTRIBUTES = {
 # Mapping from PQ info labels to PQAnalysis ``Energy`` attribute names.
 
 
+def has_parameter(energy, info_parameter: str) -> bool:
+    """
+    Return whether one parsed energy-like object exposes a parameter.
+    """
+
+    return info_parameter in getattr(energy, "info", {})
+
+
+def energies_with_parameter(energies: list, info_parameter: str) -> list:
+    """
+    Return only the loaded energy-like objects that expose a parameter.
+    """
+
+    return [
+        energy for energy in energies
+        if has_parameter(energy, info_parameter)
+    ]
+
+
+def available_parameters(energies: list, *, include_time: bool = True) -> list:
+    """
+    Return the ordered union of parameters exposed by loaded files.
+    """
+
+    parameters = []
+    seen = set()
+    for energy in energies:
+        for parameter in getattr(energy, "info", {}):
+            if not include_time and parameter == "SIMULATION-TIME":
+                continue
+            if parameter in seen:
+                continue
+            seen.add(parameter)
+            parameters.append(parameter)
+
+    return parameters
+
+
 @dataclass(frozen=True)
 class EnergySeries:
     """
@@ -61,6 +99,10 @@ def parameter_values(energy, info_parameter: str) -> np.ndarray:
     ``Energy`` object.
     """
 
+    if not has_parameter(energy, info_parameter):
+        raise ValueError(
+            f"Parameter {info_parameter} is not present in this energy file.")
+
     attribute = PARAMETER_ATTRIBUTES.get(info_parameter)
     if attribute is not None and hasattr(energy, attribute):
         return np.asarray(getattr(energy, attribute))
@@ -76,12 +118,29 @@ def parameter_unit(energy, info_parameter: str) -> str:
     from the same source as the values when possible.
     """
 
+    if not has_parameter(energy, info_parameter):
+        raise ValueError(
+            f"Parameter {info_parameter} is not present in this energy file.")
+
     attribute = PARAMETER_ATTRIBUTES.get(info_parameter)
     unit_attribute = f"{attribute}_unit"
     if attribute is not None and hasattr(energy, unit_attribute):
         return getattr(energy, unit_attribute)
 
     return energy.units[info_parameter]
+
+
+def parameter_unit_for_energies(energies: list, info_parameter: str) -> str:
+    """
+    Return a parameter unit from the first loaded file that exposes it.
+    """
+
+    matching_energies = energies_with_parameter(energies, info_parameter)
+    if not matching_energies:
+        raise ValueError(
+            f"Parameter {info_parameter} is not present in any input file.")
+
+    return parameter_unit(matching_energies[0], info_parameter)
 
 
 def simulation_time(energy) -> np.ndarray:
@@ -115,26 +174,40 @@ def concatenate_time(energies: list) -> np.ndarray:
 
 def concatenate_parameter(energies: list, info_parameter: str) -> np.ndarray:
     """
-    Concatenate one parameter from multiple energy files in reader order.
+    Concatenate one parameter from files that expose it in reader order.
     """
 
+    matching_energies = energies_with_parameter(energies, info_parameter)
+    if not matching_energies:
+        raise ValueError(
+            f"Parameter {info_parameter} is not present in any input file.")
+
     return np.concatenate(
-        [parameter_values(energy, info_parameter) for energy in energies])
+        [
+            parameter_values(energy, info_parameter)
+            for energy in matching_energies
+        ])
 
 
 def concatenate_series(energies: list, info_parameter: str) -> EnergySeries:
     """
     Return one normalized parameter series across multiple energy files.
 
-    Reader compatibility validation guarantees all files share the same unit,
-    so the returned series can safely use the first file's unit.
+    Files that do not expose the selected parameter are omitted. Reader
+    compatibility validation guarantees common parameters use the same unit, so
+    the returned series can safely use the first matching file's unit.
     """
 
+    matching_energies = energies_with_parameter(energies, info_parameter)
+    if not matching_energies:
+        raise ValueError(
+            f"Parameter {info_parameter} is not present in any input file.")
+
     return EnergySeries(
-        time=concatenate_time(energies),
+        time=concatenate_time(matching_energies),
         values=concatenate_parameter(energies, info_parameter),
         label=info_parameter,
-        unit=parameter_unit(energies[0], info_parameter),
+        unit=parameter_unit(matching_energies[0], info_parameter),
     )
 
 
@@ -150,6 +223,11 @@ def difference_series(energies: list, info_parameter: str) -> EnergySeries:
     if len(energies) != 2:
         raise ValueError(
             "Difference plotting requires exactly two input files.")
+
+    if not all(has_parameter(energy, info_parameter) for energy in energies):
+        raise ValueError(
+            "Difference plotting requires the selected parameter in both "
+            "input files.")
 
     first = series(energies[0], info_parameter)
     second = series(energies[1], info_parameter)

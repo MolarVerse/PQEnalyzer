@@ -9,7 +9,11 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
 from .._logging import get_logger
-from ..energy_access import parameter_unit, series
+from ..energy_access import (
+    has_parameter,
+    parameter_unit_for_energies,
+    series,
+)
 from .labels import unique_path_labels
 from .theme import (
     apply_figure_theme,
@@ -144,6 +148,9 @@ class PlotDashboard:
         """
 
         for index, energy in enumerate(self.reader.energies):
+            if not has_parameter(energy, parameter):
+                continue
+
             energy_series = series(energy, parameter)
             line = ax.plot(
                 energy_series.time,
@@ -164,7 +171,7 @@ class PlotDashboard:
         Label one dashboard axis compactly.
         """
 
-        unit = parameter_unit(self.reader.energies[0], parameter)
+        unit = parameter_unit_for_energies(self.reader.energies, parameter)
         palette = palette_for_appearance_mode(
             getattr(self.app, "appearance_mode", None))
         ax.set_title(f"{parameter} / {unit}", fontsize=9, loc="left", pad=6)
@@ -190,7 +197,7 @@ class PlotDashboard:
         if len(values) == 0:
             return
 
-        unit = parameter_unit(self.reader.energies[0], parameter)
+        unit = parameter_unit_for_energies(self.reader.energies, parameter)
         self.latest_values.setdefault(parameter, []).append(
             ValueReadoutEntry(
                 label=label,

@@ -44,6 +44,15 @@ class FakeEnergy:
         self.simulation_time = np.arange(1, len(values) + 1)
 
 
+class FakeMissingParameterEnergy:
+
+    def __init__(self):
+        self.info = {"OTHER": "OTHER"}
+        self.units = {"OTHER": "other-unit"}
+        self.data = {"OTHER": np.array([10.0, 11.0, 12.0])}
+        self.simulation_time = np.array([1, 2, 3])
+
+
 class FakeDashboardEnergy:
 
     def __init__(self):
@@ -150,6 +159,19 @@ def test_histogram_disambiguates_duplicate_filenames():
         "run-b/md.en KDE",
     ]
     assert len(plot.ax.collections) == 2
+
+
+def test_histogram_skips_files_missing_selected_parameter():
+    app = FakeApp([
+        FakeMissingParameterEnergy(),
+        FakeEnergy([1, 2, 3, 4]),
+    ])
+    plot = PlotHistogram(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
+    assert len(plot.ax.collections) == 1
 
 
 def test_histogram_statistics_draw_single_mean_and_median_lines():
@@ -262,6 +284,21 @@ def test_time_main_data_disambiguates_duplicate_filenames():
         "run-a/md.en (4 unit)",
         "run-b/md.en (5 unit)",
     ]
+
+
+def test_time_main_data_skips_files_missing_selected_parameter():
+    app = FakeApp([
+        FakeMissingParameterEnergy(),
+        FakeEnergy([1, 2, 3, 4]),
+    ])
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-1.en (4 unit)"
+    ]
+    assert len(plot.ax.lines) == 1
 
 
 def test_running_average_rejects_invalid_window_size_without_crashing(caplog):

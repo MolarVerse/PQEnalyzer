@@ -15,7 +15,7 @@ class Reader:
 
     PQAnalysis owns the energy-file parsing. This wrapper keeps the
     PQEnalyzer-specific behavior around multi-file reads: every selected file
-    must expose the same parameter mapping and units before plotting.
+    must use compatible units for parameters that appear in more than one file.
 
     Attributes
     ----------
@@ -119,23 +119,26 @@ class Reader:
 
     def __validate_energy_compatibility(self, energies):
         """
-        Check if all energy files expose the same parameters and units.
+        Check if shared energy parameters use matching units.
 
-        Multi-file plots assume each parameter label refers to the same column
-        and unit in every file. Rejecting mismatches here keeps plotting and
-        statistics code simple.
+        Multi-file plots can omit files that do not expose a selected
+        parameter. If two files expose the same parameter label, that label
+        must still use the same unit in both files.
         """
 
-        reference_info = energies[0].info
-        reference_units = energies[0].units
+        units_by_parameter = {}
+        reference_filename_by_parameter = {}
 
-        for index, energy in enumerate(energies[1:], start=1):
-            if energy.info != reference_info:
-                raise ValueError(
-                    "The energy files do not have the same info parameters: "
-                    f"{self.filenames[0]} and {self.filenames[index]}.")
+        for filename, energy in zip(self.filenames, energies):
+            for parameter, unit in energy.units.items():
+                if parameter not in units_by_parameter:
+                    units_by_parameter[parameter] = unit
+                    reference_filename_by_parameter[parameter] = filename
+                    continue
 
-            if energy.units != reference_units:
-                raise ValueError(
-                    "The energy files do not have the same units: "
-                    f"{self.filenames[0]} and {self.filenames[index]}.")
+                if unit != units_by_parameter[parameter]:
+                    reference_filename = reference_filename_by_parameter[
+                        parameter]
+                    raise ValueError(
+                        "The energy files do not have the same units for "
+                        f"{parameter}: {reference_filename} and {filename}.")

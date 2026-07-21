@@ -13,7 +13,11 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from .._logging import get_logger
-from ..energy_access import concatenate_series, simulation_time
+from ..energy_access import (
+    available_parameters,
+    concatenate_series,
+    simulation_time,
+)
 from ..plots.features import (
     PLOT_FEATURES,
     PLOT_FEATURES_BY_KEY,
@@ -295,7 +299,10 @@ class TuiApp(App):
 
         super().__init__()
         self.reader = reader
-        self.info = [*self.reader.energies[0].info][1:]
+        self.info = available_parameters(
+            self.reader.energies,
+            include_time=False,
+        )
         self.watch_enabled = watch
         self.file_watcher = None
         self.last_refresh = None

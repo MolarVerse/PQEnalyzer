@@ -15,6 +15,15 @@ class FakeEnergy:
         self.simulation_time = np.array(time)
 
 
+class FakeMissingParameterEnergy:
+
+    def __init__(self):
+        self.info = {"OTHER": "OTHER"}
+        self.units = {"OTHER": "other-unit"}
+        self.data = {"OTHER": np.array([10.0, 11.0, 12.0])}
+        self.simulation_time = np.array([1, 2, 3])
+
+
 class FakeReader:
 
     def __init__(self, energies):
@@ -31,6 +40,19 @@ def test_terminal_chart_contains_labels_and_series_name():
     assert "PARAMETER / unit" in chart
     assert "Simulation Time" in chart
     assert "run-0.en" in chart
+
+
+def test_terminal_chart_skips_files_missing_selected_parameter():
+    reader = FakeReader([
+        FakeMissingParameterEnergy(),
+        FakeEnergy([1.0, 2.0, 5.0]),
+    ])
+
+    chart = build_terminal_chart(reader, "PARAMETER", width=48, height=12)
+
+    assert "PARAMETER / unit" in chart
+    assert "run-0.en" not in chart
+    assert "run-1.en" in chart
 
 
 def test_terminal_chart_can_render_statistic_overlays():

@@ -6,7 +6,7 @@ from abc import abstractmethod, ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from ..energy_access import parameter_unit
+from ..energy_access import parameter_unit_for_energies
 from .._logging import get_logger
 from .features import PLOT_FEATURES
 from .options import PlotOptions
@@ -275,7 +275,10 @@ class Plot(metaclass=ABCMeta):
         Return a parameter label including the reader-reported unit.
         """
 
-        unit = parameter_unit(self.reader.energies[0], info_parameter)
+        unit = parameter_unit_for_energies(
+            self.reader.energies,
+            info_parameter,
+        )
         return f"{info_parameter} / {unit}"
 
     def style_single_plot(

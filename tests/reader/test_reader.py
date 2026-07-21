@@ -47,11 +47,15 @@ class TestReader:
         assert len(energy.info) == 12
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
-    def test_multiple_input_with_error(self, example_dir):
+    def test_multiple_input_with_missing_parameters(self, example_dir):
         list_filenames = [example_dir + "md-01.en", example_dir + "md-02.en"]
 
-        with pytest.raises(ValueError):
-            Reader(list_filenames, MDEngineFormat.PQ)
+        energy_files = Reader(list_filenames, MDEngineFormat.PQ).energies
+
+        assert "VOLUME" not in energy_files[0].info
+        assert "DENSITY" not in energy_files[0].info
+        assert "VOLUME" in energy_files[1].info
+        assert "DENSITY" in energy_files[1].info
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_multiple_input_with_different_parameters(self, tmp_path,
@@ -67,14 +71,16 @@ class TestReader:
             "VOLUME", "BOX-VOLUME", 1))
         changed.with_suffix(".info").write_text(changed_info)
 
-        with pytest.raises(ValueError, match="same info parameters"):
-            Reader(
-                [
-                    str(reference.with_suffix(".en")),
-                    str(changed.with_suffix(".en")),
-                ],
-                MDEngineFormat.PQ,
-            )
+        energy_files = Reader(
+            [
+                str(reference.with_suffix(".en")),
+                str(changed.with_suffix(".en")),
+            ],
+            MDEngineFormat.PQ,
+        ).energies
+
+        assert "VOLUME" in energy_files[0].info
+        assert "BOX-VOLUME" in energy_files[1].info
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_multiple_input_with_different_units(self, tmp_path, example_dir):

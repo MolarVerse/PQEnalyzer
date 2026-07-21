@@ -4,7 +4,7 @@ Terminal chart rendering for the Textual TUI.
 
 import plotext as plt
 
-from ..energy_access import parameter_unit, series
+from ..energy_access import has_parameter, parameter_unit_for_energies, series
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
 
@@ -21,6 +21,9 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
     if options is None or not options.plot_main:
         labels = unique_path_labels(reader.filenames)
         for index, energy in enumerate(reader.energies):
+            if not has_parameter(energy, info_parameter):
+                continue
+
             energy_series = series(energy, info_parameter)
             plt.plot(
                 energy_series.time,
@@ -41,7 +44,7 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
                 label=overlay.label,
             )
 
-    unit = parameter_unit(reader.energies[0], info_parameter)
+    unit = parameter_unit_for_energies(reader.energies, info_parameter)
     plt.title(f"{info_parameter} / {unit}")
     plt.xlabel("Simulation Time")
     plt.ylabel(f"{info_parameter} / {unit}")

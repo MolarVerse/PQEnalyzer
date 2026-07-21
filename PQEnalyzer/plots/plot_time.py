@@ -2,7 +2,12 @@
 Time-series plotting for PQ energy parameters.
 """
 
-from ..energy_access import parameter_unit, series
+from ..energy_access import (
+    has_parameter,
+    parameter_unit,
+    parameter_unit_for_energies,
+    series,
+)
 from .._logging import get_logger
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
@@ -57,6 +62,9 @@ class PlotTime(Plot):
 
         labels = unique_path_labels(self.reader.filenames)
         for i, energy in enumerate(self.reader.energies):
+            if not has_parameter(energy, info_parameter):
+                continue
+
             energy_series = series(energy, info_parameter)
             unit = parameter_unit(energy, info_parameter)
             self.ax.plot(
@@ -115,7 +123,10 @@ class PlotTime(Plot):
         """
 
         try:
-            unit = parameter_unit(self.reader.energies[0], info_parameter)
+            unit = parameter_unit_for_energies(
+                self.reader.energies,
+                info_parameter,
+            )
             for overlay in iter_time_series_overlays(
                 self.reader.energies,
                 info_parameter,

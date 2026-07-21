@@ -37,16 +37,16 @@ def test_cli_help_mentions_gui_and_tui_modes():
     assert "tui" in result.stdout
 
 
-def test_default_gui_mode_logs_reader_validation_errors():
+def test_default_gui_mode_logs_reader_errors():
     project_root = Path(__file__).resolve().parents[1]
+    missing_file = "tests/data/does-not-exist.en"
 
     result = subprocess.run(
         [
             sys.executable,
             "-m",
             "PQEnalyzer",
-            "tests/data/md-01.en",
-            "tests/data/md-02.en",
+            missing_file,
         ],
         cwd=project_root,
         capture_output=True,
@@ -56,12 +56,12 @@ def test_default_gui_mode_logs_reader_validation_errors():
 
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
-    assert "ERROR: The energy files do not have the same info parameters" in (
-        result.stderr)
+    assert f"File {missing_file} not found." in result.stderr
 
 
-def test_explicit_gui_mode_still_logs_reader_validation_errors():
+def test_explicit_gui_mode_still_logs_reader_errors():
     project_root = Path(__file__).resolve().parents[1]
+    missing_file = "tests/data/does-not-exist.en"
 
     result = subprocess.run(
         [
@@ -69,8 +69,7 @@ def test_explicit_gui_mode_still_logs_reader_validation_errors():
             "-m",
             "PQEnalyzer",
             "gui",
-            "tests/data/md-01.en",
-            "tests/data/md-02.en",
+            missing_file,
         ],
         cwd=project_root,
         capture_output=True,
@@ -80,8 +79,7 @@ def test_explicit_gui_mode_still_logs_reader_validation_errors():
 
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
-    assert "ERROR: The energy files do not have the same info parameters" in (
-        result.stderr)
+    assert f"File {missing_file} not found." in result.stderr
 
 
 def test_tui_mode_does_not_duplicate_upstream_reader_errors():
@@ -133,14 +131,14 @@ def test_cli_rejects_multiple_forced_input_formats():
 
 def test_cli_defaults_to_gui_mode():
     project_root = Path(__file__).resolve().parents[1]
+    missing_file = "tests/data/does-not-exist.en"
 
     result = subprocess.run(
         [
             sys.executable,
             "-m",
             "PQEnalyzer",
-            "tests/data/md-01.en",
-            "tests/data/md-02.en",
+            missing_file,
         ],
         cwd=project_root,
         capture_output=True,
@@ -151,8 +149,7 @@ def test_cli_defaults_to_gui_mode():
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
     assert "invalid choice" not in result.stderr
-    assert "ERROR: The energy files do not have the same info parameters" in (
-        result.stderr)
+    assert f"File {missing_file} not found." in result.stderr
 
 
 def test_default_gui_mode_accepts_input_format_flags():

@@ -114,9 +114,10 @@ PQEnalyzer also reads PQ box files through `PQAnalysis`. Box files are expected
 to contain `step x y z alpha beta gamma` columns. The plotted parameters are
 `BOX-X`, `BOX-Y`, `BOX-Z`, `ALPHA`, `BETA`, `GAMMA`, and `BOX-VOLUME`.
 
-When multiple files are supplied, their parsed parameter mappings and units must
-match. Files with different columns or incompatible units are rejected before
-plotting.
+When multiple files are supplied, common parameters are plotted together.
+Parameters that are present in only some files are still selectable and are
+plotted from the files that contain them. Shared parameters must use matching
+units; incompatible units are rejected before plotting.
 
 Difference plots require exactly two loaded files. Values are calculated as
 `file 1 - file 2` on shared simulation-time values. PQEnalyzer does not
