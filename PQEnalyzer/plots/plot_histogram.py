@@ -9,6 +9,7 @@ from .._logging import get_logger
 from .features import iter_histogram_guides
 from .labels import unique_path_labels
 from .plot import Plot
+from .theme import series_color
 
 
 logger = get_logger(__name__)
@@ -83,6 +84,10 @@ class PlotHistogram(Plot):
                 x,
                 y,
                 label=f"{labels[i]} KDE",
+                color=series_color(
+                    i,
+                    getattr(self.app, "appearance_mode", None),
+                ),
                 linewidth=1.8,
                 alpha=0.95,
                 zorder=3,

@@ -12,6 +12,7 @@ from .._logging import get_logger
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
 from .plot import Plot
+from .theme import series_color
 from .value_readout import latest_value_label
 
 
@@ -72,6 +73,10 @@ class PlotTime(Plot):
                 energy_series.values,
                 label=latest_value_label(labels[i], energy_series.values,
                                          unit),
+                color=series_color(
+                    i,
+                    getattr(self.app, "appearance_mode", None),
+                ),
                 linewidth=1.6,
                 alpha=0.92,
                 zorder=2,

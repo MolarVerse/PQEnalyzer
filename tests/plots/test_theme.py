@@ -31,6 +31,12 @@ def test_apply_matplotlib_theme_sets_dark_defaults():
             "legend"]
 
 
+def test_series_colors_are_stable_by_file_index():
+    assert theme.series_color(1, "Light") == theme.LIGHT_PALETTE["colors"][1]
+    assert theme.series_color(9, "Light") == theme.LIGHT_PALETTE["colors"][1]
+    assert theme.series_rgb(1, "Dark") == (251, 113, 133)
+
+
 def test_apply_figure_theme_updates_existing_plot_elements():
     with mpl.rc_context():
         figure, axes = plt.subplots()

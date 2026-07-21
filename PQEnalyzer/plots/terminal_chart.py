@@ -7,6 +7,7 @@ import plotext as plt
 from ..energy_access import has_parameter, parameter_unit_for_energies, series
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
+from .theme import series_rgb
 
 
 def build_terminal_chart(reader, info_parameter, width=88, height=22,
@@ -29,19 +30,25 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
+                color=series_rgb(index, "Dark"),
             )
 
     if options is not None:
-        for overlay in iter_time_series_overlays(
+        overlays = iter_time_series_overlays(
             reader.energies,
             info_parameter,
             options,
             window_policy="clamp",
-        ):
+        )
+        for overlay_index, overlay in enumerate(overlays):
             plt.plot(
                 overlay.time,
                 overlay.values,
                 label=overlay.label,
+                color=series_rgb(
+                    len(reader.energies) + overlay_index,
+                    "Dark",
+                ),
             )
 
     unit = parameter_unit_for_energies(reader.energies, info_parameter)

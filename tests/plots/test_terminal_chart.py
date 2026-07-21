@@ -1,7 +1,9 @@
 import numpy as np
 
+from PQEnalyzer.plots import terminal_chart
 from PQEnalyzer.plots.terminal_chart import build_terminal_chart
 from PQEnalyzer.plots.options import PlotOptions
+from PQEnalyzer.plots.theme import series_rgb
 
 
 class FakeEnergy:
@@ -42,17 +44,26 @@ def test_terminal_chart_contains_labels_and_series_name():
     assert "run-0.en" in chart
 
 
-def test_terminal_chart_skips_files_missing_selected_parameter():
+def test_terminal_chart_skips_files_without_shifting_file_color(monkeypatch):
     reader = FakeReader([
         FakeMissingParameterEnergy(),
         FakeEnergy([1.0, 2.0, 5.0]),
     ])
+    colors = {}
+    original_plot = terminal_chart.plt.plot
+
+    def recording_plot(*args, **kwargs):
+        colors[kwargs["label"]] = kwargs["color"]
+        return original_plot(*args, **kwargs)
+
+    monkeypatch.setattr(terminal_chart.plt, "plot", recording_plot)
 
     chart = build_terminal_chart(reader, "PARAMETER", width=48, height=12)
 
     assert "PARAMETER / unit" in chart
     assert "run-0.en" not in chart
     assert "run-1.en" in chart
+    assert colors["run-1.en"] == series_rgb(1, "Dark")
 
 
 def test_terminal_chart_can_render_statistic_overlays():

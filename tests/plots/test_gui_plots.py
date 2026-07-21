@@ -6,7 +6,7 @@ from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
 from PQEnalyzer.plots.plot import SINGLE_PLOT_FIGURE_SIZE
 from PQEnalyzer.plots.plot_time import PlotTime
-from PQEnalyzer.plots.theme import PLOT_FONT_SIZES
+from PQEnalyzer.plots.theme import PLOT_FONT_SIZES, series_color
 from PQEnalyzer.plots.value_readout import (
     ValueReadoutEntry,
     format_readout_value,
@@ -142,6 +142,7 @@ def test_histogram_skips_constant_series_and_plots_remaining_data(caplog):
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
     assert len(plot.ax.collections) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
     assert "Data zero. No histogram available." in caplog.text
 
 
@@ -172,6 +173,7 @@ def test_histogram_skips_files_missing_selected_parameter():
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
     assert len(plot.ax.collections) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
 
 
 def test_histogram_statistics_draw_single_mean_and_median_lines():
@@ -299,6 +301,7 @@ def test_time_main_data_skips_files_missing_selected_parameter():
         "series-1.en (4 unit)"
     ]
     assert len(plot.ax.lines) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
 
 
 def test_running_average_rejects_invalid_window_size_without_crashing(caplog):
@@ -472,6 +475,30 @@ def test_dashboard_uses_compact_latest_titles_for_multiple_files():
     plot.redraw()
 
     assert plot.axes[0].get_title(loc="right") == "302 | 304 K"
+
+
+def test_dashboard_keeps_file_colors_when_a_parameter_is_missing():
+    first = FakeDashboardEnergy()
+    first.info.pop("TEMPERATURE")
+    first.units.pop("TEMPERATURE")
+    first.data.pop("TEMPERATURE")
+    second = FakeDashboardEnergy()
+    app = FakeApp([first, second])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert [line.get_color() for line in plot.axes[0].lines] == [
+        series_color(1, "Light")
+    ]
+    assert [line.get_color() for line in plot.axes[1].lines] == [
+        series_color(0, "Light"),
+        series_color(1, "Light"),
+    ]
+    assert [text.get_text() for text in plot.figure.legends[0].get_texts()] == [
+        "series-0.en",
+        "series-1.en",
+    ]
 
 
 def test_dashboard_multi_value_title_keeps_mixed_units():

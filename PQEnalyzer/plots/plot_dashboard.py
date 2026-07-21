@@ -19,6 +19,7 @@ from .theme import (
     apply_figure_theme,
     apply_matplotlib_theme,
     palette_for_appearance_mode,
+    series_color,
 )
 from .value_readout import ValueReadoutEntry, format_readout_value
 
@@ -135,7 +136,7 @@ class PlotDashboard:
         for ax in self.axes[len(self.parameters):]:
             ax.set_visible(False)
 
-        self.__show_legend()
+        self.__show_legend(labels)
         self.__set_title()
         self.figure.tight_layout(rect=(0, 0.03, 1, 0.92),
                                  h_pad=1.0,
@@ -156,6 +157,10 @@ class PlotDashboard:
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
+                color=series_color(
+                    index,
+                    getattr(self.app, "appearance_mode", None),
+                ),
                 linewidth=1.45,
                 alpha=0.92,
             )[0]
@@ -239,24 +244,31 @@ class PlotDashboard:
 
         return " | ".join(entry.formatted_value for entry in entries)
 
-    def __show_legend(self):
+    def __show_legend(self, file_labels):
         """
-        Draw one shared legend for the dashboard.
+        Draw one shared legend containing every plotted input file.
         """
 
+        handles_by_label = {}
         for ax in self.axes:
             handles, labels = ax.get_legend_handles_labels()
-            if labels:
-                self.figure.legend(
-                    handles,
-                    labels,
-                    loc="upper right",
-                    bbox_to_anchor=(0.995, 0.985),
-                    ncol=min(4, len(labels)),
-                    fontsize="small",
-                    frameon=True,
-                )
-                return
+            for handle, label in zip(handles, labels):
+                handles_by_label.setdefault(label, handle)
+
+        labels = [
+            label for label in file_labels if label in handles_by_label
+        ]
+        if labels:
+            self.figure.legend(
+                [handles_by_label[label] for label in labels],
+                labels,
+                loc="upper right",
+                bbox_to_anchor=(0.995, 0.985),
+                ncol=min(4, len(labels)),
+                fontsize="small",
+                frameon=True,
+            )
+            return
 
         logger.warning("No data to plot.")
 

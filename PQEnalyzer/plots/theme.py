@@ -93,6 +93,24 @@ def palette_for_appearance_mode(appearance_mode=None):
     return LIGHT_PALETTE
 
 
+def series_color(index, appearance_mode=None):
+    """
+    Return the stable plot color assigned to one input-file index.
+    """
+
+    colors = palette_for_appearance_mode(appearance_mode)["colors"]
+    return colors[index % len(colors)]
+
+
+def series_rgb(index, appearance_mode=None):
+    """
+    Return one indexed series color as an RGB tuple for terminal plots.
+    """
+
+    color = series_color(index, appearance_mode).lstrip("#")
+    return tuple(int(color[offset:offset + 2], 16) for offset in (0, 2, 4))
+
+
 def apply_matplotlib_theme(appearance_mode=None):
     """
     Apply a CustomTkinter-aligned palette to matplotlib defaults.
