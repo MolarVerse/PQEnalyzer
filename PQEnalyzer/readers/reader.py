@@ -7,6 +7,9 @@ can compare multiple files.
 """
 
 from PQAnalysis.io import EnergyFileReader
+from PQAnalysis.traj import MDEngineFormat
+
+from .pq_energy import read_single_column_pq_energy_file
 
 
 class Reader:
@@ -104,6 +107,11 @@ class Reader:
         """
         Read one energy file with PQAnalysis using this Reader's MD format.
         """
+
+        if self.md_format == MDEngineFormat.PQ:
+            energy = read_single_column_pq_energy_file(filename)
+            if energy is not None:
+                return energy
 
         return EnergyFileReader(filename,
                                 engine_format=self.md_format).read()

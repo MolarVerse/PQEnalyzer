@@ -123,7 +123,7 @@ def _detect_energy_format(filename):
 
     for row in info_rows:
         columns = row.split()
-        if len(columns) != 8:
+        if len(columns) not in {5, 8}:
             pq_format = False
 
         if len(columns) not in {6, 7}:
