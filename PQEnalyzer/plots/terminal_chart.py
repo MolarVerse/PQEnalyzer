@@ -4,7 +4,12 @@ Terminal chart rendering for the Textual TUI.
 
 import plotext as plt
 
-from ..energy_access import has_parameter, parameter_unit_for_energies, series
+from ..energy_access import (
+    axis_label,
+    has_parameter,
+    parameter_unit_for_energies,
+    series,
+)
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
 from .theme import series_rgb
@@ -53,7 +58,7 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
 
     unit = parameter_unit_for_energies(reader.energies, info_parameter)
     plt.title(f"{info_parameter} / {unit}")
-    plt.xlabel("Simulation Time")
+    plt.xlabel(axis_label(reader.energies[0]))
     plt.ylabel(f"{info_parameter} / {unit}")
 
     chart = plt.build()

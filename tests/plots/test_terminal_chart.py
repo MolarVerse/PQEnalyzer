@@ -66,6 +66,16 @@ def test_terminal_chart_skips_files_without_shifting_file_color(monkeypatch):
     assert colors["run-1.en"] == series_rgb(1, "Dark")
 
 
+def test_terminal_chart_uses_custom_independent_axis_label():
+    energy = FakeEnergy([1.0, 2.0, 5.0])
+    energy.axis_label = "Optimization Step"
+    reader = FakeReader([energy])
+
+    chart = build_terminal_chart(reader, "PARAMETER", width=48, height=12)
+
+    assert "Optimization Step" in chart
+
+
 def test_terminal_chart_can_render_statistic_overlays():
     reader = FakeReader([FakeEnergy([1.0, 2.0, 4.0, 8.0, 16.0])])
     options = PlotOptions(

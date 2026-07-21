@@ -3,6 +3,7 @@ Time-series plotting for PQ energy parameters.
 """
 
 from ..energy_access import (
+    axis_label,
     has_parameter,
     parameter_unit,
     parameter_unit_for_energies,
@@ -98,7 +99,7 @@ class PlotTime(Plot):
 
         self.style_single_plot(
             title=f"{info_parameter} time series",
-            xlabel="Simulation step",
+            xlabel=axis_label(self.reader.energies[0]),
             ylabel=self.parameter_axis_label(info_parameter),
         )
 

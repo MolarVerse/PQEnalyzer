@@ -11,6 +11,7 @@ from PQAnalysis.traj import MDEngineFormat
 
 from .._logging import get_logger
 from .box_reader import BoxReader
+from .optimizer_reader import OptimizerReader
 from .reader import Reader
 
 
@@ -18,7 +19,14 @@ AUTO_FORMAT = "auto"
 PQ_FORMAT = "pq"
 QMCFC_FORMAT = "qmcfc"
 BOX_FORMAT = "box"
-INPUT_FORMATS = {AUTO_FORMAT, PQ_FORMAT, QMCFC_FORMAT, BOX_FORMAT}
+OPTIMIZER_FORMAT = "opt"
+INPUT_FORMATS = {
+    AUTO_FORMAT,
+    PQ_FORMAT,
+    QMCFC_FORMAT,
+    BOX_FORMAT,
+    OPTIMIZER_FORMAT,
+}
 
 logger = get_logger(__name__)
 
@@ -43,6 +51,10 @@ def create_reader(filenames, input_format=AUTO_FORMAT):
         logger.info("Using box input.")
         return BoxReader(filenames)
 
+    if input_format == OPTIMIZER_FORMAT:
+        logger.info("Using PQ optimizer input.")
+        return OptimizerReader(filenames)
+
     if input_format == PQ_FORMAT:
         logger.info("Using PQ energy input.")
         return Reader(filenames, MDEngineFormat.PQ)
@@ -58,6 +70,14 @@ def _create_auto_reader(filenames):
     """
     Select a reader by probing supported input formats.
     """
+
+    if _contains_optimizer_filename(filenames):
+        if not _contains_only_optimizer_filenames(filenames):
+            raise ReaderDetectionError(
+                "Cannot mix optimizer files with other input files.")
+
+        logger.info("Detected PQ optimizer input.")
+        return OptimizerReader(filenames)
 
     if _contains_box_filename(filenames):
         if not _contains_only_box_filenames(filenames):
@@ -191,3 +211,27 @@ def _is_box_filename(filename):
     """
 
     return Path(filename).suffix.lower() == ".box"
+
+
+def _contains_optimizer_filename(filenames):
+    """
+    Return whether at least one filename looks like a PQ optimizer file.
+    """
+
+    return any(_is_optimizer_filename(filename) for filename in filenames)
+
+
+def _contains_only_optimizer_filenames(filenames):
+    """
+    Return whether every filename looks like a PQ optimizer file.
+    """
+
+    return all(_is_optimizer_filename(filename) for filename in filenames)
+
+
+def _is_optimizer_filename(filename):
+    """
+    Return whether a filename has the conventional optimizer suffix.
+    """
+
+    return Path(filename).suffix.lower() == ".opt"
