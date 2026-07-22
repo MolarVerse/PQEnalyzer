@@ -4,11 +4,12 @@ Histogram/KDE plotting for PQ energy parameters.
 from scipy.stats import gaussian_kde
 import numpy as np
 
-from ..energy_access import parameter_values
+from ..energy_access import has_parameter, parameter_values
 from .._logging import get_logger
 from .features import iter_histogram_guides
 from .labels import unique_path_labels
 from .plot import Plot
+from .theme import series_color
 
 
 logger = get_logger(__name__)
@@ -59,6 +60,9 @@ class PlotHistogram(Plot):
 
         labels = unique_path_labels(self.reader.filenames)
         for i, energy in enumerate(self.reader.energies):
+            if not has_parameter(energy, info_parameter):
+                continue
+
             data = parameter_values(energy, info_parameter)
 
             # check if zero data
@@ -80,6 +84,10 @@ class PlotHistogram(Plot):
                 x,
                 y,
                 label=f"{labels[i]} KDE",
+                color=series_color(
+                    i,
+                    getattr(self.app, "appearance_mode", None),
+                ),
                 linewidth=1.8,
                 alpha=0.95,
                 zorder=3,

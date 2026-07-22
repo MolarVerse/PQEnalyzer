@@ -8,6 +8,7 @@ import customtkinter as ctk
 import matplotlib.pyplot as plt
 
 from .._logging import get_logger
+from ..energy_access import available_parameters
 from ..plots import PlotDashboard, PlotTime, PlotHistogram
 from ..plots.features import PLOT_FEATURES
 from ..plots.options import PlotOptions
@@ -56,9 +57,10 @@ class App(ctk.CTk):
         configure_window(self)
 
         self.reader = reader
-        self.info = [
-            *self.reader.energies[0].info
-        ][1:]
+        self.info = available_parameters(
+            self.reader.energies,
+            include_time=False,
+        )
 
         self.list_of_plots = []
         self.selected_plot = None

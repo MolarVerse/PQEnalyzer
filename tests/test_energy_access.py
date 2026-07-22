@@ -5,11 +5,15 @@ from PQAnalysis.io import EnergyFileReader
 from PQAnalysis.traj import MDEngineFormat
 
 from PQEnalyzer.energy_access import (
+    available_parameters,
     concatenate_parameter,
     concatenate_series,
     concatenate_time,
     difference_series,
+    energies_with_parameter,
+    has_parameter,
     parameter_unit,
+    parameter_unit_for_energies,
     parameter_values,
     series,
     simulation_time,
@@ -80,6 +84,49 @@ def test_concatenate_helpers_join_series_from_multiple_energy_files():
     assert energy_series.unit == "ps"
 
 
+def test_energy_access_omits_files_missing_selected_parameter():
+    energies = Reader(
+        ["tests/data/md-01.en", "tests/data/md-02.en"],
+        MDEngineFormat.PQ,
+    ).energies
+
+    assert has_parameter(energies[0], "VOLUME") is False
+    assert has_parameter(energies[1], "VOLUME") is True
+    assert energies_with_parameter(energies, "VOLUME") == [energies[1]]
+    assert "VOLUME" in available_parameters(energies, include_time=False)
+    assert "DENSITY" in available_parameters(energies, include_time=False)
+    assert parameter_unit_for_energies(energies, "VOLUME") == "A^3"
+
+    energy_series = concatenate_series(energies, "VOLUME")
+
+    np.testing.assert_array_equal(energy_series.time, np.arange(6, 11))
+    np.testing.assert_allclose(energy_series.values, energies[1].volume)
+    assert energy_series.unit == "A^3"
+
+
+def test_parameter_access_rejects_missing_parameter():
+    energy = read_energy("tests/data/md-01.en")
+
+    with pytest.raises(ValueError, match="not present"):
+        parameter_values(energy, "VOLUME")
+
+    with pytest.raises(ValueError, match="not present"):
+        parameter_unit(energy, "VOLUME")
+
+
+def test_collection_parameter_access_rejects_missing_parameter():
+    energies = [CustomEnergy()]
+
+    with pytest.raises(ValueError, match="not present in any input file"):
+        parameter_unit_for_energies(energies, "MISSING")
+
+    with pytest.raises(ValueError, match="not present in any input file"):
+        concatenate_parameter(energies, "MISSING")
+
+    with pytest.raises(ValueError, match="not present in any input file"):
+        concatenate_series(energies, "MISSING")
+
+
 def test_difference_series_subtracts_two_aligned_series():
     first = CustomEnergy(values=[10.0, 11.0, 12.0])
     second = CustomEnergy(values=[1.0, 2.0, 3.0])
@@ -97,6 +144,16 @@ def test_difference_series_requires_exactly_two_files():
 
     with pytest.raises(ValueError, match="exactly two input files"):
         difference_series([energy], "CUSTOM")
+
+
+def test_difference_series_requires_parameter_in_both_files():
+    energies = Reader(
+        ["tests/data/md-01.en", "tests/data/md-02.en"],
+        MDEngineFormat.PQ,
+    ).energies
+
+    with pytest.raises(ValueError, match="selected parameter in both"):
+        difference_series(energies, "VOLUME")
 
 
 def test_difference_series_uses_shared_time_axis_values():

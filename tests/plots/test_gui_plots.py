@@ -6,7 +6,7 @@ from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
 from PQEnalyzer.plots.plot import SINGLE_PLOT_FIGURE_SIZE
 from PQEnalyzer.plots.plot_time import PlotTime
-from PQEnalyzer.plots.theme import PLOT_FONT_SIZES
+from PQEnalyzer.plots.theme import PLOT_FONT_SIZES, series_color
 from PQEnalyzer.plots.value_readout import (
     ValueReadoutEntry,
     format_readout_value,
@@ -42,6 +42,15 @@ class FakeEnergy:
         self.units = {"PARAMETER": "unit"}
         self.data = {"PARAMETER": np.array(values, dtype=float)}
         self.simulation_time = np.arange(1, len(values) + 1)
+
+
+class FakeMissingParameterEnergy:
+
+    def __init__(self):
+        self.info = {"OTHER": "OTHER"}
+        self.units = {"OTHER": "other-unit"}
+        self.data = {"OTHER": np.array([10.0, 11.0, 12.0])}
+        self.simulation_time = np.array([1, 2, 3])
 
 
 class FakeDashboardEnergy:
@@ -133,6 +142,7 @@ def test_histogram_skips_constant_series_and_plots_remaining_data(caplog):
 
     assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
     assert len(plot.ax.collections) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
     assert "Data zero. No histogram available." in caplog.text
 
 
@@ -150,6 +160,20 @@ def test_histogram_disambiguates_duplicate_filenames():
         "run-b/md.en KDE",
     ]
     assert len(plot.ax.collections) == 2
+
+
+def test_histogram_skips_files_missing_selected_parameter():
+    app = FakeApp([
+        FakeMissingParameterEnergy(),
+        FakeEnergy([1, 2, 3, 4]),
+    ])
+    plot = PlotHistogram(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == ["series-1.en KDE"]
+    assert len(plot.ax.collections) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
 
 
 def test_histogram_statistics_draw_single_mean_and_median_lines():
@@ -262,6 +286,22 @@ def test_time_main_data_disambiguates_duplicate_filenames():
         "run-a/md.en (4 unit)",
         "run-b/md.en (5 unit)",
     ]
+
+
+def test_time_main_data_skips_files_missing_selected_parameter():
+    app = FakeApp([
+        FakeMissingParameterEnergy(),
+        FakeEnergy([1, 2, 3, 4]),
+    ])
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-1.en (4 unit)"
+    ]
+    assert len(plot.ax.lines) == 1
+    assert plot.ax.lines[0].get_color() == series_color(1, "Light")
 
 
 def test_running_average_rejects_invalid_window_size_without_crashing(caplog):
@@ -435,6 +475,65 @@ def test_dashboard_uses_compact_latest_titles_for_multiple_files():
     plot.redraw()
 
     assert plot.axes[0].get_title(loc="right") == "302 | 304 K"
+
+
+def test_dashboard_keeps_file_colors_when_a_parameter_is_missing():
+    first = FakeDashboardEnergy()
+    first.info.pop("TEMPERATURE")
+    first.units.pop("TEMPERATURE")
+    first.data.pop("TEMPERATURE")
+    second = FakeDashboardEnergy()
+    app = FakeApp([first, second])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert [line.get_color() for line in plot.axes[0].lines] == [
+        series_color(1, "Light")
+    ]
+    assert [line.get_color() for line in plot.axes[1].lines] == [
+        series_color(0, "Light"),
+        series_color(1, "Light"),
+    ]
+    assert [text.get_text() for text in plot.figure.legends[0].get_texts()] == [
+        "series-0.en",
+        "series-1.en",
+    ]
+
+
+def test_dashboard_shares_full_time_range_across_parameters():
+    first = FakeDashboardEnergy()
+    first.info.pop("TEMPERATURE")
+    first.units.pop("TEMPERATURE")
+    first.data.pop("TEMPERATURE")
+    first.simulation_time = np.array([0.0, 1.0, 2.0])
+
+    second = FakeDashboardEnergy()
+    second.info.pop("PRESSURE")
+    second.units.pop("PRESSURE")
+    second.data.pop("PRESSURE")
+    second.simulation_time = np.array([5.0, 6.0, 7.0])
+
+    plot = PlotDashboard(FakeApp([first, second]))
+
+    plot.redraw()
+
+    np.testing.assert_allclose(plot.axes[0].get_xlim(), (0.0, 7.0))
+    np.testing.assert_allclose(plot.axes[1].get_xlim(), (0.0, 7.0))
+
+
+def test_dashboard_expands_shared_range_for_single_time_value():
+    energy = FakeDashboardEnergy()
+    energy.simulation_time = np.array([2.0])
+    for parameter in ("TEMPERATURE", "PRESSURE"):
+        energy.data[parameter] = energy.data[parameter][:1]
+
+    plot = PlotDashboard(FakeApp([energy]))
+
+    plot.redraw()
+
+    np.testing.assert_allclose(plot.axes[0].get_xlim(), (1.5, 2.5))
+    np.testing.assert_allclose(plot.axes[1].get_xlim(), (1.5, 2.5))
 
 
 def test_dashboard_multi_value_title_keeps_mixed_units():

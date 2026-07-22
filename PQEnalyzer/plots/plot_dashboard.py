@@ -7,14 +7,20 @@ import signal
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import numpy as np
 
 from .._logging import get_logger
-from ..energy_access import parameter_unit, series
+from ..energy_access import (
+    has_parameter,
+    parameter_unit_for_energies,
+    series,
+)
 from .labels import unique_path_labels
 from .theme import (
     apply_figure_theme,
     apply_matplotlib_theme,
     palette_for_appearance_mode,
+    series_color,
 )
 from .value_readout import ValueReadoutEntry, format_readout_value
 
@@ -128,10 +134,12 @@ class PlotDashboard:
             self.__label_axis(ax, parameter, index)
             self.__style_axis(ax, parameter)
 
+        self.__apply_shared_x_limits()
+
         for ax in self.axes[len(self.parameters):]:
             ax.set_visible(False)
 
-        self.__show_legend()
+        self.__show_legend(labels)
         self.__set_title()
         self.figure.tight_layout(rect=(0, 0.03, 1, 0.92),
                                  h_pad=1.0,
@@ -144,11 +152,18 @@ class PlotDashboard:
         """
 
         for index, energy in enumerate(self.reader.energies):
+            if not has_parameter(energy, parameter):
+                continue
+
             energy_series = series(energy, parameter)
             line = ax.plot(
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
+                color=series_color(
+                    index,
+                    getattr(self.app, "appearance_mode", None),
+                ),
                 linewidth=1.45,
                 alpha=0.92,
             )[0]
@@ -164,7 +179,7 @@ class PlotDashboard:
         Label one dashboard axis compactly.
         """
 
-        unit = parameter_unit(self.reader.energies[0], parameter)
+        unit = parameter_unit_for_energies(self.reader.energies, parameter)
         palette = palette_for_appearance_mode(
             getattr(self.app, "appearance_mode", None))
         ax.set_title(f"{parameter} / {unit}", fontsize=9, loc="left", pad=6)
@@ -190,7 +205,7 @@ class PlotDashboard:
         if len(values) == 0:
             return
 
-        unit = parameter_unit(self.reader.energies[0], parameter)
+        unit = parameter_unit_for_energies(self.reader.energies, parameter)
         self.latest_values.setdefault(parameter, []).append(
             ValueReadoutEntry(
                 label=label,
@@ -232,26 +247,57 @@ class PlotDashboard:
 
         return " | ".join(entry.formatted_value for entry in entries)
 
-    def __show_legend(self):
+    def __show_legend(self, file_labels):
         """
-        Draw one shared legend for the dashboard.
+        Draw one shared legend containing every plotted input file.
         """
 
+        handles_by_label = {}
         for ax in self.axes:
             handles, labels = ax.get_legend_handles_labels()
-            if labels:
-                self.figure.legend(
-                    handles,
-                    labels,
-                    loc="upper right",
-                    bbox_to_anchor=(0.995, 0.985),
-                    ncol=min(4, len(labels)),
-                    fontsize="small",
-                    frameon=True,
-                )
-                return
+            for handle, label in zip(handles, labels):
+                handles_by_label.setdefault(label, handle)
+
+        labels = [
+            label for label in file_labels if label in handles_by_label
+        ]
+        if labels:
+            self.figure.legend(
+                [handles_by_label[label] for label in labels],
+                labels,
+                loc="upper right",
+                bbox_to_anchor=(0.995, 0.985),
+                ncol=min(4, len(labels)),
+                fontsize="small",
+                frameon=True,
+            )
+            return
 
         logger.warning("No data to plot.")
+
+    def __apply_shared_x_limits(self):
+        """
+        Apply the full plotted time range to every dashboard panel.
+        """
+
+        x_values = []
+        for ax in self.axes[:len(self.parameters)]:
+            for line in ax.lines:
+                values = np.asarray(line.get_xdata(), dtype=float)
+                x_values.extend(values[np.isfinite(values)])
+
+        if not x_values:
+            return
+
+        lower = min(x_values)
+        upper = max(x_values)
+        if lower == upper:
+            margin = max(abs(lower) * 0.05, 0.5)
+            lower -= margin
+            upper += margin
+
+        for ax in self.axes[:len(self.parameters)]:
+            ax.set_xlim(lower, upper)
 
     def __safe_read_last(self):
         """

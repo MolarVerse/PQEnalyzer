@@ -4,9 +4,10 @@ Terminal chart rendering for the Textual TUI.
 
 import plotext as plt
 
-from ..energy_access import parameter_unit, series
+from ..energy_access import has_parameter, parameter_unit_for_energies, series
 from .features import iter_time_series_overlays
 from .labels import unique_path_labels
+from .theme import series_rgb
 
 
 def build_terminal_chart(reader, info_parameter, width=88, height=22,
@@ -21,27 +22,36 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
     if options is None or not options.plot_main:
         labels = unique_path_labels(reader.filenames)
         for index, energy in enumerate(reader.energies):
+            if not has_parameter(energy, info_parameter):
+                continue
+
             energy_series = series(energy, info_parameter)
             plt.plot(
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
+                color=series_rgb(index, "Dark"),
             )
 
     if options is not None:
-        for overlay in iter_time_series_overlays(
+        overlays = iter_time_series_overlays(
             reader.energies,
             info_parameter,
             options,
             window_policy="clamp",
-        ):
+        )
+        for overlay_index, overlay in enumerate(overlays):
             plt.plot(
                 overlay.time,
                 overlay.values,
                 label=overlay.label,
+                color=series_rgb(
+                    len(reader.energies) + overlay_index,
+                    "Dark",
+                ),
             )
 
-    unit = parameter_unit(reader.energies[0], info_parameter)
+    unit = parameter_unit_for_energies(reader.energies, info_parameter)
     plt.title(f"{info_parameter} / {unit}")
     plt.xlabel("Simulation Time")
     plt.ylabel(f"{info_parameter} / {unit}")
