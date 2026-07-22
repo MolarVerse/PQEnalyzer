@@ -23,6 +23,7 @@ from ..plots.features import (
     PLOT_FEATURES_BY_KEY,
     enabled_feature_labels,
 )
+from ..plots.labels import parameter_label
 from ..plots.options import PlotOptions
 from ..plots.terminal_chart import build_terminal_chart
 from .file_watcher import FileChangeWatcher
@@ -620,7 +621,7 @@ class TuiApp(App):
             summary = self.summaries[parameter]
             table.add_row(
                 parameter,
-                summary.unit,
+                summary.unit or "n/a",
                 str(summary.rows),
                 format_value(summary.latest),
                 format_value(summary.mean),
@@ -642,10 +643,11 @@ class TuiApp(App):
             return
 
         summary = self.summaries[parameter]
+        unit = summary.unit or "n/a"
         title = Text.assemble(
             (parameter, "bold #58a6ff"),
             ("  Unit ", "#8b949e"),
-            (summary.unit, "bold #c9d1d9"),
+            (unit, "bold #c9d1d9"),
             ("  Rows ", "#8b949e"),
             (str(summary.rows), "bold #c9d1d9"),
         )
@@ -709,7 +711,7 @@ class TuiApp(App):
         summary = self.summaries[parameter]
         self.query_one("#chart-title", Static).update(
             Text.assemble(
-                (f"{parameter} / {summary.unit}", "bold #58a6ff"),
+                (parameter_label(parameter, summary.unit), "bold #58a6ff"),
                 f"  rows {summary.rows}",
                 f"  latest {format_value(summary.latest)}",
             ))

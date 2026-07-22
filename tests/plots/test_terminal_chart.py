@@ -8,11 +8,11 @@ from PQEnalyzer.plots.theme import series_rgb
 
 class FakeEnergy:
 
-    def __init__(self, values, time=None):
+    def __init__(self, values, time=None, unit="unit"):
         if time is None:
             time = [1, 2, 3]
         self.info = {"PARAMETER": "PARAMETER"}
-        self.units = {"PARAMETER": "unit"}
+        self.units = {"PARAMETER": unit}
         self.data = {"PARAMETER": np.array(values)}
         self.simulation_time = np.array(time)
 
@@ -74,6 +74,15 @@ def test_terminal_chart_uses_custom_independent_axis_label():
     chart = build_terminal_chart(reader, "PARAMETER", width=48, height=12)
 
     assert "Optimization Step" in chart
+
+
+def test_terminal_chart_omits_missing_qmcfc_unit():
+    reader = FakeReader([FakeEnergy([300.0, 301.0, 302.0], unit=None)])
+
+    chart = build_terminal_chart(reader, "PARAMETER", width=48, height=12)
+
+    assert "PARAMETER" in chart
+    assert "None" not in chart
 
 
 def test_terminal_chart_can_render_statistic_overlays():

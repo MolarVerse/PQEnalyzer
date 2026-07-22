@@ -35,6 +35,17 @@ def unique_path_labels(filenames):
     return labels
 
 
+def parameter_label(parameter, unit):
+    """
+    Return a parameter label without inventing a missing unit.
+    """
+
+    if not unit:
+        return parameter
+
+    return f"{parameter} / {unit}"
+
+
 def _unique_group_labels(members):
     max_depth = max(len(parts) for _, parts in members)
 

@@ -35,6 +35,18 @@ class FakeReader:
         self.energies = [FakeEnergy([1.0, 3.0, 9.0])]
 
 
+class FakeUnitlessReader:
+
+    def __init__(self):
+        energy = FakeEnergy([300.0, 301.0, 302.0])
+        energy.units["PARAMETER"] = None
+        self.filenames = ["qmcfc.en"]
+        self.energies = [energy]
+
+    def read_last(self):
+        return None
+
+
 class FakeMultiParameterEnergy:
 
     info = {
@@ -184,6 +196,29 @@ def test_tui_app_switches_between_dashboard_and_chart():
             await pilot.pause()
 
             assert app.active_view == "dashboard"
+
+    asyncio.run(run_scenario())
+
+
+def test_tui_app_marks_missing_qmcfc_unit_without_leaking_none():
+    app = TuiApp(FakeUnitlessReader(), watch=False)
+
+    async def run_scenario():
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+
+            table = app.query_one("#parameters", DataTable)
+            detail = app.query_one("#detail-title", Static)
+            assert table.get_row("PARAMETER")[1] == "n/a"
+            assert "Unit n/a" in str(detail.content)
+
+            await pilot.press("enter")
+            await pilot.pause()
+
+            chart_title = app.query_one("#chart-title", Static)
+            chart = app.query_one("#chart-canvas", Static)
+            assert "PARAMETER /" not in str(chart_title.content)
+            assert "None" not in str(chart.content)
 
     asyncio.run(run_scenario())
 

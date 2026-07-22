@@ -11,7 +11,7 @@ from ..energy_access import (
     series,
 )
 from .features import iter_time_series_overlays
-from .labels import unique_path_labels
+from .labels import parameter_label, unique_path_labels
 from .theme import series_rgb
 
 
@@ -57,9 +57,10 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
             )
 
     unit = parameter_unit_for_energies(reader.energies, info_parameter)
-    plt.title(f"{info_parameter} / {unit}")
+    label = parameter_label(info_parameter, unit)
+    plt.title(label)
     plt.xlabel(axis_label(reader.energies[0]))
-    plt.ylabel(f"{info_parameter} / {unit}")
+    plt.ylabel(label)
 
     chart = plt.build()
     plt.clear_figure()

@@ -16,7 +16,7 @@ from ..energy_access import (
     parameter_unit_for_energies,
     series,
 )
-from .labels import unique_path_labels
+from .labels import parameter_label, unique_path_labels
 from .theme import (
     apply_figure_theme,
     apply_matplotlib_theme,
@@ -183,7 +183,12 @@ class PlotDashboard:
         unit = parameter_unit_for_energies(self.reader.energies, parameter)
         palette = palette_for_appearance_mode(
             getattr(self.app, "appearance_mode", None))
-        ax.set_title(f"{parameter} / {unit}", fontsize=9, loc="left", pad=6)
+        ax.set_title(
+            parameter_label(parameter, unit),
+            fontsize=9,
+            loc="left",
+            pad=6,
+        )
         ax.set_title(
             self.__latest_value_title(parameter),
             fontsize=8,

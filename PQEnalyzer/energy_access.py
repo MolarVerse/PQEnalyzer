@@ -125,9 +125,11 @@ def parameter_unit(energy, info_parameter: str) -> str:
     attribute = PARAMETER_ATTRIBUTES.get(info_parameter)
     unit_attribute = f"{attribute}_unit"
     if attribute is not None and hasattr(energy, unit_attribute):
-        return getattr(energy, unit_attribute)
+        unit = getattr(energy, unit_attribute)
+    else:
+        unit = energy.units[info_parameter]
 
-    return energy.units[info_parameter]
+    return unit or ""
 
 
 def parameter_unit_for_energies(energies: list, info_parameter: str) -> str:
