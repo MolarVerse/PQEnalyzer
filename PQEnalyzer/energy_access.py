@@ -151,6 +151,25 @@ def simulation_time(energy) -> np.ndarray:
     return np.asarray(energy.simulation_time)
 
 
+def axis_label(energy) -> str:
+    """
+    Return the display label for an energy-like object's independent axis.
+    """
+
+    custom_label = getattr(energy, "axis_label", None)
+    if custom_label:
+        return custom_label
+
+    time_unit = getattr(energy, "simulation_time_unit", None)
+    if time_unit is None:
+        time_unit = getattr(energy, "units", {}).get("SIMULATION-TIME")
+
+    if time_unit == "step":
+        return "Simulation Step"
+
+    return "Simulation Time"
+
+
 def series(energy, info_parameter: str) -> EnergySeries:
     """
     Return one file's normalized parameter series for plotting.
@@ -231,13 +250,14 @@ def difference_series(energies: list, info_parameter: str) -> EnergySeries:
 
     first = series(energies[0], info_parameter)
     second = series(energies[1], info_parameter)
+    axis_name = axis_label(energies[0]).lower().replace(" ", "-")
 
     if (
         first.time.shape != first.values.shape
         or second.time.shape != second.values.shape
     ):
         raise ValueError(
-            "Difference plotting requires one value per simulation-time point."
+            f"Difference plotting requires one value per {axis_name} point."
         )
 
     _, first_indices, second_indices = np.intersect1d(
@@ -248,7 +268,7 @@ def difference_series(energies: list, info_parameter: str) -> EnergySeries:
     )
     if first_indices.size == 0:
         raise ValueError(
-            "Difference plotting requires shared simulation-time values.")
+            f"Difference plotting requires shared {axis_name} values.")
 
     first_order = np.argsort(first_indices)
     first_indices = first_indices[first_order]

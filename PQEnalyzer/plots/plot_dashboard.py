@@ -11,6 +11,7 @@ import numpy as np
 
 from .._logging import get_logger
 from ..energy_access import (
+    axis_label,
     has_parameter,
     parameter_unit_for_energies,
     series,
@@ -195,7 +196,10 @@ class PlotDashboard:
 
         nrows, ncols = self.__grid_shape()
         if index // ncols == nrows - 1:
-            ax.set_xlabel("Simulation step", fontsize=8)
+            ax.set_xlabel(
+                axis_label(self.reader.energies[0]),
+                fontsize=8,
+            )
 
     def __add_latest_value(self, parameter, label, line, values):
         """

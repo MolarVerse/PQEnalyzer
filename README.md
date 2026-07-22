@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # PQEnalyzer
-Energy and parameter analyzer for PQ molecular dynamics trajectories.
+Energy, box, and optimizer-output analyzer for PQ simulations.
 
 ## Installation
     
@@ -31,14 +31,16 @@ terminal:
 pqenalyzer tui examples/md-02.en
 ```
 
-PQEnalyzer detects PQ energy files, QMCFC energy files, and PQ box files
-automatically. Energy files are detected from the matching `.info` sidecar file.
-Box files are detected by the conventional `.box` suffix:
+PQEnalyzer detects PQ energy files, QMCFC energy files, PQ box files, and PQ
+optimizer files automatically. Energy files are detected from the matching
+`.info` sidecar file. Box and optimizer files are detected by their conventional
+`.box` and `.opt` suffixes:
 
 ```bash
 pqenalyzer pq_output.en
 pqenalyzer qmcfc_output.en
 pqenalyzer examples/box-01.box
+pqenalyzer examples/optimization.opt
 ```
 
 The input format can still be forced when needed. These examples open the GUI
@@ -48,6 +50,7 @@ because GUI mode is the default:
 pqenalyzer --pq pq_output.en
 pqenalyzer --qmcfc qmcfc_output.en
 pqenalyzer --box box_output.data
+pqenalyzer --opt optimizer_output.data
 ```
 
 Use the explicit `gui` subcommand only when you prefer that spelling:
@@ -115,14 +118,25 @@ PQEnalyzer also reads PQ box files through `PQAnalysis`. Box files are expected
 to contain `step x y z alpha beta gamma` columns. The plotted parameters are
 `BOX-X`, `BOX-Y`, `BOX-Z`, `ALPHA`, `BETA`, `GAMMA`, and `BOX-VOLUME`.
 
+PQ optimizer `.opt` files are read through `PQAnalysis` and use optimization
+step as their x-axis. All twelve optimizer values are available in both the GUI
+and TUI: absolute and relative energy changes, maximum and RMS forces, their
+four convergence states, and their four limits. Convergence states retain PQ's
+values: `-1` means not converged, `0` means disabled, and `1` means converged.
+PQ writes its initialization snapshot as the first row, so PQEnalyzer preserves
+that row as part of the raw output. PQEnalyzer does not infer optimizer states
+that are absent from the file; use the matching PQ log for final completion
+status.
+
 When multiple files are supplied, common parameters are plotted together.
 Parameters that are present in only some files are still selectable and are
 plotted from the files that contain them. Shared parameters must use matching
 units; incompatible units are rejected before plotting.
 
 Difference plots require exactly two loaded files. Values are calculated as
-`file 1 - file 2` on shared simulation-time values. PQEnalyzer does not
-interpolate, extrapolate, or concatenate difference data.
+`file 1 - file 2` on shared simulation-time, simulation-step, or
+optimization-step values. PQEnalyzer does not interpolate, extrapolate, or
+concatenate difference data.
 
 ## Development
 

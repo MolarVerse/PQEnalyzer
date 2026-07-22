@@ -6,6 +6,7 @@ from PQAnalysis.traj import MDEngineFormat
 
 from PQEnalyzer.energy_access import (
     available_parameters,
+    axis_label,
     concatenate_parameter,
     concatenate_series,
     concatenate_time,
@@ -228,3 +229,18 @@ def test_energy_access_supports_box_reader_adapter():
     assert box_series.label == "BOX-VOLUME"
     assert box_series.unit == "A^3"
     assert box_series.values.shape == (5, )
+
+
+def test_axis_label_uses_custom_label_when_available():
+    energy = CustomEnergy()
+    energy.axis_label = "Optimization Step"
+
+    assert axis_label(energy) == "Optimization Step"
+
+
+def test_axis_label_distinguishes_time_and_step_units():
+    energy = CustomEnergy()
+    assert axis_label(energy) == "Simulation Time"
+
+    box_data = BoxReader(["examples/box-01.box"]).energies[0]
+    assert axis_label(box_data) == "Simulation Step"

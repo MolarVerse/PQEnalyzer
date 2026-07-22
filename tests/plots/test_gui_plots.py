@@ -269,8 +269,19 @@ def test_time_labels_use_time_series_title_and_parameter_axis():
     plot.labels("PARAMETER")
 
     assert plot.ax.get_title(loc="left") == "PARAMETER time series"
-    assert plot.ax.get_xlabel() == "Simulation step"
+    assert plot.ax.get_xlabel() == "Simulation Time"
     assert plot.ax.get_ylabel() == "PARAMETER / unit"
+
+
+def test_time_labels_use_custom_independent_axis_label():
+    energy = FakeEnergy([1, 2, 3, 4])
+    energy.axis_label = "Optimization Step"
+    app = FakeApp([energy])
+    plot = PlotTime(app)
+
+    plot.labels("PARAMETER")
+
+    assert plot.ax.get_xlabel() == "Optimization Step"
 
 
 def test_time_main_data_disambiguates_duplicate_filenames():
@@ -462,6 +473,17 @@ def test_dashboard_plots_all_parameters_as_raw_overview():
     assert len(plot.axes[0].texts) == 0
     assert len(plot.axes[1].texts) == 0
     assert len(plot.figure.legends) == 1
+
+
+def test_dashboard_uses_custom_independent_axis_label():
+    energy = FakeDashboardEnergy()
+    energy.axis_label = "Optimization Step"
+    app = FakeApp([energy])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert plot.axes[-1].get_xlabel() == "Optimization Step"
 
 
 def test_dashboard_uses_compact_latest_titles_for_multiple_files():

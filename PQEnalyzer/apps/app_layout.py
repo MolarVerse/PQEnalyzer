@@ -257,7 +257,7 @@ class ParameterSelectorView:
             self.frame,
             values=app.info,
             command=change_info_callback,
-            width=150,
+            width=210,
             anchor="c",
         )
         self.optionmenu.grid(row=1, column=1, padx=20, pady=10)

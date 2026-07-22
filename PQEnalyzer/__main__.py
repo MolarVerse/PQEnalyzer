@@ -53,6 +53,9 @@ def _add_input_arguments(parser):
     input_group.add_argument("--box",
                              action="store_true",
                              help="Read PQ box files instead of energy files.")
+    input_group.add_argument("--opt",
+                             action="store_true",
+                             help="Read PQ optimizer output files.")
     parser.add_argument(
         "filenames",
         metavar="filenames",
@@ -65,9 +68,10 @@ def _input_format(args, parser):
     Resolve explicit input-format arguments into a reader format.
     """
 
-    forced_formats = [args.pq, args.qmcfc, args.box]
+    forced_formats = [args.pq, args.qmcfc, args.box, args.opt]
     if sum(forced_formats) > 1:
-        parser.error("--pq, --qmcfc, and --box are mutually exclusive.")
+        parser.error(
+            "--pq, --qmcfc, --box, and --opt are mutually exclusive.")
 
     if args.pq:
         return "pq"
@@ -75,6 +79,8 @@ def _input_format(args, parser):
         return "qmcfc"
     if args.box:
         return "box"
+    if args.opt:
+        return "opt"
 
     return "auto"
 

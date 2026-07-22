@@ -4,6 +4,7 @@ from PQAnalysis.traj import MDEngineFormat
 from PQEnalyzer.readers import factory
 from PQEnalyzer.readers.factory import (
     BOX_FORMAT,
+    OPTIMIZER_FORMAT,
     PQ_FORMAT,
     QMCFC_FORMAT,
     ReaderDetectionError,
@@ -39,15 +40,25 @@ class FakeBoxReader:
             raise self.error
 
 
+class FakeOptimizerReader:
+    calls = []
+
+    def __init__(self, filenames):
+        self.filenames = list(filenames)
+        self.calls.append(self.filenames)
+
+
 @pytest.fixture(autouse=True)
 def fake_readers(monkeypatch):
     FakeReader.outcomes = {}
     FakeReader.calls = []
     FakeBoxReader.error = None
     FakeBoxReader.calls = []
+    FakeOptimizerReader.calls = []
 
     monkeypatch.setattr(factory, "Reader", FakeReader)
     monkeypatch.setattr(factory, "BoxReader", FakeBoxReader)
+    monkeypatch.setattr(factory, "OptimizerReader", FakeOptimizerReader)
 
 
 def test_create_reader_rejects_unknown_input_format():
@@ -60,6 +71,13 @@ def test_create_reader_forces_box_format():
 
     assert isinstance(reader, FakeBoxReader)
     assert FakeBoxReader.calls == [["md.data"]]
+
+
+def test_create_reader_forces_optimizer_format():
+    reader = create_reader(["run.data"], input_format=OPTIMIZER_FORMAT)
+
+    assert isinstance(reader, FakeOptimizerReader)
+    assert FakeOptimizerReader.calls == [["run.data"]]
 
 
 def test_create_reader_forces_pq_format():
@@ -82,6 +100,25 @@ def test_auto_detects_box_suffix_case_insensitively():
     assert isinstance(reader, FakeBoxReader)
     assert FakeBoxReader.calls == [["run-a.BOX", "run-b.box"]]
     assert FakeReader.calls == []
+
+
+def test_auto_detects_optimizer_suffix_case_insensitively():
+    reader = create_reader(["run-a.OPT", "run-b.opt"])
+
+    assert isinstance(reader, FakeOptimizerReader)
+    assert FakeOptimizerReader.calls == [["run-a.OPT", "run-b.opt"]]
+    assert FakeReader.calls == []
+    assert FakeBoxReader.calls == []
+
+
+def test_auto_rejects_mixed_optimizer_and_other_filenames():
+    with pytest.raises(ReaderDetectionError,
+                       match="Cannot mix optimizer files"):
+        create_reader(["run.opt", "run.en"])
+
+    assert FakeOptimizerReader.calls == []
+    assert FakeReader.calls == []
+    assert FakeBoxReader.calls == []
 
 
 def test_auto_rejects_mixed_box_and_energy_filenames():

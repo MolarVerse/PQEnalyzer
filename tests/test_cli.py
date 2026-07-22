@@ -37,6 +37,22 @@ def test_cli_help_mentions_gui_and_tui_modes():
     assert "tui" in result.stdout
 
 
+def test_gui_help_mentions_optimizer_input():
+    project_root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [sys.executable, "-m", "PQEnalyzer", "gui", "--help"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "--opt" in result.stdout
+    assert "optimizer output" in result.stdout
+
+
 def test_default_gui_mode_logs_reader_errors():
     project_root = Path(__file__).resolve().parents[1]
     missing_file = "tests/data/does-not-exist.en"
