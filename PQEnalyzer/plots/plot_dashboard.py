@@ -7,6 +7,7 @@ import signal
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import numpy as np
 
 from .._logging import get_logger
 from ..energy_access import (
@@ -132,6 +133,8 @@ class PlotDashboard:
             self.__plot_parameter(ax, parameter, labels)
             self.__label_axis(ax, parameter, index)
             self.__style_axis(ax, parameter)
+
+        self.__apply_shared_x_limits()
 
         for ax in self.axes[len(self.parameters):]:
             ax.set_visible(False)
@@ -271,6 +274,30 @@ class PlotDashboard:
             return
 
         logger.warning("No data to plot.")
+
+    def __apply_shared_x_limits(self):
+        """
+        Apply the full plotted time range to every dashboard panel.
+        """
+
+        x_values = []
+        for ax in self.axes[:len(self.parameters)]:
+            for line in ax.lines:
+                values = np.asarray(line.get_xdata(), dtype=float)
+                x_values.extend(values[np.isfinite(values)])
+
+        if not x_values:
+            return
+
+        lower = min(x_values)
+        upper = max(x_values)
+        if lower == upper:
+            margin = max(abs(lower) * 0.05, 0.5)
+            lower -= margin
+            upper += margin
+
+        for ax in self.axes[:len(self.parameters)]:
+            ax.set_xlim(lower, upper)
 
     def __safe_read_last(self):
         """

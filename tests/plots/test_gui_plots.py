@@ -501,6 +501,41 @@ def test_dashboard_keeps_file_colors_when_a_parameter_is_missing():
     ]
 
 
+def test_dashboard_shares_full_time_range_across_parameters():
+    first = FakeDashboardEnergy()
+    first.info.pop("TEMPERATURE")
+    first.units.pop("TEMPERATURE")
+    first.data.pop("TEMPERATURE")
+    first.simulation_time = np.array([0.0, 1.0, 2.0])
+
+    second = FakeDashboardEnergy()
+    second.info.pop("PRESSURE")
+    second.units.pop("PRESSURE")
+    second.data.pop("PRESSURE")
+    second.simulation_time = np.array([5.0, 6.0, 7.0])
+
+    plot = PlotDashboard(FakeApp([first, second]))
+
+    plot.redraw()
+
+    np.testing.assert_allclose(plot.axes[0].get_xlim(), (0.0, 7.0))
+    np.testing.assert_allclose(plot.axes[1].get_xlim(), (0.0, 7.0))
+
+
+def test_dashboard_expands_shared_range_for_single_time_value():
+    energy = FakeDashboardEnergy()
+    energy.simulation_time = np.array([2.0])
+    for parameter in ("TEMPERATURE", "PRESSURE"):
+        energy.data[parameter] = energy.data[parameter][:1]
+
+    plot = PlotDashboard(FakeApp([energy]))
+
+    plot.redraw()
+
+    np.testing.assert_allclose(plot.axes[0].get_xlim(), (1.5, 2.5))
+    np.testing.assert_allclose(plot.axes[1].get_xlim(), (1.5, 2.5))
+
+
 def test_dashboard_multi_value_title_keeps_mixed_units():
     app = FakeApp([FakeDashboardEnergy()])
     plot = PlotDashboard(app)
