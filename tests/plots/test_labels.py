@@ -1,4 +1,9 @@
-from PQEnalyzer.plots.labels import unique_path_labels
+from PQEnalyzer.plots.labels import parameter_label, unique_path_labels
+
+
+def test_parameter_label_includes_only_available_units():
+    assert parameter_label("TEMPERATURE", "K") == "TEMPERATURE / K"
+    assert parameter_label("TEMPERATURE", "") == "TEMPERATURE"
 
 
 def test_unique_path_labels_keep_unique_basenames():

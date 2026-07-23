@@ -37,9 +37,9 @@ class FakeEntry:
 
 class FakeEnergy:
 
-    def __init__(self, values):
+    def __init__(self, values, unit="unit"):
         self.info = {"PARAMETER": "PARAMETER"}
-        self.units = {"PARAMETER": "unit"}
+        self.units = {"PARAMETER": unit}
         self.data = {"PARAMETER": np.array(values, dtype=float)}
         self.simulation_time = np.arange(1, len(values) + 1)
 
@@ -284,6 +284,19 @@ def test_time_labels_use_custom_independent_axis_label():
     assert plot.ax.get_xlabel() == "Optimization Step"
 
 
+def test_time_plot_omits_missing_qmcfc_unit_from_labels():
+    app = FakeApp([FakeEnergy([300, 301, 302], unit=None)])
+    plot = PlotTime(app)
+
+    plot.main_data("PARAMETER")
+    plot.labels("PARAMETER")
+
+    assert plot.ax.get_ylabel() == "PARAMETER"
+    assert plot.ax.get_legend().get_texts()[0].get_text() == (
+        "series-0.en (302)"
+    )
+
+
 def test_time_main_data_disambiguates_duplicate_filenames():
     app = FakeApp(
         [FakeEnergy([1, 2, 3, 4]), FakeEnergy([2, 3, 4, 5])],
@@ -484,6 +497,19 @@ def test_dashboard_uses_custom_independent_axis_label():
     plot.redraw()
 
     assert plot.axes[-1].get_xlabel() == "Optimization Step"
+
+
+def test_dashboard_omits_missing_qmcfc_units_from_titles():
+    energy = FakeDashboardEnergy()
+    energy.units["TEMPERATURE"] = None
+    energy.units["PRESSURE"] = None
+    app = FakeApp([energy])
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert plot.axes[0].get_title(loc="left") == "TEMPERATURE"
+    assert plot.axes[1].get_title(loc="left") == "PRESSURE"
 
 
 def test_dashboard_uses_compact_latest_titles_for_multiple_files():

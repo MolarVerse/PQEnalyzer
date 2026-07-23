@@ -65,6 +65,17 @@ def test_parameter_access_keeps_custom_parameter_fallback():
                                   np.array([1.0, 2.0, 3.0]))
 
 
+def test_parameter_access_normalizes_missing_qmcfc_units():
+    energy = Reader(
+        ["tests/data/qmcfc-output.en"],
+        MDEngineFormat.QMCFC,
+    ).energies[0]
+
+    assert parameter_unit(energy, "TEMPERATURE") == ""
+    assert parameter_unit(energy, "QM_MOLECULES") == ""
+    assert series(energy, "TEMPERATURE").unit == ""
+
+
 def test_concatenate_helpers_join_series_from_multiple_energy_files():
     energies = [
         read_energy("tests/data/md-01.en"),
