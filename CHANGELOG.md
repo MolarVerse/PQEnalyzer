@@ -1,6 +1,31 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.8.4](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.4) - 2026-07-23
+
+<small>[Compare with v0.8.3](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.3...v0.8.4)</small>
+
+### Docs
+
+- correct v0.8.3 changelog ([3d92b1a](https://github.com/MolarVerse/PQEnalyzer/commit/3d92b1a02d2d8d06c2389b785add1da55e98e41f) by Josef M. Gallmetzer).
+- update changelog ([e5a0fd8](https://github.com/MolarVerse/PQEnalyzer/commit/e5a0fd8576f7f3564e9abf46dcf54bc4b1bf1290) by github-actions[bot]).
+
+### Features
+
+- plot pq optimizer output (#85) ([381911e](https://github.com/MolarVerse/PQEnalyzer/commit/381911e391e3e3c8a6a55085ceef068697ff7c8d) by Josef M. Gallmetzer).
+
+### Bug Fixes
+
+- handle unitless qmcfc parameters (#87) ([fc0c5e3](https://github.com/MolarVerse/PQEnalyzer/commit/fc0c5e3b1899622305f5353e20cef4ce96c913fb) by Josef M. Gallmetzer).
+- share dashboard time range ([1828ee8](https://github.com/MolarVerse/PQEnalyzer/commit/1828ee801f863ab31ec30552aeb9d9baa87abd02) by Josef M. Gallmetzer).
+- keep input file colors stable ([38d1689](https://github.com/MolarVerse/PQEnalyzer/commit/38d1689620519c564749aee86c10bc0a3ec58496) by Josef M. Gallmetzer).
+- support single-column pq info rows ([f32b5c6](https://github.com/MolarVerse/PQEnalyzer/commit/f32b5c6d4e54168e2f8408ec77b0e7065aaed7b8) by Josef M. Gallmetzer).
+- allow missing multi-file parameters ([33ca2be](https://github.com/MolarVerse/PQEnalyzer/commit/33ca2be13013a4e31262abab93f525b656437ede) by Josef M. Gallmetzer).
+
+### Tests
+
+- cover single-column info in gui and tui ([443e205](https://github.com/MolarVerse/PQEnalyzer/commit/443e20594a8ba9cece41aaa00ca2ac7062f64e5c) by Josef M. Gallmetzer).
+
 ## [v0.8.3](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.3) - 2026-06-22
 
 <small>[Compare with v0.8.2](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.2...v0.8.3)</small>
