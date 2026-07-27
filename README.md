@@ -75,8 +75,10 @@ overview with one panel per parameter.
 
 `Auto-Refresh` is enabled by default. It watches the loaded input files and
 refreshes open plots when new simulation output is written. Disable it to pause
-file watching. Plot controls apply to the selected focused plot, so different
-plot windows can use different statistics and overlays at the same time.
+file watching. If the native file watcher is unavailable, PQEnalyzer falls back
+to polling and marks that mode in the GUI status. Plot controls apply to the
+selected focused plot, so different plot windows can use different statistics
+and overlays at the same time.
 
 Available statistics and overlays are:
 
