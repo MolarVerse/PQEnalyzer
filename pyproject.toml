@@ -10,7 +10,7 @@ authors = [
     {name="Leo Christanell", email="leochristanell@gmail.com"},
     {name="Jakob Gamper", email="97gamjak@gmail.com"}
 ]
-description = "A package that help analyze PQ energy and parameter output."
+description = "Plot and monitor PQ simulation output."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
