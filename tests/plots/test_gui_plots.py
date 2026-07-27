@@ -1,6 +1,8 @@
+import math
+from types import SimpleNamespace
+
 import numpy as np
 import matplotlib.pyplot as plt
-from types import SimpleNamespace
 
 from PQEnalyzer.plots.plot_dashboard import PlotDashboard
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
@@ -148,12 +150,26 @@ class FakeApp:
         self.info = ["TEMPERATURE", "PRESSURE"]
         self.focus_calls = []
         self.appearance_mode = "Light"
+        self.plot_scale = 1.0
+        self.scale_actions = []
+        self.remembered_plot_sizes = {}
+        self.preferences = SimpleNamespace(
+            plot_sizes=self.remembered_plot_sizes)
 
     def select_plot(self, plot):
         self.selected_plot = plot
 
     def open_focus_plot(self, parameter):
         self.focus_calls.append(parameter)
+
+    def change_plot_scale(self, action):
+        self.scale_actions.append(action)
+
+    def plot_size(self, plot_kind, default):
+        return self.remembered_plot_sizes.get(plot_kind, default)
+
+    def remember_plot_size(self, plot_kind, size):
+        self.remembered_plot_sizes[plot_kind] = tuple(size)
 
 
 def teardown_function():
@@ -285,6 +301,46 @@ def test_single_plot_uses_roomier_initial_window_size():
         plot.figure.get_size_inches(),
         SINGLE_PLOT_FIGURE_SIZE,
     )
+
+
+def test_single_plot_restores_and_remembers_resized_window():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    app.remembered_plot_sizes["single"] = (9.5, 6.5)
+    plot = PlotTime(app)
+
+    np.testing.assert_allclose(plot.figure.get_size_inches(), (9.5, 6.5))
+
+    plot.figure.set_size_inches(12, 8)
+    plot._Plot__resize_event(SimpleNamespace())
+
+    np.testing.assert_allclose(
+        app.remembered_plot_sizes["single"],
+        (12, 8),
+    )
+
+
+def test_single_plot_keyboard_shortcuts_change_plot_scale():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+
+    plot._Plot__key_press_event(SimpleNamespace(key="+"))
+    plot._Plot__key_press_event(SimpleNamespace(key="cmd+-"))
+    plot._Plot__key_press_event(SimpleNamespace(key="x"))
+
+    assert app.scale_actions == ["increase", "decrease"]
+
+
+def test_single_plot_typography_uses_app_plot_scale():
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    app.plot_scale = 1.5
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+
+    plot.plot_data()
+
+    assert plot.ax._left_title.get_size() == 24
+    assert plot.ax.xaxis.label.get_size() == 21
+    assert plot.ax.get_xticklabels()[0].get_size() == 18
 
 
 def test_time_labels_use_time_series_title_and_parameter_axis():
@@ -565,6 +621,165 @@ def test_dashboard_bounds_large_parameter_grid_to_screen_shape():
     assert plot._PlotDashboard__grid_shape() == (5, 5)
     assert tuple(plot.figure.get_size_inches()) == (15.0, 9.5)
     assert len(plot.axes) == 25
+
+
+def test_dashboard_reflows_grid_when_window_shape_changes():
+    energy = FakeLargeDashboardEnergy()
+    app = FakeApp([energy])
+    app.info = energy.parameters
+    plot = PlotDashboard(app)
+
+    plot.figure.set_size_inches(6, 10)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=600, height=1000))
+
+    assert plot._PlotDashboard__grid_shape() == (7, 3)
+    assert plot._grid_shape == (7, 3)
+    assert len(plot.axes) == 21
+
+    plot.figure.set_size_inches(16, 6)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=1600, height=600))
+
+    assert plot._PlotDashboard__grid_shape() == (4, 6)
+    assert plot._grid_shape == (4, 6)
+    assert len(plot.axes) == 24
+    np.testing.assert_allclose(
+        app.remembered_plot_sizes["dashboard"],
+        (16, 6),
+    )
+
+
+def test_dashboard_growth_never_reduces_average_panel_area():
+    energy = FakeLargeDashboardEnergy(number_of_parameters=11)
+    app = FakeApp([energy])
+    app.info = energy.parameters
+    plot = PlotDashboard(app)
+
+    assert plot._grid_shape == (3, 4)
+    old_panel_area = (
+        plot._canvas_size[0]
+        * plot._canvas_size[1]
+        / math.prod(plot._grid_shape)
+    )
+
+    plot.figure.set_size_inches(16, 6.5)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=1600, height=650))
+
+    new_panel_area = 1600 * 650 / math.prod(plot._grid_shape)
+    assert plot._grid_shape == (3, 4)
+    assert new_panel_area >= old_panel_area
+
+
+def test_dashboard_updates_compact_typography_without_grid_change():
+    energy = FakeLargeDashboardEnergy(number_of_parameters=11)
+    app = FakeApp([energy])
+    app.info = energy.parameters
+    app.plot_scale = 2.0
+    plot = PlotDashboard(app)
+    plot.redraw()
+    initial_font_size = plot.axes[0]._left_title.get_fontsize()
+    plot.figure.canvas.draw()
+    renderer = plot.figure.canvas.get_renderer()
+    initial_bounds = plot.axes[0].get_window_extent(renderer)
+    initial_panel_area = initial_bounds.width * initial_bounds.height
+
+    plot.figure.set_size_inches(15, 9)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=1500, height=900))
+    plot.figure.canvas.draw()
+    resized_bounds = plot.axes[0].get_window_extent(
+        plot.figure.canvas.get_renderer())
+    resized_panel_area = resized_bounds.width * resized_bounds.height
+
+    assert plot._grid_shape == (3, 4)
+    assert plot._panel_scale == 1.4
+    assert plot.axes[0]._left_title.get_fontsize() > initial_font_size
+    assert resized_panel_area >= initial_panel_area
+
+
+def test_dashboard_switches_dense_large_text_to_compact_labels():
+    energy = FakeLargeDashboardEnergy()
+    app = FakeApp([energy])
+    app.info = energy.parameters
+    app.plot_scale = 2.0
+
+    plot = PlotDashboard(app)
+    plot.redraw()
+
+    assert plot._grid_shape == (5, 5)
+    assert plot._compact_labels is True
+    assert plot._panel_scale == 1.0
+    assert plot.axes[0].get_title(loc="left") == "PARAMETER-00"
+    assert plot.axes[0]._left_title.get_fontsize() == 9
+    assert plot.axes[0].texts[0].get_fontsize() == 7.5
+    assert plot.figure._suptitle.get_fontsize() == 21
+    assert all(
+        not label.get_visible()
+        for label in plot.axes[0].get_xticklabels()
+    )
+    assert all(
+        label.get_visible()
+        for label in plot.axes[20].get_xticklabels()
+    )
+
+    plot.figure.canvas.draw()
+    renderer = plot.figure.canvas.get_renderer()
+    panel_bounds = [
+        ax.get_window_extent(renderer)
+        for ax in plot.axes[:len(plot.parameters)]
+    ]
+    assert min(bounds.width for bounds in panel_bounds) > 200
+    assert min(bounds.height for bounds in panel_bounds) > 90
+
+
+def test_dashboard_compacts_multi_file_readout_at_large_scale():
+    first = FakeDashboardEnergy()
+    second = FakeDashboardEnergy()
+    second.data["TEMPERATURE"] = np.array([301.0, 303.0, 304.0])
+    second.simulation_time = second.data["SIMULATION-TIME"]
+    app = FakeApp([first, second])
+    app.plot_scale = 2.0
+    plot = PlotDashboard(app)
+
+    plot.redraw()
+
+    assert plot._compact_labels is True
+    assert plot.axes[0].get_title(loc="left") == "TEMPERATURE"
+    assert plot.axes[0].texts[0].get_text() == "302 K | +1"
+
+
+def test_dashboard_keyboard_shortcuts_change_plot_scale():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+
+    plot._PlotDashboard__key_press_event(SimpleNamespace(key="ctrl+="))
+    plot._PlotDashboard__key_press_event(SimpleNamespace(key="0"))
+    plot._PlotDashboard__key_press_event(SimpleNamespace(key="x"))
+
+    assert app.scale_actions == ["increase", "reset"]
+
+
+def test_dashboard_fit_to_screen_uses_native_window_geometry():
+    app = FakeApp([FakeDashboardEnergy()])
+    plot = PlotDashboard(app)
+    geometries = []
+    window = SimpleNamespace(
+        winfo_screenwidth=lambda: 1920,
+        winfo_screenheight=lambda: 1080,
+        geometry=geometries.append,
+    )
+    plot.figure.canvas.manager = SimpleNamespace(window=window)
+
+    assert plot.fit_to_screen() is True
+    assert geometries == ["1824x972+48+54"]
+
+    plot._PlotDashboard__key_press_event(SimpleNamespace(key="f"))
+    assert geometries == [
+        "1824x972+48+54",
+        "1824x972+48+54",
+    ]
 
 
 def test_dashboard_uses_custom_independent_axis_label():

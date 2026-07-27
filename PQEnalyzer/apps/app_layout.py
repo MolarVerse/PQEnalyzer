@@ -13,16 +13,19 @@ from pathlib import Path
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
-ICON_PATH = Path(__file__).resolve().parents[1] / "icons" / "icon.png"
+from ..preferences import PLOT_SCALE_LABELS, plot_scale_label
 from ..plots.features import STATISTIC_FEATURES, TIME_SERIES_FEATURES
 
 
-def configure_default_theme():
+ICON_PATH = Path(__file__).resolve().parents[1] / "icons" / "icon.png"
+
+
+def configure_default_theme(appearance_mode="System"):
     """
-    Configure the default CustomTkinter theme.
+    Configure the persisted CustomTkinter theme.
     """
 
-    ctk.set_appearance_mode("System")
+    ctk.set_appearance_mode(appearance_mode)
     ctk.set_default_color_theme("blue")
 
 
@@ -54,9 +57,15 @@ class SidebarView:
         Callback invoked by the appearance-mode option menu.
     """
 
-    def __init__(self, app, change_appearance_mode_callback):
+    def __init__(
+        self,
+        app,
+        change_appearance_mode_callback,
+        change_plot_scale_callback,
+    ):
         self.app = app
         self.change_appearance_mode_callback = change_appearance_mode_callback
+        self.change_plot_scale_callback = change_plot_scale_callback
 
         self.frame = ctk.CTkFrame(app, width=140, corner_radius=0)
         self.frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
@@ -78,12 +87,37 @@ class SidebarView:
         )
         self.logo_label.grid(row=1, column=0, padx=10, pady=10)
 
+        self.plot_scale_label = ctk.CTkLabel(
+            self.frame,
+            text="Plot Size:",
+            anchor="w",
+        )
+        self.plot_scale_label.grid(
+            row=5,
+            column=0,
+            padx=20,
+            pady=(10, 0),
+        )
+        self.plot_scale_optionemenu = ctk.CTkOptionMenu(
+            self.frame,
+            values=list(PLOT_SCALE_LABELS),
+            command=change_plot_scale_callback,
+        )
+        self.plot_scale_optionemenu.grid(
+            row=6,
+            column=0,
+            padx=20,
+            pady=(10, 10),
+        )
+        self.plot_scale_optionemenu.set(
+            plot_scale_label(getattr(app, "plot_scale", 1.0)))
+
         self.appearance_mode_label = ctk.CTkLabel(
             self.frame,
             text="Appearance Mode:",
             anchor="w",
         )
-        self.appearance_mode_label.grid(row=5,
+        self.appearance_mode_label.grid(row=7,
                                         column=0,
                                         padx=20,
                                         pady=(10, 0))
@@ -92,16 +126,18 @@ class SidebarView:
             values=["System", "Light", "Dark"],
             command=change_appearance_mode_callback,
         )
-        self.appearance_mode_optionemenu.grid(row=6,
+        self.appearance_mode_optionemenu.grid(row=8,
                                               column=0,
                                               padx=20,
                                               pady=(10, 10))
-        self.appearance_mode_optionemenu.set("System")
+        self.appearance_mode_optionemenu.set(
+            getattr(app, "appearance_mode_setting", "System"))
 
         app.sidebar_frame = self.frame
         app.logo = self.logo
         app.sidebar_image_label = self.image_label
         app.logo_label = self.logo_label
+        app.plot_scale_optionemenu = self.plot_scale_optionemenu
         app.appearance_mode_label = self.appearance_mode_label
         app.appearance_mode_optionemenu = self.appearance_mode_optionemenu
 

@@ -88,9 +88,29 @@ Available statistics and overlays are:
 - `Running Average`
 
 Double-click a `Live Monitor` panel to open a focused plot for that parameter.
+Resize a plot window normally and the contents will refit automatically. The
+`Live Monitor` also redistributes its parameter grid between rows and columns
+as the window shape changes without making panels smaller when the window
+grows. At larger text presets, dense dashboards automatically switch to
+compact titles, readouts, and ticks so the data area remains readable. Press
+`f` in the `Live Monitor` to fit it to the current screen.
+
+Choose an exact `Plot Size` percentage in the GUI sidebar. In a plot window,
+`+` and `-` move through the same presets and `Ctrl+0` or `Command+0` restores
+`100%`. Plot sizing does not change the fixed selection window. PQEnalyzer
+remembers the theme, plot size, plot window dimensions, selected parameter,
+auto-refresh state, statistics, overlays, raw-data visibility, and
+running-average window for the next launch.
+
 When `Difference (1 - 2)` is enabled, PQEnalyzer compares the first file against
 the second file and hides the raw data by default so the difference is easier to
 read.
+
+Settings are stored in `settings.json` under the platform user-config
+directory: `~/Library/Application Support/PQEnalyzer` on macOS,
+`$XDG_CONFIG_HOME/pqenalyzer` (or `~/.config/pqenalyzer`) on Linux, and
+`%APPDATA%\PQEnalyzer` on Windows. Set `PQENALYZER_CONFIG_DIR` to override that
+directory.
 
 ### TUI
 

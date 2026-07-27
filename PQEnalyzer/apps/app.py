@@ -2,6 +2,7 @@
 Graphical CustomTkinter application coordinator.
 """
 
+import math
 import signal
 
 import customtkinter as ctk
@@ -9,6 +10,14 @@ import matplotlib.pyplot as plt
 
 from .._logging import get_logger
 from ..energy_access import available_parameters
+from ..preferences import (
+    PLOT_SIZE_KEYS,
+    adjusted_plot_scale,
+    load_preferences,
+    plot_scale_from_label,
+    plot_scale_label,
+    save_preferences,
+)
 from ..plots import PlotDashboard, PlotTime, PlotHistogram
 from ..plots.features import PLOT_FEATURES
 from ..plots.options import PlotOptions
@@ -50,10 +59,14 @@ class App(ctk.CTk):
         """
         Initialize the root window and derive selectable parameters.
         """
+        self.preferences = load_preferences()
+        self.appearance_mode_setting = self.preferences.appearance_mode
+        self.plot_scale = self.preferences.plot_scale
+        configure_default_theme(self.appearance_mode_setting)
         super().__init__()
-        configure_default_theme()
-        self.appearance_mode = resolve_appearance_mode("System")
-        apply_matplotlib_theme(self.appearance_mode)
+        self.appearance_mode = resolve_appearance_mode(
+            self.appearance_mode_setting)
+        apply_matplotlib_theme(self.appearance_mode, self.plot_scale)
         configure_window(self)
 
         self.reader = reader
@@ -65,8 +78,10 @@ class App(ctk.CTk):
         self.list_of_plots = []
         self.selected_plot = None
         self.__syncing_plot_controls = False
+        self.__restoring_preferences = False
         self.__file_watcher = None
         self.__auto_refresh_after_id = None
+        self.__preferences_after_id = None
 
         signal.signal(signal.SIGINT,
                       lambda sig, frame: self.destroy())
@@ -75,6 +90,14 @@ class App(ctk.CTk):
         """
         Destroy the app.
         """
+        if "preferences" in self.__dict__:
+            preferences_after_id = self.__dict__.get(
+                "_App__preferences_after_id")
+            if preferences_after_id is not None:
+                self.after_cancel(preferences_after_id)
+                self.__preferences_after_id = None
+            self.__write_preferences()
+
         self.__stop_file_watcher()
         plt.close("all")
         self.quit()
@@ -84,8 +107,13 @@ class App(ctk.CTk):
         """
         Create all view objects and attach their widgets to the root window.
         """
+        if "preferences" in self.__dict__:
+            self.__restoring_preferences = True
         self.sidebar_view = SidebarView(
-            self, self.__change_appearance_mode_event)
+            self,
+            self.__change_appearance_mode_event,
+            self.change_plot_scale,
+        )
         self.plot_controls_view = PlotControlsView(
             self,
             self.__plot_button_event,
@@ -96,6 +124,8 @@ class App(ctk.CTk):
             self, self.__change_info_event)
         self.statistics_controls_view = StatisticsControlsView(
             self, self.__statistics_control_event)
+        if "preferences" in self.__dict__:
+            self.__restore_preferences()
         if "auto_refresh" in self.__dict__:
             self.__auto_refresh_control_event()
 
@@ -141,15 +171,76 @@ class App(ctk.CTk):
 
         return parsed_value
 
+    def change_plot_scale(self, selection):
+        """
+        Apply and persist a plot typography preset.
+        """
+
+        if selection in {"increase", "decrease", "reset"}:
+            plot_scale = adjusted_plot_scale(self.plot_scale, selection)
+        else:
+            plot_scale = plot_scale_from_label(selection)
+
+        if plot_scale == self.plot_scale:
+            return None
+
+        self.plot_scale = plot_scale
+        apply_matplotlib_theme(self.appearance_mode, plot_scale)
+
+        scale_option = self.__dict__.get("plot_scale_optionemenu")
+        if scale_option is not None:
+            scale_option.set(plot_scale_label(plot_scale))
+
+        self.__redraw_plots()
+        self.__schedule_preferences_save()
+        return None
+
+    def plot_size(self, plot_kind, default):
+        """
+        Return the last window size for one plot kind.
+        """
+
+        return self.preferences.plot_sizes.get(plot_kind, default)
+
+    def remember_plot_size(self, plot_kind, size):
+        """
+        Store a resized Matplotlib window for the next launch.
+        """
+
+        if plot_kind not in PLOT_SIZE_KEYS:
+            raise ValueError(f"Unknown plot kind: {plot_kind}")
+
+        width, height = (float(dimension) for dimension in size)
+        if (
+            not math.isfinite(width)
+            or not math.isfinite(height)
+            or width <= 0
+            or height <= 0
+        ):
+            return None
+
+        remembered_size = round(width, 2), round(height, 2)
+        if self.preferences.plot_sizes.get(plot_kind) == remembered_size:
+            return None
+
+        self.preferences.plot_sizes[plot_kind] = remembered_size
+        self.__schedule_preferences_save()
+        return None
+
     def __change_appearance_mode_event(self, new_appearance_mode: str):
         """
         Apply a CustomTkinter appearance-mode selection.
         """
 
+        self.appearance_mode_setting = new_appearance_mode
         ctk.set_appearance_mode(new_appearance_mode)
         self.appearance_mode = resolve_appearance_mode(new_appearance_mode)
-        apply_matplotlib_theme(self.appearance_mode)
+        apply_matplotlib_theme(
+            self.appearance_mode,
+            self.__dict__.get("plot_scale", 1.0),
+        )
         self.__redraw_plots()
+        self.__schedule_preferences_save()
 
     def __change_info_event(self, new_info: str):
         """
@@ -157,6 +248,7 @@ class App(ctk.CTk):
         """
 
         self.__selected_info = new_info
+        self.__schedule_preferences_save()
 
     def __refresh_plots(self, show=True):
         """
@@ -219,6 +311,7 @@ class App(ctk.CTk):
             self.__stop_file_watcher()
             self.__set_auto_refresh_status("Auto-refresh paused")
 
+        self.__schedule_preferences_save()
         return None
 
     def __start_file_watcher(self):
@@ -337,6 +430,7 @@ class App(ctk.CTk):
             return
 
         self.__sync_plot_controls(plot.options)
+        self.__schedule_preferences_save()
 
     def __statistics_control_event(self):
         """
@@ -346,6 +440,7 @@ class App(ctk.CTk):
         if self.__syncing_plot_controls:
             return None
 
+        self.__schedule_preferences_save()
         if self.selected_plot is None:
             return None
 
@@ -401,3 +496,82 @@ class App(ctk.CTk):
         entry.delete(0, ctk.END)
         if value:
             entry.insert(0, value)
+
+    def __restore_preferences(self):
+        """
+        Restore the last controls that are valid for the loaded files.
+        """
+
+        self.__restoring_preferences = True
+        try:
+            self.__set_checkbox(
+                self.auto_refresh,
+                self.preferences.auto_refresh,
+            )
+            self.__sync_plot_controls(
+                PlotOptions.from_mapping(self.preferences.plot_options))
+
+            selected_parameter = self.preferences.selected_parameter
+            if selected_parameter in self.info:
+                self.info_optionmenu.set(selected_parameter)
+                self.__selected_info = selected_parameter
+
+            self.plot_scale_optionemenu.set(
+                plot_scale_label(self.plot_scale))
+            self.appearance_mode_optionemenu.set(
+                self.appearance_mode_setting)
+        finally:
+            self.__restoring_preferences = False
+
+    def __schedule_preferences_save(self):
+        """
+        Debounce preference writes after GUI and plot changes.
+        """
+
+        if (
+            "preferences" not in self.__dict__
+            or getattr(self, "_App__restoring_preferences", False)
+        ):
+            return None
+
+        preferences_after_id = self.__dict__.get(
+            "_App__preferences_after_id")
+        if preferences_after_id is not None:
+            self.after_cancel(preferences_after_id)
+
+        self.__preferences_after_id = self.after(
+            300,
+            self.__write_preferences,
+        )
+        return None
+
+    def __capture_preferences(self):
+        """
+        Copy the current widgets into the persistent preference object.
+        """
+
+        self.preferences.appearance_mode = self.appearance_mode_setting
+        self.preferences.plot_scale = self.plot_scale
+        self.preferences.selected_parameter = self.__dict__.get(
+            "_App__selected_info")
+
+        if "auto_refresh" in self.__dict__:
+            self.preferences.auto_refresh = bool(self.auto_refresh.get())
+
+        required_options = [
+            "plot_main_data",
+            "window_size",
+            *(feature.option_attribute for feature in PLOT_FEATURES),
+        ]
+        if all(option in self.__dict__ for option in required_options):
+            self.preferences.plot_options = (
+                PlotOptions.from_app(self).to_mapping())
+
+    def __write_preferences(self):
+        """
+        Persist the latest user settings immediately.
+        """
+
+        self.__preferences_after_id = None
+        self.__capture_preferences()
+        return save_preferences(self.preferences)

@@ -7,6 +7,7 @@ import signal
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 from .._logging import get_logger
@@ -16,11 +17,13 @@ from ..energy_access import (
     parameter_unit_for_energies,
     series,
 )
+from ..preferences import plot_scale_action
 from .labels import parameter_label, unique_path_labels
 from .theme import (
     apply_figure_theme,
     apply_matplotlib_theme,
     palette_for_appearance_mode,
+    scaled_font_size,
     series_color,
 )
 from .value_readout import ValueReadoutEntry, format_readout_value
@@ -47,10 +50,32 @@ class PlotDashboard:
         self.selected_parameter = None
         self.refresh_warning = None
         self.subtitle_text = None
+        self._panel_scale = 1.0
+        self._compact_labels = False
 
-        apply_matplotlib_theme(getattr(self.app, "appearance_mode", None))
-        self.figure = plt.figure(figsize=self.__figure_size())
-        self.axes = self.__create_axes()
+        apply_matplotlib_theme(
+            getattr(self.app, "appearance_mode", None),
+            getattr(self.app, "plot_scale", 1.0),
+        )
+        default_figure_size = self.__figure_size()
+        saved_plot_sizes = getattr(
+            getattr(self.app, "preferences", None),
+            "plot_sizes",
+            {},
+        )
+        self._fit_on_first_open = "dashboard" not in saved_plot_sizes
+        figure_size = (
+            self.app.plot_size("dashboard", default_figure_size)
+            if hasattr(self.app, "plot_size")
+            else default_figure_size
+        )
+        self.figure = plt.figure(figsize=figure_size)
+        self._canvas_size = tuple(
+            dimension * self.figure.dpi
+            for dimension in self.figure.get_size_inches()
+        )
+        self._grid_shape = self.__grid_shape()
+        self.axes = self.__create_axes(self._grid_shape)
         self.ani = None
         self.__set_window_title()
 
@@ -60,6 +85,14 @@ class PlotDashboard:
         )
         self.figure.canvas.mpl_connect("button_press_event",
                                        self.__button_press_event)
+        self.figure.canvas.mpl_connect(
+            "key_press_event",
+            self.__key_press_event,
+        )
+        self.figure.canvas.mpl_connect(
+            "resize_event",
+            self.__resize_event,
+        )
 
     def signal_handler(self, signal, frame):
         """
@@ -75,6 +108,9 @@ class PlotDashboard:
         """
 
         self.redraw()
+        if self._fit_on_first_open:
+            self.fit_to_screen()
+            self._fit_on_first_open = False
         plt.show()
 
     def follow(self, info_parameter=None, interval: float = 1.0) -> None:
@@ -88,6 +124,9 @@ class PlotDashboard:
             return []
 
         self.redraw()
+        if self._fit_on_first_open:
+            self.fit_to_screen()
+            self._fit_on_first_open = False
         self.ani = animation.FuncAnimation(
             self.figure,
             update,
@@ -116,12 +155,17 @@ class PlotDashboard:
         Redraw all raw parameter panels.
         """
 
+        self.__reflow_axes()
+        self._panel_scale = self.__panel_scale()
+        requested_scale = getattr(self.app, "plot_scale", 1.0)
+        self._compact_labels = self._panel_scale < requested_scale - 0.05
         for ax in self.axes:
             ax.clear()
             apply_figure_theme(
                 self.figure,
                 ax,
                 getattr(self.app, "appearance_mode", None),
+                self._panel_scale,
             )
 
         self.axis_parameters = {}
@@ -140,11 +184,11 @@ class PlotDashboard:
         for ax in self.axes[len(self.parameters):]:
             ax.set_visible(False)
 
+        for legend in list(self.figure.legends):
+            legend.remove()
         self.__show_legend(labels)
         self.__set_title()
-        self.figure.tight_layout(rect=(0, 0.03, 1, 0.92),
-                                 h_pad=1.0,
-                                 w_pad=1.2)
+        self.__fit_layout()
         self.figure.canvas.draw_idle()
 
     def __plot_parameter(self, ax, parameter, labels):
@@ -183,9 +227,11 @@ class PlotDashboard:
         unit = parameter_unit_for_energies(self.reader.energies, parameter)
         palette = palette_for_appearance_mode(
             getattr(self.app, "appearance_mode", None))
+        plot_scale = self._panel_scale
+        title_unit = None if self._compact_labels else unit
         ax.set_title(
-            parameter_label(parameter, unit),
-            fontsize=9,
+            parameter_label(parameter, title_unit),
+            fontsize=scaled_font_size(9, plot_scale),
             fontweight="normal",
             loc="left",
             pad=6,
@@ -197,28 +243,47 @@ class PlotDashboard:
             transform=ax.transAxes,
             ha="right",
             va="top",
-            fontsize=7.5,
+            fontsize=scaled_font_size(7.5, plot_scale),
             fontfamily="monospace",
             color=palette["subtle.text"],
             bbox={
-                "boxstyle": "round,pad=0.22",
+                "boxstyle": (
+                    "square,pad=0.12"
+                    if self._compact_labels
+                    else "round,pad=0.22"
+                ),
                 "facecolor": palette["annotation.facecolor"],
                 "edgecolor": "none",
-                "alpha": 0.82,
+                "alpha": 0.72 if self._compact_labels else 0.82,
             },
             clip_on=True,
             zorder=5,
         )
-        ax.ticklabel_format(axis="both", style="sci")
-        ax.tick_params(labelsize=8)
-        ax.xaxis.get_offset_text().set_fontsize(7)
-        ax.yaxis.get_offset_text().set_fontsize(7)
+        ax.ticklabel_format(
+            axis="both",
+            style="sci",
+            scilimits=(-3, 3),
+            useOffset=True,
+        )
+        number_of_ticks = 3 if self._compact_labels else 4
+        ax.xaxis.set_major_locator(
+            MaxNLocator(nbins=number_of_ticks, min_n_ticks=2))
+        ax.yaxis.set_major_locator(
+            MaxNLocator(nbins=number_of_ticks, min_n_ticks=2))
+        ax.tick_params(labelsize=scaled_font_size(8, plot_scale))
+        ax.xaxis.get_offset_text().set_fontsize(
+            scaled_font_size(7, plot_scale))
+        ax.yaxis.get_offset_text().set_fontsize(
+            scaled_font_size(7, plot_scale))
 
-        nrows, ncols = self.__grid_shape()
-        if index // ncols == nrows - 1:
+        nrows, ncols = self._grid_shape
+        bottom_row = index // ncols == nrows - 1
+        ax.tick_params(axis="x", labelbottom=bottom_row)
+        ax.xaxis.get_offset_text().set_visible(bottom_row)
+        if bottom_row:
             ax.set_xlabel(
                 axis_label(self.reader.energies[0]),
-                fontsize=8,
+                fontsize=scaled_font_size(8, plot_scale),
             )
 
     def __add_latest_value(self, parameter, label, line, values):
@@ -246,6 +311,9 @@ class PlotDashboard:
         entries = self.latest_values.get(parameter, [])
         if not entries:
             return ""
+
+        if self._compact_labels and len(entries) > 1:
+            return f"{entries[0].formatted_value} | +{len(entries) - 1}"
 
         if len(entries) == 1:
             return entries[0].formatted_value
@@ -292,7 +360,10 @@ class PlotDashboard:
                 loc="upper right",
                 bbox_to_anchor=(0.995, 0.985),
                 ncol=min(4, len(labels)),
-                fontsize="small",
+                fontsize=scaled_font_size(
+                    9,
+                    self.__header_scale(1.25),
+                ),
                 frameon=True,
             )
             return
@@ -355,26 +426,122 @@ class PlotDashboard:
         if getattr(event, "dblclick", False):
             self.app.open_focus_plot(parameter)
 
-    def __create_axes(self):
+    def __key_press_event(self, event):
+        """
+        Apply plot scaling or fit the dashboard to the screen.
+        """
+
+        key = (getattr(event, "key", None) or "").lower()
+        if key == "f":
+            self.fit_to_screen()
+            return
+
+        action = plot_scale_action(key)
+        if action is not None and hasattr(self.app, "change_plot_scale"):
+            self.app.change_plot_scale(action)
+
+    def fit_to_screen(self):
+        """
+        Fit the native dashboard window to the current display.
+        """
+
+        manager = getattr(self.figure.canvas, "manager", None)
+        window = getattr(manager, "window", None)
+        if window is None:
+            return False
+
+        if hasattr(window, "showMaximized"):
+            window.showMaximized()
+            return True
+
+        if not all(
+            hasattr(window, attribute)
+            for attribute in (
+                "geometry",
+                "winfo_screenwidth",
+                "winfo_screenheight",
+            )
+        ):
+            return False
+
+        screen_width = int(window.winfo_screenwidth())
+        screen_height = int(window.winfo_screenheight())
+        horizontal_margin = max(20, round(screen_width * 0.025))
+        vertical_margin = max(40, round(screen_height * 0.05))
+        width = screen_width - 2 * horizontal_margin
+        height = screen_height - 2 * vertical_margin
+        window.geometry(
+            f"{width}x{height}+{horizontal_margin}+{vertical_margin}"
+        )
+        return True
+
+    def __resize_event(self, event):
+        """
+        Reflow the grid and remember the resized dashboard window.
+        """
+
+        width = getattr(event, "width", None)
+        height = getattr(event, "height", None)
+        grid_changed = self.__reflow_axes(width, height)
+        panel_scale = self.__panel_scale()
+        requested_scale = getattr(self.app, "plot_scale", 1.0)
+        compact_labels = panel_scale < requested_scale - 0.05
+        style_changed = (
+            panel_scale != self._panel_scale
+            or compact_labels != self._compact_labels
+        )
+        if grid_changed or style_changed:
+            self.redraw()
+        else:
+            self.__fit_layout()
+            self.figure.canvas.draw_idle()
+
+        if hasattr(self.app, "remember_plot_size"):
+            self.app.remember_plot_size(
+                "dashboard",
+                self.figure.get_size_inches(),
+            )
+
+    def __create_axes(self, grid_shape):
         """
         Create enough axes for all dashboard parameters.
         """
 
-        nrows, ncols = self.__grid_shape()
+        nrows, ncols = grid_shape
         axes = self.figure.subplots(nrows=nrows, ncols=ncols, squeeze=False)
         return list(axes.flat)
 
-    def __grid_shape(self):
+    def __grid_shape(self, width=None, height=None):
         """
-        Return a compact dashboard grid that remains screen-shaped.
+        Return a responsive grid for the current window shape.
         """
 
+        if width is None or height is None:
+            figure = getattr(self, "figure", None)
+            if figure is None:
+                width, height = 15.0, 9.5
+            else:
+                width, height = figure.get_size_inches()
+
+        width = max(float(width), 1.0)
+        height = max(float(height), 1.0)
         number_of_parameters = max(1, len(self.parameters))
-        ncols = min(
-            5,
-            max(1, round(math.sqrt(number_of_parameters * 4 / 3))),
-        )
-        nrows = math.ceil(number_of_parameters / ncols)
+        target_panel_aspect = 1.45
+
+        candidates = []
+        for ncols in range(1, min(6, number_of_parameters) + 1):
+            nrows = math.ceil(number_of_parameters / ncols)
+            panel_aspect = (width / ncols) / (height / nrows)
+            aspect_error = abs(
+                math.log(panel_aspect / target_panel_aspect)
+            )
+            empty_ratio = (
+                nrows * ncols - number_of_parameters
+            ) / number_of_parameters
+            score = aspect_error + 0.8 * empty_ratio
+            candidates.append((score, nrows * ncols, nrows, ncols))
+
+        _, _, nrows, ncols = min(candidates)
         return nrows, ncols
 
     def __figure_size(self):
@@ -382,10 +549,86 @@ class PlotDashboard:
         Return a readable figure size for the current parameter count.
         """
 
-        nrows, ncols = self.__grid_shape()
+        nrows, ncols = self.__grid_shape(15.0, 9.5)
         width = min(15.0, max(8.5, 3.1 * ncols))
         height = min(9.5, max(4.8, 2.2 * nrows + 1.2))
         return width, height
+
+    def __panel_scale(self):
+        """
+        Cap dense panel typography by the available canvas area.
+        """
+
+        requested_scale = float(getattr(self.app, "plot_scale", 1.0))
+        if requested_scale <= 1.0:
+            return requested_scale
+
+        width, height = self._canvas_size
+        nrows, ncols = self._grid_shape
+        panel_width = width / ncols
+        panel_height = height * 0.82 / nrows
+        width_capacity = max(1.0, panel_width / 260)
+        height_capacity = max(1.0, panel_height / 170)
+        panel_scale = min(
+            requested_scale,
+            width_capacity,
+            height_capacity,
+            1.5,
+        )
+        return math.floor(panel_scale * 20 + 1e-9) / 20
+
+    def __header_scale(self, maximum):
+        """
+        Return a bounded scale for shared dashboard header elements.
+        """
+
+        return min(float(getattr(self.app, "plot_scale", 1.0)), maximum)
+
+    def __reflow_axes(self, width=None, height=None):
+        """
+        Recreate dashboard axes when the responsive grid shape changes.
+        """
+
+        if width is None or height is None:
+            width, height = (
+                dimension * self.figure.dpi
+                for dimension in self.figure.get_size_inches()
+            )
+        width = max(float(width), 1.0)
+        height = max(float(height), 1.0)
+        grid_shape = self.__grid_shape(width, height)
+        previous_width, previous_height = self._canvas_size
+        previous_slots = self._grid_shape[0] * self._grid_shape[1]
+        candidate_slots = grid_shape[0] * grid_shape[1]
+        previous_panel_area = (
+            previous_width * previous_height / previous_slots
+        )
+        candidate_panel_area = width * height / candidate_slots
+        window_grew = width * height >= previous_width * previous_height
+        if window_grew and candidate_panel_area < previous_panel_area:
+            grid_shape = self._grid_shape
+
+        self._canvas_size = width, height
+        if grid_shape == self._grid_shape:
+            return False
+
+        self.figure.clear()
+        self.subtitle_text = None
+        self.axis_parameters = {}
+        self._grid_shape = grid_shape
+        self.axes = self.__create_axes(grid_shape)
+        return True
+
+    def __fit_layout(self):
+        """
+        Refit dashboard labels to the current canvas dimensions.
+        """
+
+        self.figure.tight_layout(
+            rect=(0, 0.03, 1, 0.92),
+            h_pad=0.7,
+            w_pad=0.8,
+        )
 
     def __style_axis(self, ax, parameter):
         """
@@ -434,7 +677,10 @@ class PlotDashboard:
             y=0.985,
             ha="left",
             va="top",
-            fontsize=14,
+            fontsize=scaled_font_size(
+                14,
+                self.__header_scale(1.5),
+            ),
             fontweight="bold",
             color=palette["text.color"],
         )
@@ -445,12 +691,20 @@ class PlotDashboard:
                 subtitle,
                 ha="left",
                 va="top",
-                fontsize=9,
+                fontsize=scaled_font_size(
+                    9,
+                    self.__header_scale(1.25),
+                ),
                 color=color,
             )
         else:
             self.subtitle_text.set_text(subtitle)
             self.subtitle_text.set_color(color)
+            self.subtitle_text.set_fontsize(
+                scaled_font_size(
+                    9,
+                    self.__header_scale(1.25),
+                ))
 
     def __set_window_title(self):
         """

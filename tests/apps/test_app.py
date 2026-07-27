@@ -6,6 +6,7 @@ import pytest
 
 from PQEnalyzer.apps import app as app_module
 from PQEnalyzer.apps import app_layout
+from PQEnalyzer.preferences import UserPreferences
 from PQEnalyzer.plots.options import PlotOptions
 
 
@@ -108,13 +109,19 @@ def reset_dummy_plots():
 
 def make_app(auto_refresh=True):
     app = object.__new__(app_module.App)
+    app.preferences = UserPreferences()
+    app.appearance_mode_setting = "System"
+    app.appearance_mode = "Light"
+    app.plot_scale = 1.0
     app.auto_refresh = FakeFlag(auto_refresh)
     app.reader = SimpleNamespace(filenames=["/tmp/md.en"])
     app.list_of_plots = []
     app.selected_plot = None
     app._App__syncing_plot_controls = False
+    app._App__restoring_preferences = False
     app._App__file_watcher = None
     app._App__auto_refresh_after_id = None
+    app._App__preferences_after_id = None
     app._App__selected_info = "TEMPERATURE"
     app.after = lambda delay, callback: "after-id"
     app.after_cancel = lambda after_id: None
@@ -136,6 +143,83 @@ def test_apps_package_does_not_import_gui_module_for_terminal_app():
 
 def test_gui_icon_path_resolves_from_layout_module():
     assert app_layout.ICON_PATH.is_file()
+
+
+def test_default_theme_applies_persisted_mode_without_gui_scaling(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        app_layout.ctk,
+        "set_appearance_mode",
+        lambda value: calls.append(("appearance", value)),
+    )
+    monkeypatch.setattr(
+        app_layout.ctk,
+        "set_default_color_theme",
+        lambda value: calls.append(("color", value)),
+    )
+    app_layout.configure_default_theme("Dark")
+
+    assert calls == [
+        ("appearance", "Dark"),
+        ("color", "blue"),
+    ]
+
+
+def test_selector_window_keeps_fixed_layout(monkeypatch):
+    calls = []
+
+    class FakeWindow:
+
+        def title(self, value):
+            calls.append(("title", value))
+
+        def iconphoto(self, *values):
+            calls.append(("icon", values))
+
+        def resizable(self, *values):
+            calls.append(("resizable", values))
+
+    monkeypatch.setattr(app_layout.Image, "open", lambda path: "image")
+    monkeypatch.setattr(
+        app_layout.ImageTk,
+        "PhotoImage",
+        lambda image: "photo",
+    )
+
+    app_layout.configure_window(FakeWindow())
+
+    assert ("resizable", (False, False)) in calls
+
+
+def test_sidebar_exposes_exact_plot_scale_presets(monkeypatch):
+    app = SimpleNamespace(
+        plot_scale=1.05,
+        appearance_mode_setting="Dark",
+    )
+    scale_selections = []
+
+    monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkLabel", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkButton", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkOptionMenu", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkImage", FakeWidget)
+    monkeypatch.setattr(app_layout.ctk, "CTkFont", FakeWidget)
+    monkeypatch.setattr(app_layout.Image, "open", lambda path: "image")
+
+    view = app_layout.SidebarView(
+        app,
+        lambda mode: None,
+        scale_selections.append,
+    )
+    view.plot_scale_optionemenu.kwargs["command"]("100%")
+
+    assert scale_selections == ["100%"]
+    assert "95%" in view.plot_scale_optionemenu.kwargs["values"]
+    assert "100%" in view.plot_scale_optionemenu.kwargs["values"]
+    assert "105%" in view.plot_scale_optionemenu.kwargs["values"]
+    assert view.plot_scale_optionemenu.value == "105%"
+    assert view.appearance_mode_optionemenu.value == "Dark"
+    assert app.plot_scale_optionemenu is view.plot_scale_optionemenu
 
 
 @pytest.mark.parametrize(
@@ -519,17 +603,145 @@ def test_change_appearance_mode_updates_matplotlib_and_open_plots(monkeypatch):
                         lambda mode: calls.append(("ctk", mode)))
     monkeypatch.setattr(app_module, "resolve_appearance_mode",
                         lambda mode: "Dark")
-    monkeypatch.setattr(app_module, "apply_matplotlib_theme",
-                        lambda mode: calls.append(("mpl", mode)))
+    monkeypatch.setattr(
+        app_module,
+        "apply_matplotlib_theme",
+        lambda mode, scale: calls.append(("mpl", mode, scale)),
+    )
     monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
 
     app_module.App._App__change_appearance_mode_event(app, "Dark")
 
     assert app.appearance_mode == "Dark"
+    assert app.appearance_mode_setting == "Dark"
     assert app.list_of_plots == [open_plot]
-    assert calls == [("ctk", "Dark"), ("mpl", "Dark"), ("redraw", 1)]
+    assert calls == [
+        ("ctk", "Dark"),
+        ("mpl", "Dark", 1.0),
+        ("redraw", 1),
+    ]
 
 
+def test_plot_scale_updates_plots_and_preset_without_scaling_gui(monkeypatch):
+    app = make_app()
+    app.plot_scale_optionemenu = FakeWidget()
+    calls = []
+
+    monkeypatch.setattr(
+        app_module,
+        "apply_matplotlib_theme",
+        lambda mode, scale: calls.append(("plots", mode, scale)),
+    )
+
+    app_module.App.change_plot_scale(app, "increase")
+
+    assert app.plot_scale == 1.05
+    assert app.plot_scale_optionemenu.value == "105%"
+    assert calls == [("plots", "Light", 1.05)]
+
+    app_module.App.change_plot_scale(app, "95%")
+    assert app.plot_scale == 0.95
+    assert app.plot_scale_optionemenu.value == "95%"
+
+    app.plot_scale = 2.0
+    assert app_module.App.change_plot_scale(app, "increase") is None
+
+
+def test_plot_window_sizes_are_restored_and_remembered():
+    app = make_app()
+    app.preferences.plot_sizes["single"] = (12.0, 8.0)
+
+    assert app_module.App.plot_size(app, "single", (11, 7)) == (12.0, 8.0)
+    assert app_module.App.plot_size(app, "dashboard", (15, 9.5)) == (
+        15,
+        9.5,
+    )
+
+    app_module.App.remember_plot_size(app, "dashboard", (14.22, 8.88))
+    assert app.preferences.plot_sizes["dashboard"] == (14.22, 8.88)
+    assert app_module.App.remember_plot_size(
+        app,
+        "dashboard",
+        (float("nan"), 8),
+    ) is None
+
+    with pytest.raises(ValueError, match="Unknown plot kind"):
+        app_module.App.remember_plot_size(app, "other", (10, 8))
+
+
+def test_preferences_restore_controls_valid_for_current_files():
+    app = make_app(auto_refresh=True)
+    app.info = ["TEMPERATURE", "PRESSURE"]
+    app.preferences = UserPreferences(
+        appearance_mode="Dark",
+        plot_scale=1.25,
+        selected_parameter="PRESSURE",
+        auto_refresh=False,
+        plot_options=PlotOptions(
+            mean=True,
+            running_average=True,
+            window_size="20",
+            plot_main=True,
+        ).to_mapping(),
+    )
+    app.appearance_mode_setting = "Dark"
+    app.plot_scale = 1.25
+    app.mean = FakeFlag(False)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(False)
+    app.running_average = FakeFlag(False)
+    app.plot_main_data = FakeFlag(False)
+    app.window_size = FakeEntry("")
+    app.info_optionmenu = FakeWidget()
+    app.plot_scale_optionemenu = FakeWidget()
+    app.appearance_mode_optionemenu = FakeWidget()
+
+    app_module.App._App__restore_preferences(app)
+
+    assert app.auto_refresh.value is False
+    assert app.mean.value is True
+    assert app.running_average.value is True
+    assert app.plot_main_data.value is True
+    assert app.window_size.value == "20"
+    assert app._App__selected_info == "PRESSURE"
+    assert app.info_optionmenu.value == "PRESSURE"
+    assert app.plot_scale_optionemenu.value == "125%"
+    assert app.appearance_mode_optionemenu.value == "Dark"
+
+
+def test_preferences_capture_and_write_all_gui_controls(monkeypatch):
+    app = make_app(auto_refresh=False)
+    app.appearance_mode_setting = "Light"
+    app.plot_scale = 1.5
+    app._App__selected_info = "PRESSURE"
+    app.mean = FakeFlag(True)
+    app.median = FakeFlag(False)
+    app.cummulative_average = FakeFlag(False)
+    app.self_correlation_mean = FakeFlag(False)
+    app.difference = FakeFlag(False)
+    app.running_average = FakeFlag(True)
+    app.plot_main_data = FakeFlag(True)
+    app.window_size = FakeEntry("30")
+    saved = []
+    monkeypatch.setattr(
+        app_module,
+        "save_preferences",
+        lambda user_preferences: saved.append(user_preferences.to_mapping())
+        or True,
+    )
+
+    assert app_module.App._App__write_preferences(app) is True
+
+    assert app.preferences.appearance_mode == "Light"
+    assert app.preferences.plot_scale == 1.5
+    assert app.preferences.selected_parameter == "PRESSURE"
+    assert app.preferences.auto_refresh is False
+    assert app.preferences.plot_options["mean"] is True
+    assert app.preferences.plot_options["running_average"] is True
+    assert app.preferences.plot_options["window_size"] == "30"
+    assert len(saved) == 1
 def test_select_plot_syncs_plot_options_to_controls(monkeypatch):
     app = make_app()
     app.mean = FakeFlag(False)

@@ -31,6 +31,16 @@ def test_apply_matplotlib_theme_sets_dark_defaults():
             "legend"]
 
 
+def test_plot_typography_uses_shared_plot_scale():
+    with mpl.rc_context():
+        theme.apply_matplotlib_theme("Light", 1.5)
+
+        assert mpl.rcParams["axes.titlesize"] == 24
+        assert mpl.rcParams["axes.labelsize"] == 21
+        assert mpl.rcParams["xtick.labelsize"] == 18
+        assert theme.scaled_font_size(9, 1.5) == 13.5
+
+
 def test_series_colors_are_stable_by_file_index():
     assert theme.series_color(1, "Light") == theme.LIGHT_PALETTE["colors"][1]
     assert theme.series_color(9, "Light") == theme.LIGHT_PALETTE["colors"][1]
@@ -72,3 +82,20 @@ def test_apply_figure_theme_updates_existing_plot_elements():
         assert legend_text.get_size() == theme.PLOT_FONT_SIZES["legend"]
         assert axes.texts[0].get_color() == palette["text.color"]
         assert axes.texts[0].get_bbox_patch().get_alpha() == 0.85
+
+
+def test_apply_figure_theme_scales_existing_plot_elements():
+    with mpl.rc_context():
+        figure, axes = plt.subplots()
+        axes.set_title("Scaled", loc="left")
+        axes.set_xlabel("Step")
+        axes.set_ylabel("Value")
+        axes.plot([1, 2], [3, 4], label="data")
+        axes.legend()
+
+        theme.apply_figure_theme(figure, axes, "Light", 1.25)
+
+        assert axes._left_title.get_size() == 20
+        assert axes.xaxis.label.get_size() == 17.5
+        assert axes.get_xticklabels()[0].get_size() == 15
+        assert axes.get_legend().get_texts()[0].get_size() == 15

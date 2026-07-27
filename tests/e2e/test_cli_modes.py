@@ -2,6 +2,7 @@ import os
 import select
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -22,6 +23,10 @@ def _subprocess_environment():
     env.setdefault("TERM", "xterm-256color")
     env.setdefault("COLUMNS", "100")
     env.setdefault("LINES", "40")
+    env.setdefault(
+        "PQENALYZER_CONFIG_DIR",
+        str(Path(tempfile.gettempdir()) / f"pqenalyzer-tests-{os.getpid()}"),
+    )
     return env
 
 
