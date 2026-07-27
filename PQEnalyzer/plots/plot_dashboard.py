@@ -30,7 +30,9 @@ from .value_readout import ValueReadoutEntry, format_readout_value
 
 
 logger = get_logger(__name__)
-RESIZE_DEBOUNCE_MS = 120
+RESIZE_DEBOUNCE_MS = 60
+COMPACT_PANEL_WIDTH = 220
+COMPACT_PANEL_HEIGHT = 145
 
 
 class PlotDashboard:
@@ -53,6 +55,7 @@ class PlotDashboard:
         self.subtitle_text = None
         self._panel_scale = 1.0
         self._compact_labels = False
+        self._layout_signature = None
         self._pending_resize = None
         self._resize_after_id = None
 
@@ -161,7 +164,7 @@ class PlotDashboard:
         self.__reflow_axes()
         self._panel_scale = self.__panel_scale()
         requested_scale = getattr(self.app, "plot_scale", 1.0)
-        self._compact_labels = self._panel_scale < requested_scale - 0.05
+        self._compact_labels = self.__uses_compact_labels(requested_scale)
         for ax in self.axes:
             ax.clear()
             apply_figure_theme(
@@ -378,17 +381,20 @@ class PlotDashboard:
         Apply the full plotted time range to every dashboard panel.
         """
 
-        x_values = []
+        lower = math.inf
+        upper = -math.inf
         for ax in self.axes[:len(self.parameters)]:
             for line in ax.lines:
                 values = np.asarray(line.get_xdata(), dtype=float)
-                x_values.extend(values[np.isfinite(values)])
+                finite_values = values[np.isfinite(values)]
+                if finite_values.size == 0:
+                    continue
+                lower = min(lower, float(np.min(finite_values)))
+                upper = max(upper, float(np.max(finite_values)))
 
-        if not x_values:
+        if not math.isfinite(lower) or not math.isfinite(upper):
             return
 
-        lower = min(x_values)
-        upper = max(x_values)
         if lower == upper:
             margin = max(abs(lower) * 0.05, 0.5)
             lower -= margin
@@ -523,16 +529,16 @@ class PlotDashboard:
         grid_changed = self.__reflow_axes(width, height)
         panel_scale = self.__panel_scale()
         requested_scale = getattr(self.app, "plot_scale", 1.0)
-        compact_labels = panel_scale < requested_scale - 0.05
+        compact_labels = self.__uses_compact_labels(
+            requested_scale,
+            panel_scale,
+        )
         style_changed = (
             panel_scale != self._panel_scale
             or compact_labels != self._compact_labels
         )
         if grid_changed or style_changed:
             self.redraw()
-        else:
-            self.__fit_layout()
-            self.figure.canvas.draw_idle()
 
     def __create_axes(self, grid_shape):
         """
@@ -609,6 +615,24 @@ class PlotDashboard:
         )
         return math.floor(panel_scale * 20 + 1e-9) / 20
 
+    def __uses_compact_labels(self, requested_scale, panel_scale=None):
+        """
+        Keep labels readable when either text or panel density is constrained.
+        """
+
+        if panel_scale is None:
+            panel_scale = self._panel_scale
+
+        width, height = self._canvas_size
+        nrows, ncols = self._grid_shape
+        panel_width = width / ncols
+        panel_height = height * 0.82 / nrows
+        return (
+            panel_scale < requested_scale - 0.05
+            or panel_width < COMPACT_PANEL_WIDTH
+            or panel_height < COMPACT_PANEL_HEIGHT
+        )
+
     def __header_scale(self, maximum):
         """
         Return a bounded scale for shared dashboard header elements.
@@ -647,20 +671,33 @@ class PlotDashboard:
         self.figure.clear()
         self.subtitle_text = None
         self.axis_parameters = {}
+        self._layout_signature = None
         self._grid_shape = grid_shape
         self.axes = self.__create_axes(grid_shape)
         return True
 
     def __fit_layout(self):
         """
-        Refit dashboard labels to the current canvas dimensions.
+        Refit labels only when the dashboard structure or typography changes.
         """
+
+        signature = (
+            self._grid_shape,
+            self._panel_scale,
+            self._compact_labels,
+            self.__header_scale(1.5),
+            self.__header_scale(1.25),
+            len(self.reader.filenames),
+        )
+        if signature == self._layout_signature:
+            return
 
         self.figure.tight_layout(
             rect=(0, 0.03, 1, 0.92),
             h_pad=0.7,
             w_pad=0.8,
         )
+        self._layout_signature = signature
 
     def __style_axis(self, ax, parameter):
         """

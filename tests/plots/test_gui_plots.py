@@ -682,7 +682,7 @@ def test_dashboard_coalesces_rapid_native_resize_events():
         SimpleNamespace(width=1600, height=600))
     _, _, final_callback = app.after_calls[-1]
 
-    assert delay == 120
+    assert delay == 60
     assert app.cancelled_after_ids == [first_after_id]
     assert plot._grid_shape == (5, 5)
     np.testing.assert_allclose(
@@ -695,6 +695,65 @@ def test_dashboard_coalesces_rapid_native_resize_events():
     assert plot._grid_shape == (4, 6)
     assert plot._pending_resize is None
     assert plot._resize_after_id is None
+
+
+def test_dashboard_skips_relayout_without_responsive_changes():
+    energy = FakeLargeDashboardEnergy(number_of_parameters=11)
+    app = FakeScheduledApp([energy])
+    app.info = energy.parameters
+    plot = PlotDashboard(app)
+    redraw_calls = []
+    plot.redraw = lambda: redraw_calls.append(True)
+
+    plot.figure.set_size_inches(14, 8)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=1400, height=800))
+    _, _, callback = app.after_calls[-1]
+
+    callback()
+
+    assert plot._grid_shape == (3, 4)
+    assert redraw_calls == []
+
+
+def test_dashboard_reuses_layout_until_responsive_style_changes():
+    energy = FakeDashboardEnergy()
+    app = FakeApp([energy])
+    plot = PlotDashboard(app)
+    layout_calls = []
+    plot.figure.tight_layout = lambda **kwargs: layout_calls.append(kwargs)
+
+    plot.redraw()
+    energy.data["TEMPERATURE"][-1] = 333.0
+    plot.redraw()
+
+    assert len(layout_calls) == 1
+    assert plot.axes[0].texts[0].get_text() == "333 K"
+
+    app.plot_scale = 1.25
+    plot.redraw()
+    plot.redraw()
+
+    assert len(layout_calls) == 2
+
+
+def test_dashboard_compacts_labels_when_small_without_grid_change():
+    energy = FakeLargeDashboardEnergy(number_of_parameters=11)
+    app = FakeApp([energy])
+    app.info = energy.parameters
+    plot = PlotDashboard(app)
+    plot.redraw()
+
+    assert plot._grid_shape == (3, 4)
+    assert plot._compact_labels is False
+
+    plot.figure.set_size_inches(7, 4.5)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=700, height=450))
+
+    assert plot._grid_shape == (3, 4)
+    assert plot._compact_labels is True
+    assert plot.axes[0].get_title(loc="left") == "PARAMETER-00"
 
 
 def test_dashboard_growth_never_reduces_average_panel_area():
