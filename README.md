@@ -83,6 +83,14 @@ to that focused window, so each window can use different overlays.
 Auto-refresh starts with the GUI. If native file watching is unavailable,
 PQEnalyzer uses polling and shows `(polling)` in the status line.
 
+Plot windows refit when resized. The Live Monitor also redistributes its grid;
+press `f` to fit it to the current screen. Use `Plot Size` in the sidebar, `+`
+and `-` in a plot window, or `Ctrl+0` / `Command+0` to restore `100%`.
+
+PQEnalyzer remembers the theme, plot size, window dimensions, selected
+parameter, auto-refresh state, and plot settings. Set
+`PQENALYZER_CONFIG_DIR` to override the platform settings directory.
+
 ## TUI
 
 ```bash

@@ -2,7 +2,7 @@
 Plot option state shared by GUI plot windows.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, fields
 
 from .features import PLOT_FEATURES, PLOT_FEATURES_BY_KEY
 
@@ -52,6 +52,37 @@ class PlotOptions:
             )
 
         return options
+
+    @classmethod
+    def from_mapping(cls, values):
+        """
+        Restore known options from persistent settings.
+        """
+
+        if not isinstance(values, dict):
+            return cls()
+
+        options = cls()
+        for option_field in fields(cls):
+            value = values.get(
+                option_field.name,
+                getattr(options, option_field.name),
+            )
+            default = getattr(options, option_field.name)
+            if isinstance(default, bool):
+                if isinstance(value, bool):
+                    setattr(options, option_field.name, value)
+            elif isinstance(value, str):
+                setattr(options, option_field.name, value)
+
+        return options
+
+    def to_mapping(self):
+        """
+        Return JSON-compatible option values.
+        """
+
+        return asdict(self)
 
     @classmethod
     def with_enabled(cls, *feature_keys):

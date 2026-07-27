@@ -8,6 +8,7 @@ import matplotlib.animation as animation
 
 from .._logging import get_logger
 from ..energy_access import parameter_unit_for_energies
+from ..preferences import plot_scale_action
 from .features import PLOT_FEATURES
 from .labels import parameter_label
 from .options import PlotOptions
@@ -64,12 +65,27 @@ class Plot(metaclass=ABCMeta):
 
         # create the plot
         self.palette = apply_matplotlib_theme(
-            getattr(self.app, "appearance_mode", None))
-        self.figure = plt.figure(figsize=SINGLE_PLOT_FIGURE_SIZE)
+            getattr(self.app, "appearance_mode", None),
+            getattr(self.app, "plot_scale", 1.0),
+        )
+        figure_size = (
+            self.app.plot_size("single", SINGLE_PLOT_FIGURE_SIZE)
+            if hasattr(self.app, "plot_size")
+            else SINGLE_PLOT_FIGURE_SIZE
+        )
+        self.figure = plt.figure(figsize=figure_size)
         self.ax = self.figure.add_subplot(111)
         self.apply_theme()
         self.figure.canvas.mpl_connect("button_press_event",
                                        self.__select_plot)
+        self.figure.canvas.mpl_connect(
+            "key_press_event",
+            self.__key_press_event,
+        )
+        self.figure.canvas.mpl_connect(
+            "resize_event",
+            self.__resize_event,
+        )
 
         # set the signal handler
         signal.signal(
@@ -234,6 +250,28 @@ class Plot(metaclass=ABCMeta):
 
         self.app.select_plot(self)
 
+    def __key_press_event(self, event):
+        """
+        Apply plot typography scaling from a focused plot window.
+        """
+
+        action = plot_scale_action(getattr(event, "key", None))
+        if action is not None and hasattr(self.app, "change_plot_scale"):
+            self.app.change_plot_scale(action)
+
+    def __resize_event(self, event):
+        """
+        Refit labels and remember a resized single-plot window.
+        """
+
+        self.figure.tight_layout(pad=2.0)
+        self.figure.canvas.draw_idle()
+        if hasattr(self.app, "remember_plot_size"):
+            self.app.remember_plot_size(
+                "single",
+                self.figure.get_size_inches(),
+            )
+
     def plot_data(self) -> None:
         """
         Render main data, enabled statistics and plot labels.
@@ -318,6 +356,7 @@ class Plot(metaclass=ABCMeta):
             self.figure,
             self.ax,
             getattr(self.app, "appearance_mode", None),
+            getattr(self.app, "plot_scale", 1.0),
         )
 
     @abstractmethod

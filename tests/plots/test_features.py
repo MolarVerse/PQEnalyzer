@@ -52,6 +52,30 @@ def test_plot_options_can_read_registry_feature_defaults():
         del PLOT_FEATURES_BY_KEY["temporary_feature"]
 
 
+def test_plot_options_restore_and_serialize_known_values():
+    options = PlotOptions.from_mapping({
+        "mean": True,
+        "median": "yes",
+        "window_size": "25",
+        "unknown": True,
+    })
+
+    assert options.mean is True
+    assert options.median is False
+    assert options.window_size == "25"
+    assert options.to_mapping() == {
+        "mean": True,
+        "median": False,
+        "cummulative_average": False,
+        "self_correlation_mean": False,
+        "difference": False,
+        "running_average": False,
+        "window_size": "25",
+        "plot_main": False,
+    }
+    assert PlotOptions.from_mapping(None) == PlotOptions()
+
+
 def test_time_series_overlay_evaluator_uses_enabled_features():
     options = PlotOptions.with_enabled(
         "mean",

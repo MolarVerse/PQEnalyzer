@@ -111,36 +111,48 @@ def series_rgb(index, appearance_mode=None):
     return tuple(int(color[offset:offset + 2], 16) for offset in (0, 2, 4))
 
 
-def apply_matplotlib_theme(appearance_mode=None):
+def scaled_font_size(font_size, plot_scale=1.0):
+    """
+    Scale one plot font size with the shared plot preference.
+    """
+
+    return round(float(font_size) * float(plot_scale), 2)
+
+
+def apply_matplotlib_theme(appearance_mode=None, plot_scale=1.0):
     """
     Apply a CustomTkinter-aligned palette to matplotlib defaults.
     """
 
     palette = palette_for_appearance_mode(appearance_mode)
+    font_sizes = {
+        name: scaled_font_size(size, plot_scale)
+        for name, size in PLOT_FONT_SIZES.items()
+    }
 
     matplotlib.rcParams.update({
-        "font.size": PLOT_FONT_SIZES["base"],
+        "font.size": font_sizes["base"],
         "figure.facecolor": palette["figure.facecolor"],
         "axes.facecolor": palette["axes.facecolor"],
         "axes.edgecolor": palette["axes.edgecolor"],
         "axes.labelcolor": palette["axes.labelcolor"],
-        "axes.labelsize": PLOT_FONT_SIZES["axis_label"],
+        "axes.labelsize": font_sizes["axis_label"],
         "axes.grid": True,
         "axes.prop_cycle": cycler(color=palette["colors"]),
         "axes.titleweight": "semibold",
-        "axes.titlesize": PLOT_FONT_SIZES["title"],
+        "axes.titlesize": font_sizes["title"],
         "lines.linewidth": 1.45,
         "lines.solid_capstyle": "round",
         "text.color": palette["text.color"],
         "xtick.color": palette["tick.color"],
-        "xtick.labelsize": PLOT_FONT_SIZES["tick"],
+        "xtick.labelsize": font_sizes["tick"],
         "ytick.color": palette["tick.color"],
-        "ytick.labelsize": PLOT_FONT_SIZES["tick"],
+        "ytick.labelsize": font_sizes["tick"],
         "grid.color": palette["grid.color"],
         "grid.alpha": 0.55,
         "legend.facecolor": palette["legend.facecolor"],
         "legend.edgecolor": palette["legend.edgecolor"],
-        "legend.fontsize": PLOT_FONT_SIZES["legend"],
+        "legend.fontsize": font_sizes["legend"],
         "legend.framealpha": 0.95,
         "savefig.facecolor": palette["figure.facecolor"],
     })
@@ -148,24 +160,33 @@ def apply_matplotlib_theme(appearance_mode=None):
     return palette
 
 
-def apply_figure_theme(figure, axes, appearance_mode=None):
+def apply_figure_theme(
+    figure,
+    axes,
+    appearance_mode=None,
+    plot_scale=1.0,
+):
     """
     Apply the active palette to an already-created figure and axes.
     """
 
-    palette = apply_matplotlib_theme(appearance_mode)
+    palette = apply_matplotlib_theme(appearance_mode, plot_scale)
+    font_sizes = {
+        name: scaled_font_size(size, plot_scale)
+        for name, size in PLOT_FONT_SIZES.items()
+    }
 
     figure.patch.set_facecolor(palette["figure.facecolor"])
     axes.set_facecolor(palette["axes.facecolor"])
     axes.grid(True, color=palette["grid.color"], alpha=0.55, linewidth=0.8)
     axes.tick_params(
         colors=palette["tick.color"],
-        labelsize=PLOT_FONT_SIZES["tick"],
+        labelsize=font_sizes["tick"],
     )
     axes.xaxis.label.set_color(palette["axes.labelcolor"])
-    axes.xaxis.label.set_size(PLOT_FONT_SIZES["axis_label"])
+    axes.xaxis.label.set_size(font_sizes["axis_label"])
     axes.yaxis.label.set_color(palette["axes.labelcolor"])
-    axes.yaxis.label.set_size(PLOT_FONT_SIZES["axis_label"])
+    axes.yaxis.label.set_size(font_sizes["axis_label"])
     for title in (
         axes.title,
         getattr(axes, "_left_title", None),
@@ -173,7 +194,7 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
     ):
         if title is not None:
             title.set_color(palette["text.color"])
-            title.set_size(PLOT_FONT_SIZES["title"])
+            title.set_size(font_sizes["title"])
 
     for spine in axes.spines.values():
         spine.set_color(palette["axes.edgecolor"])
@@ -186,8 +207,8 @@ def apply_figure_theme(figure, axes, appearance_mode=None):
         legend.get_frame().set_alpha(0.95)
         for text in legend.get_texts():
             text.set_color(palette["text.color"])
-            text.set_size(PLOT_FONT_SIZES["legend"])
-        legend.get_title().set_size(PLOT_FONT_SIZES["legend"])
+            text.set_size(font_sizes["legend"])
+        legend.get_title().set_size(font_sizes["legend"])
 
     for text in axes.texts:
         text.set_color(palette["text.color"])
