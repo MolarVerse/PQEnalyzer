@@ -88,6 +88,10 @@ def main():
     """
     parser = argparse.ArgumentParser(
         prog="pqenalyzer",
+        usage=(
+            "%(prog)s [-h] [-v] [gui|tui] "
+            "[--pq | -q | --box | --opt] FILE [FILE ...]"
+        ),
         description="Plot and monitor PQ simulation output.",
         epilog="Pass files directly to open the GUI: pqenalyzer FILE [FILE ...]",
     )
@@ -98,7 +102,7 @@ def main():
 
     subparsers = parser.add_subparsers(
         dest="mode",
-        metavar="{gui,tui}",
+        metavar="[gui|tui]",
         required=True,
     )
     gui_parser = subparsers.add_parser("gui", help="Open the GUI (default).")
