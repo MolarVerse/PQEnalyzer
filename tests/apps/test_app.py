@@ -936,6 +936,29 @@ def test_auto_refresh_control_disables_toggle_when_watcher_unavailable(
     assert status.configure_kwargs["text"] == "Auto-refresh unavailable"
 
 
+def test_auto_refresh_control_reports_polling_fallback(monkeypatch):
+    app = make_app(auto_refresh=True)
+    status = FakeWidget()
+    app.auto_refresh_status_label = status
+
+    class FakeWatcher:
+        mode = "polling"
+
+        def __init__(self, filenames, callback):
+            pass
+
+        def start(self):
+            return True
+
+    monkeypatch.setattr(app_module, "FileChangeWatcher", FakeWatcher)
+
+    app_module.App._App__auto_refresh_control_event(app)
+
+    assert status.configure_kwargs["text"] == (
+        "Watching for file changes (polling)"
+    )
+
+
 def test_auto_refresh_debounces_file_events():
     app = make_app(auto_refresh=True)
     calls = []
