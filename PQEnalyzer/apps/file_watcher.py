@@ -2,6 +2,7 @@
 File-change watcher used by the GUI auto-refresh flow.
 """
 
+import contextlib
 from pathlib import Path
 
 from .._logging import get_logger
@@ -9,9 +10,11 @@ from .._logging import get_logger
 try:
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
+    from watchdog.observers.polling import PollingObserver
 except ImportError:  # pragma: no cover - dependency is installed at runtime
     FileSystemEventHandler = object
     Observer = None
+    PollingObserver = None
 
 
 logger = get_logger(__name__)
@@ -45,6 +48,7 @@ class FileChangeWatcher:
         self.filenames = {Path(filename).resolve() for filename in filenames}
         self.callback = callback
         self.observer = None
+        self.mode = None
 
     def start(self) -> bool:
         """
@@ -55,12 +59,33 @@ class FileChangeWatcher:
             logger.warning("Auto-refresh unavailable: watchdog is not installed.")
             return False
 
-        self.observer = Observer()
         handler = _InputFileEventHandler(self)
-        for directory in sorted({filename.parent for filename in self.filenames}):
-            self.observer.schedule(handler, str(directory), recursive=False)
+        directories = sorted({
+            filename.parent for filename in self.filenames
+        })
+        try:
+            self.__start_observer(Observer, handler, directories)
+        except OSError as error:
+            self.__stop_observer()
+            logger.warning(
+                "Native auto-refresh unavailable (%s); using polling.",
+                error,
+            )
+        else:
+            self.mode = "native"
+            return True
 
-        self.observer.start()
+        if PollingObserver is None:
+            return False
+
+        try:
+            self.__start_observer(PollingObserver, handler, directories)
+        except OSError as error:
+            self.__stop_observer()
+            logger.warning("Auto-refresh unavailable: %s", error)
+            return False
+
+        self.mode = "polling"
         return True
 
     def stop(self) -> None:
@@ -68,12 +93,7 @@ class FileChangeWatcher:
         Stop the background observer if it is running.
         """
 
-        if self.observer is None:
-            return
-
-        self.observer.stop()
-        self.observer.join(timeout=1.0)
-        self.observer = None
+        self.__stop_observer()
 
     def notify(self, event) -> None:
         """
@@ -103,3 +123,28 @@ class FileChangeWatcher:
                 return True
 
         return False
+
+    def __start_observer(self, observer_type, handler, directories):
+        """
+        Start one watchdog observer implementation.
+        """
+
+        self.observer = observer_type()
+        for directory in directories:
+            self.observer.schedule(handler, str(directory), recursive=False)
+        self.observer.start()
+
+    def __stop_observer(self):
+        """
+        Stop a complete or partially started observer.
+        """
+
+        observer = self.observer
+        self.observer = None
+        self.mode = None
+        if observer is None:
+            return
+
+        observer.stop()
+        with contextlib.suppress(RuntimeError):
+            observer.join(timeout=1.0)

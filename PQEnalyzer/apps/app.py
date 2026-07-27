@@ -214,7 +214,10 @@ class App(ctk.CTk):
 
         if self.auto_refresh.get():
             if self.__start_file_watcher():
-                self.__set_auto_refresh_status("Watching for file changes")
+                status = "Watching for file changes"
+                if getattr(self.__file_watcher, "mode", None) == "polling":
+                    status += " (polling)"
+                self.__set_auto_refresh_status(status)
         else:
             self.__stop_file_watcher()
             self.__set_auto_refresh_status("Auto-refresh paused")
