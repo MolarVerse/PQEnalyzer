@@ -172,6 +172,22 @@ class FakeApp:
         self.remembered_plot_sizes[plot_kind] = tuple(size)
 
 
+class FakeScheduledApp(FakeApp):
+
+    def __init__(self, energies):
+        super().__init__(energies)
+        self.after_calls = []
+        self.cancelled_after_ids = []
+
+    def after(self, delay, callback):
+        after_id = f"after-{len(self.after_calls)}"
+        self.after_calls.append((after_id, delay, callback))
+        return after_id
+
+    def after_cancel(self, after_id):
+        self.cancelled_after_ids.append(after_id)
+
+
 def teardown_function():
     plt.close("all")
 
@@ -648,6 +664,37 @@ def test_dashboard_reflows_grid_when_window_shape_changes():
         app.remembered_plot_sizes["dashboard"],
         (16, 6),
     )
+
+
+def test_dashboard_coalesces_rapid_native_resize_events():
+    energy = FakeLargeDashboardEnergy()
+    app = FakeScheduledApp([energy])
+    app.info = energy.parameters
+    plot = PlotDashboard(app)
+
+    plot.figure.set_size_inches(6, 10)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=600, height=1000))
+    first_after_id, delay, _ = app.after_calls[-1]
+
+    plot.figure.set_size_inches(16, 6)
+    plot._PlotDashboard__resize_event(
+        SimpleNamespace(width=1600, height=600))
+    _, _, final_callback = app.after_calls[-1]
+
+    assert delay == 120
+    assert app.cancelled_after_ids == [first_after_id]
+    assert plot._grid_shape == (5, 5)
+    np.testing.assert_allclose(
+        app.remembered_plot_sizes["dashboard"],
+        (16, 6),
+    )
+
+    final_callback()
+
+    assert plot._grid_shape == (4, 6)
+    assert plot._pending_resize is None
+    assert plot._resize_after_id is None
 
 
 def test_dashboard_growth_never_reduces_average_panel_area():

@@ -30,6 +30,7 @@ from .value_readout import ValueReadoutEntry, format_readout_value
 
 
 logger = get_logger(__name__)
+RESIZE_DEBOUNCE_MS = 120
 
 
 class PlotDashboard:
@@ -52,6 +53,8 @@ class PlotDashboard:
         self.subtitle_text = None
         self._panel_scale = 1.0
         self._compact_labels = False
+        self._pending_resize = None
+        self._resize_after_id = None
 
         apply_matplotlib_theme(
             getattr(self.app, "appearance_mode", None),
@@ -477,11 +480,46 @@ class PlotDashboard:
 
     def __resize_event(self, event):
         """
-        Reflow the grid and remember the resized dashboard window.
+        Remember the window size and coalesce expensive dashboard relayouts.
         """
 
         width = getattr(event, "width", None)
         height = getattr(event, "height", None)
+        self._pending_resize = width, height
+
+        if hasattr(self.app, "remember_plot_size"):
+            self.app.remember_plot_size(
+                "dashboard",
+                self.figure.get_size_inches(),
+            )
+
+        schedule = getattr(self.app, "after", None)
+        cancel = getattr(self.app, "after_cancel", None)
+        if not callable(schedule) or not callable(cancel):
+            self.__apply_pending_resize()
+            return
+
+        if self._resize_after_id is not None:
+            cancel(self._resize_after_id)
+        self._resize_after_id = schedule(
+            RESIZE_DEBOUNCE_MS,
+            self.__apply_pending_resize,
+        )
+
+    def __apply_pending_resize(self):
+        """
+        Apply the final layout after a burst of native resize events.
+        """
+
+        self._resize_after_id = None
+        if self._pending_resize is None:
+            return
+
+        width, height = self._pending_resize
+        self._pending_resize = None
+        if self.figure.number not in plt.get_fignums():
+            return
+
         grid_changed = self.__reflow_axes(width, height)
         panel_scale = self.__panel_scale()
         requested_scale = getattr(self.app, "plot_scale", 1.0)
@@ -495,12 +533,6 @@ class PlotDashboard:
         else:
             self.__fit_layout()
             self.figure.canvas.draw_idle()
-
-        if hasattr(self.app, "remember_plot_size"):
-            self.app.remember_plot_size(
-                "dashboard",
-                self.figure.get_size_inches(),
-            )
 
     def __create_axes(self, grid_shape):
         """
