@@ -186,18 +186,33 @@ class PlotDashboard:
         ax.set_title(
             parameter_label(parameter, unit),
             fontsize=9,
+            fontweight="normal",
             loc="left",
             pad=6,
         )
-        ax.set_title(
+        ax.text(
+            0.985,
+            0.965,
             self.__latest_value_title(parameter),
-            fontsize=8,
-            loc="right",
-            pad=6,
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=7.5,
+            fontfamily="monospace",
             color=palette["subtle.text"],
+            bbox={
+                "boxstyle": "round,pad=0.22",
+                "facecolor": palette["annotation.facecolor"],
+                "edgecolor": "none",
+                "alpha": 0.82,
+            },
+            clip_on=True,
+            zorder=5,
         )
         ax.ticklabel_format(axis="both", style="sci")
         ax.tick_params(labelsize=8)
+        ax.xaxis.get_offset_text().set_fontsize(7)
+        ax.yaxis.get_offset_text().set_fontsize(7)
 
         nrows, ncols = self.__grid_shape()
         if index // ncols == nrows - 1:
@@ -208,7 +223,7 @@ class PlotDashboard:
 
     def __add_latest_value(self, parameter, label, line, values):
         """
-        Store one dashboard line's latest value for the axis title.
+        Store one dashboard line's latest value for its panel readout.
         """
 
         if len(values) == 0:
@@ -225,7 +240,7 @@ class PlotDashboard:
 
     def __latest_value_title(self, parameter):
         """
-        Return the compact latest-value text for a dashboard axis.
+        Return the compact latest-value text for a dashboard panel.
         """
 
         entries = self.latest_values.get(parameter, [])
@@ -351,11 +366,14 @@ class PlotDashboard:
 
     def __grid_shape(self):
         """
-        Return a compact dashboard grid shape.
+        Return a compact dashboard grid that remains screen-shaped.
         """
 
         number_of_parameters = max(1, len(self.parameters))
-        ncols = min(3, math.ceil(math.sqrt(number_of_parameters)))
+        ncols = min(
+            5,
+            max(1, round(math.sqrt(number_of_parameters * 4 / 3))),
+        )
         nrows = math.ceil(number_of_parameters / ncols)
         return nrows, ncols
 
@@ -365,18 +383,17 @@ class PlotDashboard:
         """
 
         nrows, ncols = self.__grid_shape()
-        return (4.4 * ncols, 2.8 * nrows)
+        width = min(15.0, max(8.5, 3.1 * ncols))
+        height = min(9.5, max(4.8, 2.2 * nrows + 1.2))
+        return width, height
 
     def __style_axis(self, ax, parameter):
         """
         Apply dashboard panel styling and selected-panel emphasis.
         """
 
-        palette = apply_figure_theme(
-            self.figure,
-            ax,
-            getattr(self.app, "appearance_mode", None),
-        )
+        palette = palette_for_appearance_mode(
+            getattr(self.app, "appearance_mode", None))
         selected = parameter == self.selected_parameter
         edgecolor = (
             palette["selected.edgecolor"]

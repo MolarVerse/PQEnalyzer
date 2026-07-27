@@ -74,6 +74,32 @@ class FakeDashboardEnergy:
         self.simulation_time = self.data["SIMULATION-TIME"]
 
 
+class FakeLargeDashboardEnergy:
+
+    def __init__(self, number_of_parameters=21):
+        parameters = [
+            f"PARAMETER-{index:02d}"
+            for index in range(number_of_parameters)
+        ]
+        self.info = {
+            "SIMULATION-TIME": "SIMULATION-TIME",
+            **{parameter: parameter for parameter in parameters},
+        }
+        self.units = {
+            "SIMULATION-TIME": "step",
+            **{parameter: "unit" for parameter in parameters},
+        }
+        self.data = {
+            "SIMULATION-TIME": np.array([1, 2, 3]),
+            **{
+                parameter: np.array([index, index + 1, index + 2])
+                for index, parameter in enumerate(parameters)
+            },
+        }
+        self.simulation_time = self.data["SIMULATION-TIME"]
+        self.parameters = parameters
+
+
 class FakeReader:
 
     def __init__(self, energies, filenames=None):
@@ -479,13 +505,66 @@ def test_dashboard_plots_all_parameters_as_raw_overview():
     assert plot.axis_parameters[plot.axes[1]] == "PRESSURE"
     assert plot.axes[0].get_title(loc="left") == "TEMPERATURE / K"
     assert plot.axes[1].get_title(loc="left") == "PRESSURE / bar"
-    assert plot.axes[0].get_title(loc="right") == "302 K"
-    assert plot.axes[1].get_title(loc="right") == "1.25 bar"
+    assert plot.axes[0].get_title(loc="right") == ""
+    assert plot.axes[1].get_title(loc="right") == ""
     assert len(plot.axes[0].lines) == 1
     assert len(plot.axes[1].lines) == 1
-    assert len(plot.axes[0].texts) == 0
-    assert len(plot.axes[1].texts) == 0
+    assert [text.get_text() for text in plot.axes[0].texts] == ["302 K"]
+    assert [text.get_text() for text in plot.axes[1].texts] == ["1.25 bar"]
     assert len(plot.figure.legends) == 1
+
+
+def test_dashboard_preserves_compact_panel_typography():
+    plot = PlotDashboard(FakeApp([FakeDashboardEnergy()]))
+
+    plot.redraw()
+
+    assert plot.axes[0]._left_title.get_fontsize() == 9
+    assert plot.axes[0]._left_title.get_fontweight() == "normal"
+    assert {
+        tick.get_fontsize()
+        for tick in plot.axes[0].get_xticklabels()
+    } == {8}
+    assert {
+        tick.get_fontsize()
+        for tick in plot.axes[0].get_yticklabels()
+    } == {8}
+
+
+def test_dashboard_places_latest_value_inside_panel():
+    plot = PlotDashboard(FakeApp([FakeDashboardEnergy()]))
+
+    plot.redraw()
+    plot.figure.canvas.draw()
+
+    readout = plot.axes[0].texts[0]
+    assert readout.get_position() == (0.985, 0.965)
+    assert readout.get_horizontalalignment() == "right"
+    assert readout.get_verticalalignment() == "top"
+    assert readout.get_transform() == plot.axes[0].transAxes
+    assert readout.get_bbox_patch() is not None
+
+    renderer = plot.figure.canvas.get_renderer()
+    axes_bounds = plot.axes[0].get_window_extent(renderer)
+    readout_bounds = readout.get_bbox_patch().get_window_extent(renderer)
+    title_bounds = plot.axes[0]._left_title.get_window_extent(renderer)
+    assert readout_bounds.x0 >= axes_bounds.x0
+    assert readout_bounds.x1 <= axes_bounds.x1
+    assert readout_bounds.y0 >= axes_bounds.y0
+    assert readout_bounds.y1 <= axes_bounds.y1
+    assert not readout_bounds.overlaps(title_bounds)
+
+
+def test_dashboard_bounds_large_parameter_grid_to_screen_shape():
+    energy = FakeLargeDashboardEnergy()
+    app = FakeApp([energy])
+    app.info = energy.parameters
+
+    plot = PlotDashboard(app)
+
+    assert plot._PlotDashboard__grid_shape() == (5, 5)
+    assert tuple(plot.figure.get_size_inches()) == (15.0, 9.5)
+    assert len(plot.axes) == 25
 
 
 def test_dashboard_uses_custom_independent_axis_label():
@@ -512,7 +591,7 @@ def test_dashboard_omits_missing_qmcfc_units_from_titles():
     assert plot.axes[1].get_title(loc="left") == "PRESSURE"
 
 
-def test_dashboard_uses_compact_latest_titles_for_multiple_files():
+def test_dashboard_uses_compact_latest_readouts_for_multiple_files():
     first = FakeDashboardEnergy()
     second = FakeDashboardEnergy()
     second.data["TEMPERATURE"] = np.array([301.0, 303.0, 304.0])
@@ -522,7 +601,8 @@ def test_dashboard_uses_compact_latest_titles_for_multiple_files():
 
     plot.redraw()
 
-    assert plot.axes[0].get_title(loc="right") == "302 | 304 K"
+    assert plot.axes[0].get_title(loc="right") == ""
+    assert plot.axes[0].texts[0].get_text() == "302 | 304 K"
 
 
 def test_dashboard_keeps_file_colors_when_a_parameter_is_missing():
