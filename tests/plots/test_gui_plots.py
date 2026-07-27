@@ -5,8 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PQEnalyzer.plots.plot_dashboard import PlotDashboard
+from PQEnalyzer.plots import plot_histogram as plot_histogram_module
 from PQEnalyzer.plots.plot_histogram import PlotHistogram
-from PQEnalyzer.plots.plot import SINGLE_PLOT_FIGURE_SIZE
+from PQEnalyzer.plots.plot import (
+    FOCUSED_RESIZE_DEBOUNCE_MS,
+    SINGLE_PLOT_FIGURE_SIZE,
+)
 from PQEnalyzer.plots.plot_time import PlotTime
 from PQEnalyzer.plots.theme import PLOT_FONT_SIZES, series_color
 from PQEnalyzer.plots.value_readout import (
@@ -259,6 +263,32 @@ def test_histogram_labels_use_distribution_title_and_density_axis():
     assert plot.ax.get_ylim()[0] == 0
 
 
+def test_histogram_reuses_kde_until_data_refresh(monkeypatch):
+    app = FakeApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotHistogram(app)
+    plot.info_parameter = "PARAMETER"
+    calculation_calls = []
+
+    def calculate_curve(data):
+        calculation_calls.append(data.copy())
+        return np.array([1.0, 2.0]), np.array([0.2, 0.1])
+
+    monkeypatch.setattr(
+        plot_histogram_module,
+        "_calculate_kde_curve",
+        calculate_curve,
+    )
+
+    plot.redraw()
+    plot.redraw()
+
+    assert len(calculation_calls) == 1
+
+    plot.refresh(show=False)
+
+    assert len(calculation_calls) == 2
+
+
 def test_time_main_data_uses_readable_filenames_and_latest_readout():
     app = FakeApp([FakeEnergy([1, 2, 3, 4])])
     plot = PlotTime(app)
@@ -333,6 +363,62 @@ def test_single_plot_restores_and_remembers_resized_window():
         app.remembered_plot_sizes["single"],
         (12, 8),
     )
+
+
+def test_single_plot_coalesces_rapid_native_resize_events():
+    app = FakeScheduledApp([FakeEnergy([1, 2, 3, 4])])
+    plot = PlotTime(app)
+    layout_calls = []
+    draw_calls = []
+    plot.figure.tight_layout = lambda **kwargs: layout_calls.append(kwargs)
+    plot.figure.canvas.draw_idle = lambda: draw_calls.append(True)
+
+    plot.figure.set_size_inches(9, 6)
+    plot._Plot__resize_event(SimpleNamespace())
+    first_after_id, delay, _ = app.after_calls[-1]
+
+    plot.figure.set_size_inches(12, 8)
+    plot._Plot__resize_event(SimpleNamespace())
+    _, _, final_callback = app.after_calls[-1]
+
+    assert delay == FOCUSED_RESIZE_DEBOUNCE_MS
+    assert app.cancelled_after_ids == [first_after_id]
+    assert layout_calls == []
+    assert draw_calls == []
+    np.testing.assert_allclose(
+        app.remembered_plot_sizes["single"],
+        (12, 8),
+    )
+
+    final_callback()
+
+    assert layout_calls == [{"pad": 2.0}]
+    assert draw_calls == [True]
+    assert plot._resize_after_id is None
+
+
+def test_single_plot_reuses_layout_until_typography_changes():
+    energy = FakeEnergy([1, 2, 3, 4])
+    app = FakeApp([energy])
+    plot = PlotTime(app)
+    plot.info_parameter = "PARAMETER"
+    layout_calls = []
+    plot.figure.tight_layout = lambda **kwargs: layout_calls.append(kwargs)
+
+    plot.redraw()
+    energy.data["PARAMETER"][-1] = 7.0
+    plot.redraw()
+
+    assert len(layout_calls) == 1
+    assert plot.ax.get_legend_handles_labels()[1] == [
+        "series-0.en (7 unit)"
+    ]
+
+    app.plot_scale = 1.25
+    plot.redraw()
+    plot.redraw()
+
+    assert len(layout_calls) == 2
 
 
 def test_single_plot_keyboard_shortcuts_change_plot_scale():

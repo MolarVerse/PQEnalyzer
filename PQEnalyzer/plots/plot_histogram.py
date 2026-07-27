@@ -1,7 +1,6 @@
 """
 Histogram/KDE plotting for PQ energy parameters.
 """
-from scipy.stats import gaussian_kde
 import numpy as np
 
 from ..energy_access import has_parameter, parameter_values
@@ -13,6 +12,21 @@ from .theme import series_color
 
 
 logger = get_logger(__name__)
+
+
+def _calculate_kde_curve(data):
+    """
+    Calculate a KDE curve while keeping SciPy out of GUI startup.
+    """
+
+    from scipy.stats import gaussian_kde
+
+    x = np.linspace(
+        min(data),
+        max(data),
+        1000,
+    )
+    return x, gaussian_kde(data)(x)
 
 
 class PlotHistogram(Plot):
@@ -40,6 +54,7 @@ class PlotHistogram(Plot):
         None
         """
 
+        self._kde_cache = {}
         super().__init__(app)
 
         return None
@@ -64,22 +79,20 @@ class PlotHistogram(Plot):
                 continue
 
             data = parameter_values(energy, info_parameter)
+            cache_key = (id(energy), info_parameter)
 
-            # check if zero data
-            if np.unique(data).size == 1:
+            if cache_key not in self._kde_cache:
+                if np.unique(data).size == 1:
+                    self._kde_cache[cache_key] = None
+                else:
+                    self._kde_cache[cache_key] = _calculate_kde_curve(data)
+
+            curve = self._kde_cache[cache_key]
+            if curve is None:
                 logger.warning("Data zero. No histogram available.")
                 continue
 
-            # plot kde of histogram
-            kde = gaussian_kde(data)
-
-            x = np.linspace(
-                min(data),
-                max(data),
-                1000,
-            )
-
-            y = kde(x)
+            x, y = curve
             line = self.ax.plot(
                 x,
                 y,
@@ -102,6 +115,13 @@ class PlotHistogram(Plot):
             )
 
         return None
+
+    def invalidate_data_cache(self) -> None:
+        """
+        Drop KDE curves after live data is re-read.
+        """
+
+        self._kde_cache.clear()
 
     def labels(self, info_parameter: str) -> None:
         """
