@@ -1,6 +1,27 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.8.5](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.5) - 2026-07-28
+
+<small>[Compare with v0.8.4](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.4...v0.8.5)</small>
+
+### Docs
+
+- clarify installed quick start ([85c3de3](https://github.com/MolarVerse/PQEnalyzer/commit/85c3de3301bf4bb2fb9fe4f4898e052878333cac) by Josef M. Gallmetzer).
+- fix README logo rendering ([0fb9fef](https://github.com/MolarVerse/PQEnalyzer/commit/0fb9fef6f8b7f95f84ffd1fa4826241df318aa39) by Josef M. Gallmetzer).
+- tighten project documentation (#91) ([2699e5f](https://github.com/MolarVerse/PQEnalyzer/commit/2699e5ffc950b77b6bc29648e5b33db85baed8a8) by Josef M. Gallmetzer).
+- update changelog ([1d0038e](https://github.com/MolarVerse/PQEnalyzer/commit/1d0038e802156e047a77f76f786a78cd9d32b54f) by github-actions[bot]).
+
+### Bug Fixes
+
+- clarify default gui usage (#92) ([576147c](https://github.com/MolarVerse/PQEnalyzer/commit/576147c7850ba0c135ea5a9b6de1303d6e7f0f28) by Josef M. Gallmetzer).
+- fall back when native file watching fails (#90) ([734612a](https://github.com/MolarVerse/PQEnalyzer/commit/734612a9217811f37a902c42929ae963ad2e423e) by Josef M. Gallmetzer).
+
+### Performance Improvements
+
+- speed up focused plot interactions (#94) ([f3ccf09](https://github.com/MolarVerse/PQEnalyzer/commit/f3ccf09b04b421ee26e22c2d2ca638ed41bd2a2a) by Josef M. Gallmetzer).
+- speed up dashboard redraws (#93) ([51b9f2e](https://github.com/MolarVerse/PQEnalyzer/commit/51b9f2e9e007db7d348cdfac3a34420547ccb5b2) by Josef M. Gallmetzer).
+
 ## [v0.8.4](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.4) - 2026-07-23
 
 <small>[Compare with v0.8.3](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.3...v0.8.4)</small>
