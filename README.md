@@ -20,13 +20,13 @@ pip install PQEnalyzer
 The GUI is the default:
 
 ```bash
-pqenalyzer examples/md-02.en
+pqenalyzer /path/to/simulation.en
 ```
 
 Use the terminal interface with the `tui` subcommand:
 
 ```bash
-pqenalyzer tui examples/md-02.en
+pqenalyzer tui /path/to/simulation.en
 ```
 
 PQEnalyzer detects the input format automatically. Use a format flag only when
