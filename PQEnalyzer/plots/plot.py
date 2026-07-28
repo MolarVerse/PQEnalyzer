@@ -17,6 +17,7 @@ from .theme import apply_figure_theme, apply_matplotlib_theme
 
 logger = get_logger(__name__)
 SINGLE_PLOT_FIGURE_SIZE = (11, 7)
+FOCUSED_RESIZE_DEBOUNCE_MS = 60
 
 
 class Plot(metaclass=ABCMeta):
@@ -59,6 +60,8 @@ class Plot(metaclass=ABCMeta):
         self.app = app
         self.reader = app.reader
         self.options = PlotOptions.from_app(app)
+        self._layout_signature = None
+        self._resize_after_id = None
 
         # read parameters from the app
         self.get_app_parameters()
@@ -184,6 +187,7 @@ class Plot(metaclass=ABCMeta):
                 logger.warning("Plot refresh skipped: %s", error)
                 return []
 
+            self.invalidate_data_cache()
             self.ax.clear()
             self.apply_theme()
             self.plot_data()
@@ -214,6 +218,7 @@ class Plot(metaclass=ABCMeta):
             logger.warning("Plot refresh skipped: %s", error)
             return None
 
+        self.invalidate_data_cache()
         self.redraw()
 
         # Show the plot
@@ -261,16 +266,56 @@ class Plot(metaclass=ABCMeta):
 
     def __resize_event(self, event):
         """
-        Refit labels and remember a resized single-plot window.
+        Remember the new size and coalesce expensive layout work.
         """
 
-        self.figure.tight_layout(pad=2.0)
-        self.figure.canvas.draw_idle()
         if hasattr(self.app, "remember_plot_size"):
             self.app.remember_plot_size(
                 "single",
                 self.figure.get_size_inches(),
             )
+
+        schedule = getattr(self.app, "after", None)
+        cancel = getattr(self.app, "after_cancel", None)
+        if not callable(schedule) or not callable(cancel):
+            self.__apply_pending_resize()
+            return
+
+        if self._resize_after_id is not None:
+            cancel(self._resize_after_id)
+        self._resize_after_id = schedule(
+            FOCUSED_RESIZE_DEBOUNCE_MS,
+            self.__apply_pending_resize,
+        )
+
+    def __apply_pending_resize(self):
+        """
+        Refit the focused plot after the native resize burst settles.
+        """
+
+        self._resize_after_id = None
+        if self.figure.number not in plt.get_fignums():
+            return
+
+        self.__fit_layout(force=True)
+        self.figure.canvas.draw_idle()
+
+    def __fit_layout(self, force=False):
+        """
+        Refit labels only when plot geometry or typography can change.
+        """
+
+        signature = (
+            type(self),
+            getattr(self, "info_parameter", None),
+            getattr(self.app, "plot_scale", 1.0),
+            tuple(str(filename) for filename in self.reader.filenames),
+        )
+        if not force and signature == self._layout_signature:
+            return
+
+        self.figure.tight_layout(pad=2.0)
+        self._layout_signature = signature
 
     def plot_data(self) -> None:
         """
@@ -288,7 +333,14 @@ class Plot(metaclass=ABCMeta):
 
         self.labels(self.info_parameter)
         self.apply_theme()
-        self.figure.tight_layout(pad=2.0)
+        self.__fit_layout()
+
+        return None
+
+    def invalidate_data_cache(self) -> None:
+        """
+        Discard subclass rendering caches after the reader changes.
+        """
 
         return None
 
