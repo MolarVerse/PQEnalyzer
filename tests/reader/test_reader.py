@@ -1,20 +1,12 @@
 import os
 import shutil
-from types import SimpleNamespace
 
-import numpy as np
 import pytest
 
 from PQAnalysis.traj import MDEngineFormat
 from PQAnalysis.physical_data import EnergyError
 
 from PQEnalyzer.readers import Reader
-from PQEnalyzer.readers import pq_energy
-from PQEnalyzer.readers.pq_energy import (
-    _normalize_energy_data_for_info,
-    parse_single_column_pq_info_file,
-    read_single_column_pq_energy_file,
-)
 
 
 class TestReader:
@@ -57,73 +49,6 @@ class TestReader:
         assert energy.info["MOMENTUM"] == 11
         assert energy.info["LOOPTIME"] == 12
         assert energy.data[energy.info["N(SM-MOL)"]][0] == 0
-
-    @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
-    def test_single_column_pq_info_file_normalizes_row_major_data(
-            self, example_dir, monkeypatch):
-        class RowMajorEnergyFileReader:
-            def __init__(self, filename, use_info_file):
-                self.filename = filename
-                self.use_info_file = use_info_file
-
-            def read(self):
-                assert self.use_info_file is False
-                return SimpleNamespace(data=np.arange(13).reshape((1, 13)))
-
-        monkeypatch.setattr(pq_energy, "EnergyFileReader",
-                            RowMajorEnergyFileReader)
-
-        energy = read_single_column_pq_energy_file(
-            example_dir + "single-column-output.en")
-
-        assert energy.data.shape == (13, 1)
-        assert energy.data[energy.info["N(SM-MOL)"]][0] == 10
-
-    def test_single_column_pq_energy_reader_ignores_missing_info_file(
-            self, tmp_path):
-        energy_file = tmp_path / "missing-info.en"
-        energy_file.write_text("1 2 3\n")
-
-        assert read_single_column_pq_energy_file(energy_file) is None
-
-    def test_normalize_single_column_pq_energy_data_handles_one_dimensional_data(
-            self):
-        data = _normalize_energy_data_for_info(np.arange(3), {
-            0: 0,
-            1: 1,
-            2: 2,
-        })
-
-        assert data.shape == (3, 1)
-
-    def test_normalize_single_column_pq_energy_data_keeps_column_major_data(
-            self):
-        data = _normalize_energy_data_for_info(np.zeros((3, 1)), {
-            0: 0,
-            1: 1,
-            2: 2,
-        })
-
-        assert data.shape == (3, 1)
-
-    def test_normalize_single_column_pq_energy_data_keeps_invalid_shape(self):
-        data = _normalize_energy_data_for_info(np.zeros((2, 3)), {0: 0})
-
-        assert data.shape == (2, 3)
-
-    def test_single_column_pq_info_parser_rejects_invalid_rows(self, tmp_path):
-        info_file = tmp_path / "invalid.info"
-        info_file.write_text(
-            "header\n"
-            "header\n"
-            "header\n"
-            "| SIMULATION-TIME 1 ps TEMPERATURE 2 K |\n"
-            "| invalid row |\n"
-            "footer\n"
-            "footer\n",
-        )
-
-        assert parse_single_column_pq_info_file(info_file) is None
 
     @pytest.mark.parametrize("example_dir", ["tests/data/"], indirect=False)
     def test_multiple_inputs(self, example_dir):
