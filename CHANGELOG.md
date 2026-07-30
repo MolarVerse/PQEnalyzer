@@ -1,6 +1,18 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.8.6](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.6) - 2026-07-30
+
+<small>[Compare with v0.8.5](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.5...v0.8.6)</small>
+
+### Docs
+
+- update changelog ([02425a3](https://github.com/MolarVerse/PQEnalyzer/commit/02425a3d01ab9296dd8dbd66c4bd035dfe1512e2) by github-actions[bot]).
+
+### Bug Fixes
+
+- delegate PQ info parsing to PQAnalysis (#95) ([6f6efa8](https://github.com/MolarVerse/PQEnalyzer/commit/6f6efa8ccb6be2ba783f68ee8faae12a0bfca238) by Josef M. Gallmetzer).
+
 ## [v0.8.5](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.5) - 2026-07-28
 
 <small>[Compare with v0.8.4](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.4...v0.8.5)</small>
