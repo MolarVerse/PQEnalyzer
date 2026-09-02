@@ -128,6 +128,12 @@ class BoxReader:
             steps, box_lengths, box_angles = self.__read_box_file_compat(
                 filename)
 
+        steps = np.asarray(steps)
+        box_lengths = np.asarray(box_lengths)
+        box_angles = np.asarray(box_angles)
+        if steps.size == 0 or box_lengths.size == 0 or box_angles.size == 0:
+            raise ValueError(f"Box file {filename} does not contain box data.")
+
         return BoxData.from_pqanalysis(steps, box_lengths, box_angles)
 
     def __read_box_file_compat(self, filename):
