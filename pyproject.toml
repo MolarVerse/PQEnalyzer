@@ -28,7 +28,7 @@ dependencies = [
     "tk",
     "Pillow",
     "scipy",
-    "plotext",
+    "plotext>=5.2,<6",
     "textual>=0.86,<9",
     "watchdog",
 ]
