@@ -92,6 +92,14 @@ def test_box_reader_fallback_rejects_empty_box_data(monkeypatch, tmp_path):
         BoxReader([str(filename)])
 
 
+def test_box_reader_rejects_empty_box_data_from_pqanalysis(tmp_path):
+    filename = tmp_path / "empty.box"
+    filename.write_text("   \n")
+
+    with pytest.raises(ValueError, match="does not contain box data"):
+        BoxReader([str(filename)])
+
+
 def test_box_reader_fallback_rejects_wrong_column_count(monkeypatch,
                                                         tmp_path):
     filename = tmp_path / "invalid.box"
