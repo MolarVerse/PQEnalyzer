@@ -158,3 +158,46 @@ class TestStatistic:
 
         with pytest.raises(ValueError):
             Statistic.running_average(energies2, "SIMULATION-TIME", -1)
+
+    def test_block_error_values(self):
+        rng = np.random.default_rng(42)
+
+        white = rng.normal(300.0, 15.0, size=20000)
+        sem, inefficiency, tau, n_effective = Statistic.block_error_values(
+            np.arange(20000), white)
+        assert inefficiency == pytest.approx(1.0, abs=0.1)
+        assert tau == pytest.approx(1.0, abs=0.1)
+        assert n_effective == pytest.approx(20000, rel=0.05)
+        assert sem == pytest.approx(15.0 / np.sqrt(20000), rel=0.05)
+
+        correlated = np.zeros(20000)
+        for index in range(1, 20000):
+            correlated[index] = (
+                0.95 * correlated[index - 1] + rng.normal(0.0, 4.68))
+        _, inefficiency, tau, n_effective = Statistic.block_error_values(
+            np.arange(20000), correlated)
+        assert inefficiency == pytest.approx(39.0, rel=0.25)
+        assert tau == pytest.approx(39.0, rel=0.25)
+        assert n_effective == pytest.approx(20000 / 39.0, rel=0.25)
+
+        assert Statistic.block_error_values(
+            [1, 2, 3], [1.0, 2.0, 3.0]) == (None, None, None, None)
+
+        sem, inefficiency, tau, n_effective = Statistic.block_error_values(
+            [1, 2, 3, 4, 5], [2.0, 2.0, 2.0, 2.0, 2.0])
+        assert (sem, inefficiency, tau, n_effective) == (0.0, 1.0, 1.0, 5.0)
+
+    def test_mser_truncation_index(self):
+        rng = np.random.default_rng(7)
+
+        assert Statistic.mser_truncation_index(
+            rng.normal(300.0, 15.0, size=20000)) <= 400
+
+        drifted = np.concatenate([
+            np.linspace(200.0, 400.0, 2000),
+            rng.normal(300.0, 15.0, size=18000),
+        ])
+        assert Statistic.mser_truncation_index(drifted) == 2000
+
+        assert Statistic.mser_truncation_index(np.full(100, 5.0)) == 0
+        assert Statistic.mser_truncation_index([1.0, 2.0, 3.0]) is None
