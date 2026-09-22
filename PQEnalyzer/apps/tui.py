@@ -32,6 +32,16 @@ from .file_watcher import FileChangeWatcher
 logger = get_logger(__name__)
 
 
+# LOCAL-ONLY preview: PQ_FLAT_MONO=1 swaps the TUI to the flat-mono tokens.
+def _flat_mono_tui_active() -> bool:
+    try:
+        from ..flat_mono import is_flat_mono_enabled
+
+        return is_flat_mono_enabled()
+    except ImportError:
+        return False
+
+
 TREND_BLOCKS = "▁▂▃▄▅▆▇█"
 
 
@@ -326,8 +336,12 @@ class TuiApp(App):
                 with Horizontal(id="analysis-panel"):
                     with Vertical(id="plot-panel"):
                         yield Static(id="detail-title")
-                        yield Sparkline(id="trend", min_color="#238636",
-                                        max_color="#3fb950")
+                        if _flat_mono_tui_active():
+                            yield Sparkline(id="trend", min_color="#0f62fe",
+                                            max_color="#198038")
+                        else:
+                            yield Sparkline(id="trend", min_color="#238636",
+                                            max_color="#3fb950")
                     with Vertical(id="calculation-panel"):
                         yield Static(id="detail-stats")
                         yield Static(feature_help_text(),
@@ -590,16 +604,29 @@ class TuiApp(App):
         ]
 
         status = Text()
-        status.append("Files ", style="#8b949e")
-        status.append(str(len(self.reader.filenames)), style="bold #e6edf3")
-        status.append("  Reader ", style="#8b949e")
-        status.append(type(self.reader).__name__, style="bold #e6edf3")
-        status.append("  Watch ", style="#8b949e")
-        status.append(self.watch_label, style="bold #3fb950")
-        status.append("  Updated ", style="#8b949e")
-        status.append(updated, style="bold #e6edf3")
-        status.append("\n")
-        status.append(" | ".join(file_rows), style="#c9d1d9")
+        if _flat_mono_tui_active():
+            # LOCAL-ONLY flat-mono: ink on white, accent watch state.
+            status.append("Files ", style="#6f6f6f")
+            status.append(str(len(self.reader.filenames)), style="bold #161616")
+            status.append("  Reader ", style="#6f6f6f")
+            status.append(type(self.reader).__name__, style="bold #161616")
+            status.append("  Watch ", style="#6f6f6f")
+            status.append(self.watch_label, style="bold #0f62fe")
+            status.append("  Updated ", style="#6f6f6f")
+            status.append(updated, style="bold #161616")
+            status.append("\n")
+            status.append(" | ".join(file_rows), style="#393939")
+        else:
+            status.append("Files ", style="#8b949e")
+            status.append(str(len(self.reader.filenames)), style="bold #e6edf3")
+            status.append("  Reader ", style="#8b949e")
+            status.append(type(self.reader).__name__, style="bold #e6edf3")
+            status.append("  Watch ", style="#8b949e")
+            status.append(self.watch_label, style="bold #3fb950")
+            status.append("  Updated ", style="#8b949e")
+            status.append(updated, style="bold #e6edf3")
+            status.append("\n")
+            status.append(" | ".join(file_rows), style="#c9d1d9")
 
         if self.refresh_warning:
             status.append("\n")
@@ -644,13 +671,23 @@ class TuiApp(App):
 
         summary = self.summaries[parameter]
         unit = summary.unit or "n/a"
-        title = Text.assemble(
-            (parameter, "bold #58a6ff"),
-            ("  Unit ", "#8b949e"),
-            (unit, "bold #c9d1d9"),
-            ("  Rows ", "#8b949e"),
-            (str(summary.rows), "bold #c9d1d9"),
-        )
+        if _flat_mono_tui_active():
+            # LOCAL-ONLY flat-mono: ink title, accent parameter.
+            title = Text.assemble(
+                (parameter, "bold #0f62fe"),
+                ("  Unit ", "#6f6f6f"),
+                (unit, "bold #161616"),
+                ("  Rows ", "#6f6f6f"),
+                (str(summary.rows), "bold #161616"),
+            )
+        else:
+            title = Text.assemble(
+                (parameter, "bold #58a6ff"),
+                ("  Unit ", "#8b949e"),
+                (unit, "bold #c9d1d9"),
+                ("  Rows ", "#8b949e"),
+                (str(summary.rows), "bold #c9d1d9"),
+            )
         self.query_one("#detail-title", Static).update(title)
 
         trend = self.query_one("#trend", Sparkline)
@@ -783,4 +820,19 @@ class TuiApp(App):
         Return the Rich style for an enabled-state label.
         """
 
+        if _flat_mono_tui_active():
+            # LOCAL-ONLY flat-mono: accent on, muted off.
+            return "bold #0f62fe" if enabled else "#6f6f6f"
         return "bold #3fb950" if enabled else "#8b949e"
+
+
+# LOCAL-ONLY preview: swap the whole TUI stylesheet when requested.
+# Evaluated at import time so `PQ_FLAT_MONO=1 pqenalyzer --tui ...` picks it up.
+try:
+    from ..flat_mono import FLAT_MONO_TUI_CSS as _FLAT_MONO_CSS
+    from ..flat_mono import is_flat_mono_enabled as _tui_flat_check
+
+    if _tui_flat_check():
+        TuiApp.CSS = _FLAT_MONO_CSS
+except ImportError:
+    pass
