@@ -1,0 +1,1120 @@
+/*
+ * PQEnalyzer Web layout on top of @molarverse/pq-design (LOCAL-ONLY preview).
+ * Tokens, reset, and primitives come from the design package; only the web
+ * app's composition lives here. Flat-mono rules apply: mono type, square
+ * corners, hairline dividers, no shadows, 11px minimum microcopy.
+ */
+
+.web-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+}
+
+/* ---- top bar ----------------------------------------------------------- */
+
+.web-header {
+  flex: 0 0 auto;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(220px, 440px) minmax(200px, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.web-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.web-header .brand img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.web-header .brand strong {
+  font-size: 0.93rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Segmented view switch: selected segment is a dark fill. */
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+}
+
+.seg > button {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.seg > button + button {
+  border-left: 1px solid var(--border);
+}
+
+.seg > button:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.seg > button.selected {
+  color: #fff;
+  background: var(--selected);
+}
+
+.seg > button:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: -2px;
+}
+
+/* ---- body: single column ------------------------------------------------
+   The shell never scrolls. Dashboard and narrow layouts scroll inside main;
+   the chart flexes. Navigation lives in the dashboard, palette, and header. */
+
+.web-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 20px;
+  overflow: hidden;
+}
+
+.web-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.web-main.scroll {
+  overflow-y: auto;
+}
+
+.web-main > .setup-section {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Header watch toggle reuses the status glyph, behaves as a button. */
+button.pq-tag {
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+button.pq-tag:hover .pq-tag-value {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.pq-tag:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+/* Count badge on the tools button. */
+.count-badge {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 4px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Floating tools panel: setup on demand, chart keeps its space. */
+.tools-panel {
+  position: fixed;
+  z-index: 60;
+  top: 60px;
+  right: 12px;
+  bottom: 12px;
+  width: min(320px, calc(100vw - 24px));
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.tools-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin: 0 -16px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tools-head strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.tools-panel .setup-section {
+  padding-top: 16px;
+}
+
+/* Vertical rhythm for stacked page sections. */
+.setup-section {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.output-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  color: var(--muted);
+  background: transparent;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+/* ---- narrow view switch ------------------------------------------------------- */
+
+.narrow-views {
+  margin-bottom: 16px;
+}
+
+.narrow-views .seg {
+  width: 100%;
+}
+
+/* ---- chart card -------------------------------------------------------------- */
+
+.chart-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card.chart-fill {
+  flex: 1;
+}
+
+.chart-card .chart-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 2px;
+  border: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.legend-chip:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legend-chip.off {
+  color: var(--muted);
+}
+
+.legend-chip.off > span {
+  text-decoration: line-through;
+}
+
+.legend-chip strong {
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-chip.off strong {
+  color: var(--muted);
+}
+
+.legend-item {
+  display: contents;
+}
+
+.legend-sep {
+  width: 1px;
+  height: 18px;
+  align-self: center;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+
+
+.chart-wrap {
+  position: relative;
+  padding: 8px 8px 0;
+}
+
+.chart-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  padding: 4px 16px 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.chart-foot-action {
+  padding: 0;
+  border: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.chart-foot-action:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.chart-foot-action:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.chart-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-foot-action.active {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-tick {
+  fill: var(--ink-soft);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+.chart-tooltip strong {
+  display: block;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip td {
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.chart-tooltip td:first-child {
+  padding-right: 10px;
+  color: var(--ink-soft);
+}
+
+.chart-tooltip td:last-child {
+  text-align: right;
+  font-weight: 500;
+}
+
+.chart-tooltip td i {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.chart-guide {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.chart-guide-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.chart-guide-accent {
+  stroke: var(--accent-dark);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.chart-guide-accent-label {
+  fill: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+/* Analysis readouts: label/value rows in the tools panel. */
+.analysis-list {
+  margin: 0;
+  border: 1px solid var(--border);
+}
+
+.analysis-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+}
+
+.analysis-list > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.analysis-list dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.analysis-list dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* Skeleton placeholders while data loads (static in reduced motion). */
+.skel-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 24px;
+}
+
+.skel-line {
+  height: 12px;
+  display: block;
+  background: var(--border);
+  animation: skel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skel-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel-line {
+    animation: none;
+  }
+}
+
+/* Smoothing slider: square range paired with the number field. */
+.smooth-slider {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.smooth-slider output {
+  min-width: 48px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.smooth-slider input[type="range"] {
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.smooth-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.smooth-slider input[type="range"]::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.smooth-slider input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.smooth-slider input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.smooth-slider input[type="range"]:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+/* Title row: labelled rule left, quiet actions right. */
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-row .section-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.title-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ghost-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ghost-action:hover {
+  color: var(--accent-dark);
+  background: var(--surface-subtle);
+}
+
+.ghost-action:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+/* ---- stats: one quiet line, Grafana-legend style ------------------------------- */
+
+.stat-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-line > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.stat-line strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.stat-line i {
+  margin: 0 8px;
+  color: var(--border-strong);
+  font-style: normal;
+}
+
+/* The analysis headline stacks directly under the stat line. */
+.stat-line + .analysis-line {
+  border-top: 0;
+}
+
+/* Loud verdict: larger type on a verdict wash so the scientific
+   headline reads before the raw numbers. */
+.analysis-line {
+  font-size: 0.93rem;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.analysis-line.verdict-yes {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.analysis-line.verdict-no {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.analysis-line.verdict-yes > span:first-child,
+.analysis-line.verdict-yes > span:first-child strong {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.analysis-line.verdict-no > span:first-child,
+.analysis-line.verdict-no > span:first-child strong {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Dashboard: unequilibrated cards carry a red edge so triage is instant. */
+.spark-card[data-equil="no"] {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+
+/* Dashboard equilibration glyphs inherit the same verdict hues. */
+.equil-yes {
+  color: var(--success);
+}
+
+.equil-no {
+  color: var(--danger);
+}
+
+.toggle-group {
+  border: 1px solid var(--border);
+  padding: 0 12px;
+}
+
+.toggle-group .switch-row + .switch-row {
+  border-top: 1px solid var(--border);
+}
+
+/* Rail toggles inherit the design-system stacking; denser label type. */
+.toggle-group .switch-row strong {
+  font-size: 0.86rem;
+}
+
+/* In the narrow rail, label and affordance flow inline so the icon is
+   never stranded on its own line. */
+.toggle-group .switch-row > span:first-child {
+  display: block;
+}
+
+/* ---- dashboard --------------------------------------------------------------------- */
+
+.spark-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.spark-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.spark-card:hover {
+  background: var(--surface-subtle);
+}
+
+.spark-card:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: -2px;
+}
+
+.spark-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.spark-head strong {
+  overflow: hidden;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spark-head small {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.spark-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.spark-foot > span {
+  font-size: 0.93rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.spark-foot small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-note {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Dashboard header: title left, sort control right. */
+.dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-head .section-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-sort {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.dash-sort select {
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  color: var(--ink);
+  background: var(--surface-subtle);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dash-sort select:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: -2px;
+}
+
+/* Drift signal: steady ok, mild muted, strong accent, flat dimmed. */
+.drift {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.drift-steady {
+  color: var(--success);
+}
+
+.drift-mild {
+  color: var(--muted);
+}
+
+.drift-strong {
+  color: var(--accent-dark);
+}
+
+.drift-flat {
+  color: var(--border-strong);
+}
+
+/* ---- responsive ---------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .web-main {
+    overflow-y: auto;
+  }
+
+  .web-main > .setup-section {
+    flex: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .web-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .web-main {
+    border: 0;
+  }
+}
+
+/* ---- data-table modal: transported points, hairlines, sticky head ------------- */
+
+.data-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--muted);
+  font-weight: 600;
+  z-index: 1;
+}
+
+.data-table tbody th[scope="row"] {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.data-null {
+  color: var(--muted);
+}
+
+/* ---- shortcut help: kbd + description rows ------------------------------------ */
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.shortcut-row:last-child {
+  border-bottom: 0;
+}
+
+.shortcut-row > span:first-child {
+  flex-shrink: 0;
+  min-width: 88px;
+}
+
+.shortcut-row kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-subtle);
+  font-family: inherit;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.shortcut-row > span:last-child {
+  color: var(--muted);
+}
+
+/* ---- uPlot flat-mono theme --------------------------------------------------- */
+
+.uplot-wrap {
+  padding: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.uplot-mount {
+  overflow: hidden;
+}
+
+.uplot-wrap .uplot {
+  font-family: var(--mono);
+}
+
+.uplot-wrap .u-select {
+  background: rgba(15, 98, 254, 0.08);
+  border: 1px solid var(--accent);
+}
+
+.uplot-overlays {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uplot-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+}
+
+.uplot-hover-dot {
+  background: var(--surface);
+  border-width: 2px;
+}
+
+.uplot-vline {
+  position: absolute;
+  width: 1px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.uplot-marker {
+  position: absolute;
+  width: 1px;
+  background: var(--accent-dark);
+}
+
+.uplot-marker-label {
+  position: absolute;
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+/* ---- split compare: one panel per file, shared zoom --------------------------- */
+
+.split-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.split-panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.split-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.split-head > i {
+  align-self: center;
+  width: 18px;
+  height: 2px;
+}
+
+.split-head > span {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ghost-action.active {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ghost-action:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---- runs table: sortable headers, pinned combined row ------------------------ */
+
+.runs-sort {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.runs-sort:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.runs-combined td {
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 0;
+}
+
+/* ---- soft bounds: min/max side by side ---------------------------------------- */
+
+.bounds-row {
+  display: flex;
+  gap: 12px;
+}
+
+.bounds-row > * {
+  flex: 1;
+  min-width: 0;
+}
