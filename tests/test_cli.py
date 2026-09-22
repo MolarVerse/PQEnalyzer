@@ -33,12 +33,13 @@ def test_cli_help_mentions_gui_and_tui_modes():
     assert result.returncode == 0
     assert "Traceback" not in result.stderr
     assert (
-        "usage: pqenalyzer [-h] [-v] [gui|tui] "
+        "usage: pqenalyzer [-h] [-v] [gui|tui|web] "
         "[--pq | -q | --box | --opt] FILE [FILE ...]"
     ) in result.stdout
-    assert "{gui,tui}" not in result.stdout
+    assert "{gui,tui,web}" not in result.stdout
     assert "gui" in result.stdout
     assert "tui" in result.stdout
+    assert "web" in result.stdout
 
 
 def test_gui_help_mentions_optimizer_input():
