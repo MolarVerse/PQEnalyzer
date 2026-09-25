@@ -6,8 +6,8 @@
 
 # PQEnalyzer
 
-Plot and monitor PQ energy, box, and optimizer output in a desktop or terminal
-interface.
+Plot and monitor PQ energy, box, and optimizer output in a desktop,
+terminal, or browser interface.
 
 ## Install
 
@@ -27,6 +27,12 @@ Use the terminal interface with the `tui` subcommand:
 
 ```bash
 pqenalyzer tui /path/to/simulation.en
+```
+
+Use the browser interface with the `web` subcommand:
+
+```bash
+pqenalyzer web /path/to/simulation.en
 ```
 
 PQEnalyzer detects the input format automatically. Use a format flag only when
@@ -102,9 +108,49 @@ pqenalyzer tui FILE [FILE ...]
 | `w` | Pause or resume file watching |
 | `q` | Quit |
 
+## Web
+
+```bash
+pqenalyzer web FILE [FILE ...] [--port 8766] [--no-open]
+```
+
+This starts a local-only server (loopback, default `127.0.0.1:8766`) and
+opens the dashboard in your browser. Nothing leaves your machine; use
+`--port` when the default is taken and `--no-open` to print the address
+without opening a browser.
+
+What you see:
+
+- **Dashboard** — one card per parameter with a sparkline, the latest
+  value, and drift/equilibration glyphs. Click a card (or press
+  `Ctrl+K` and type a name) to inspect it.
+- **Series / Histogram** — press `1` / `2` to switch the chart language.
+  Drag to zoom, double-click to reset, hover for values. `Split` shows
+  one panel per file with a shared zoom.
+- **Live updates** — the header badge reads `watching` while files are
+  watched, `stale` when they changed on disk (refresh or resume watching
+  to reload), `paused` when watching is off, and `offline` if the
+  connection drops. Data stays on screen throughout.
+
+| Key | Action |
+| --- | --- |
+| `Ctrl+K` | Search parameters and modes |
+| `1` / `2` | Series / histogram mode |
+| `m`, `n`, `c`, `s`, `a` | Mean, median, cumulative/self-correlation/running average overlays |
+| `x` | Difference of two files |
+| `o` | Overlay and analysis options |
+| `?` | This shortcut list |
+| `Esc` | Close panel, then back to the dashboard |
+
+`Data` shows the transported points as a table, `Runs` the sortable
+per-file stats, and `PNG` / `CSV` download the chart and the
+full-resolution data. Soft y-axis bounds in the options panel widen the
+axis without clipping data.
+
 ## Plot Features
 
-The GUI and TUI use the same plot features:
+The GUI, TUI, and web interface use the same plot features (the web keys
+match the TUI keys):
 
 | Feature | Time series | Histogram | TUI key |
 | --- | --- | --- | --- |
