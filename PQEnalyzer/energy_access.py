@@ -28,6 +28,34 @@ PARAMETER_ATTRIBUTES = {
 }
 # Mapping from PQ info labels to PQAnalysis ``Energy`` attribute names.
 
+# Parameters describing the computation itself (timers, counters, fixed
+# metadata) rather than the simulated system. They stay viewable — a
+# loop-time step can veto a segment — but must never imply convergence.
+DIAGNOSTIC_PARAMETERS = frozenset({
+    "LOOPTIME",
+    "N(QM-ATOMS)",
+    "N(SM-MOL)",
+})
+
+
+def parameter_kind(name, values=None) -> str:
+    """
+    Classify a parameter as ``"observable"`` or ``"diagnostic"``.
+
+    ``values`` (when given) upgrades the rule beyond the curated names:
+    a series with zero variance carries no information about the system
+    state. A converged observable always retains float noise, so exact
+    constancy is a safe diagnostic signal.
+    """
+    if name in DIAGNOSTIC_PARAMETERS:
+        return "diagnostic"
+    if values is not None:
+        finite = np.asarray(values, dtype=float)
+        finite = finite[np.isfinite(finite)]
+        if finite.size and not np.any(finite != finite[0]):
+            return "diagnostic"
+    return "observable"
+
 
 def has_parameter(energy, info_parameter: str) -> bool:
     """

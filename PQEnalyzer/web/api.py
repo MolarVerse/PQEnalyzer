@@ -22,6 +22,7 @@ from ..energy_access import (
     available_parameters,
     axis_label,
     concatenate_series,
+    parameter_kind,
     parameter_unit_for_energies,
     series,
     simulation_time,
@@ -223,6 +224,7 @@ class WebState:
                 "label": parameter_label(name, unit),
                 "files": len(matching),
                 "rows": rows,
+                "kind": _kind_of(energies, name),
             })
         return {"parameters": items}
 
@@ -405,10 +407,13 @@ class WebState:
             spark = [v for v in _json_list(spark) if v is not None]
             combined_stats = _stats_of_array(
                 finite, label="combined", rows=int(values.size))
-            combined_stats["analysis"] = _analysis_of(values, time)
+            kind = parameter_kind(name, finite)
+            if kind == "observable":
+                combined_stats["analysis"] = _analysis_of(values, time)
             hist = _mini_histogram(finite)
         except ValueError:
             combined_stats = None
+            kind = parameter_kind(name)
             spark = []
             hist = None
         return {
@@ -419,6 +424,7 @@ class WebState:
             "combined": combined_stats,
             "spark": spark,
             "hist": hist,
+            "kind": kind,
         }
 
     def summary(self, parameter):
@@ -444,13 +450,16 @@ class WebState:
             label="combined",
             rows=int(values.size),
         )
-        combined["analysis"] = _analysis_of(values, time)
+        kind = parameter_kind(parameter, values)
+        if kind == "observable":
+            combined["analysis"] = _analysis_of(values, time)
         return {
             "parameter": parameter,
             "unit": unit,
             "label": parameter_label(parameter, unit),
             "files": files,
             "combined": combined,
+            "kind": kind,
         }
 
     def export_csv(self, parameter):
@@ -633,6 +642,19 @@ def _matching_indices(energies, parameter):
         index for index, energy in enumerate(energies)
         if parameter in getattr(energy, "info", {})
     ]
+
+
+def _kind_of(energies, parameter):
+    """
+    Classify a parameter from its combined values (name-only fallback
+    when the series cannot be concatenated).
+    """
+    try:
+        combined = concatenate_series(energies, parameter)
+        values = np.asarray(combined.values, dtype=float)
+    except ValueError:
+        values = None
+    return parameter_kind(parameter, values)
 
 
 def _downsample(time, values, max_points):
