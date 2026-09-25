@@ -26,7 +26,6 @@ import type { LineDataset } from "../charts";
 const MONO_FONT = '11px "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace';
 const GRID = "#e0e0e0";
 const TICK_INK = "#393939";
-const CURSOR = "#0f62fe";
 
 /** Hex #rrggbb with an alpha channel (raw series recede under overlays). */
 function withAlpha(hex: string, alpha: number): string {

@@ -1,6 +1,5 @@
 import { Field, Info, Toggle } from "@molarverse/pq-design";
 import type { Dispatch, SetStateAction } from "react";
-import { formatValue } from "../api";
 import type { OverlayFlags, StatBlock } from "../api";
 
 export interface SharedControls {

@@ -1,7 +1,7 @@
 """
 LOCAL-ONLY preview: PQSetup flat-mono design language on PQEnalyzer.
 
-Not committed upstream. Reversible: delete this file and revert the small
+Reversible: delete this file and revert the small
 ``PQ_FLAT_MONO`` branches in ``plots/theme.py``, ``apps/app_layout.py`` and
 ``apps/tui.py``.
 
