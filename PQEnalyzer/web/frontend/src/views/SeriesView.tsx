@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Modal } from "@molarverse/pq-design";
 import { RefreshCw } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
 import { PRESETS, UPlotChart, presetRangeFor, type UPlotChartHandle } from "../components/UPlotChart";
 import { formatUnit, formatValue, type OverlayFlags, type OverlayItem, type SeriesResponse, type SummaryResponse } from "../api";
 import { TitleRow } from "../components/Chrome";
+import { OverlayStrip } from "../components/OverlayStrip";
 import { AnalysisLine, StatLine } from "../components/Stats";
 import { SeriesDataTable } from "../components/DataTable";
 import { RunsTable } from "../components/RunsTable";
@@ -27,6 +28,7 @@ export interface SeriesViewProps {
   series: SeriesResponse | null;
   overlays: OverlayItem[];
   flags: OverlayFlags;
+  setFlags: Dispatch<SetStateAction<OverlayFlags>>;
   timeLabel: string;
   summary: SummaryResponse | null;
   overlayError: string | null;
@@ -61,6 +63,7 @@ export function SeriesView({
   series,
   overlays,
   flags,
+  setFlags,
   timeLabel,
   summary,
   overlayError,
@@ -399,6 +402,12 @@ export function SeriesView({
               onToggle={toggleHidden}
               values={legendValues}
             />
+            <OverlayStrip
+              flags={flags}
+              setFlags={setFlags}
+              overlays={overlays}
+              fileCount={fileCount}
+            />
             <div className="split-panels">
               {panels.map((panel) => (
                 <div className="split-panel" key={panel.label}>
@@ -489,6 +498,12 @@ export function SeriesView({
               hidden={hidden}
               onToggle={toggleHidden}
               values={legendValues}
+            />
+            <OverlayStrip
+              flags={flags}
+              setFlags={setFlags}
+              overlays={overlays}
+              fileCount={fileCount}
             />
             <UPlotChart
               datasets={datasets}

@@ -1123,3 +1123,39 @@ button.pq-tag:focus-visible {
   flex: 1;
   min-width: 0;
 }
+
+/* ---- overlay strip: first-class toggles + presets, always visible ---------- */
+
+.overlay-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.strip-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.strip-sep {
+  width: 1px;
+  height: 18px;
+  align-self: center;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+
+.overlay-strip .legend-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.overlay-strip .legend-chip:disabled:hover {
+  text-decoration: none;
+}
