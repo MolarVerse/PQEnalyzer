@@ -137,6 +137,21 @@ working tree (`PQEnalyzer/web/`, `PQEnalyzer/tests/web/`,
   PNG download (104 KB composite), runs sorting, pinch, soft bounds
   (0–400 axis), mini guides (22 lines), split+overlay dimming; no errors.
 
+### Phase 6 — Overlays central (shipped on the branch, post-Phase-5)
+- Always-visible overlay strip under the legend (toggle chips with live
+  latest values + shortcut hints, difference guard shared with the tools
+  panel) plus one-click presets (Off/Reference/Spread/Trend/Equilibrate/
+  Correlate); tools panel keeps advanced controls.
+- Palette rethink: vivid mutually-distant file hues (blue/magenta/teal/
+  orange first), near-ink width-2 overlay strokes; file slots no longer
+  reuse overlay grays.
+- Taste persists per browser (versioned localStorage: overlay defaults
+  with mean on first paint, soft bounds, dashboard sort; `difference`
+  never restored). `settings.ts` + 5 validation tests.
+- Done: tsc (+noUnusedLocals pass) + 41 vitest + build green; fresh-profile
+  first paint shows mean on, preset click persists and survives reload;
+  pinch verified over CDP touch; no console errors.
+
 ## Decisions log
 - Downsampling stays server-side stride (honest, disclosed); min-max
   per-pixel happens client-side for rendering only.
