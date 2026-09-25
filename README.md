@@ -127,6 +127,11 @@ What you see:
 - **Series / Histogram** — press `1` / `2` to switch the chart language.
   Drag to zoom, double-click to reset, hover for values. `Split` shows
   one panel per file with a shared zoom.
+- **Overlays lead** — the strip under the legend toggles derived curves
+  with live values (or picks a preset: Reference, Spread, Trend,
+  Equilibrate, Correlate). The combined mean is on from the first paint;
+  raw series recede while any overlay is active. Your overlay defaults,
+  soft bounds, and dashboard sort persist per browser.
 - **Live updates** — the header badge reads `watching` while files are
   watched, `stale` when they changed on disk (refresh or resume watching
   to reload), `paused` when watching is off, and `offline` if the

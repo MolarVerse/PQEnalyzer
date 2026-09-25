@@ -25,6 +25,11 @@ import { useSession } from "./hooks/useSession";
 import { DashboardView, type SortMode } from "./views/DashboardView";
 import { HistogramView } from "./views/HistogramView";
 import { SeriesView } from "./views/SeriesView";
+import {
+  browserStorage,
+  loadSettings,
+  saveSettings,
+} from "./settings";
 
 
 
@@ -57,12 +62,20 @@ function useMediaQuery(query: string): boolean {
 
 
 export default function App() {
-  const [flags, setFlags] = useState<OverlayFlags>(EMPTY_FLAGS);
+  // Taste that survives reloads: overlay defaults (mean on first run),
+  // soft bounds, and dashboard sort persist per browser.
+  const [stored] = useState(() => loadSettings(browserStorage()));
+  const [flags, setFlags] = useState<OverlayFlags>(() => ({
+    ...EMPTY_FLAGS,
+    ...stored.overlays,
+  }));
   const [windowSize, setWindowSize] = useState("1000");
   const [bins, setBins] = useState("48");
-  const [yBounds, setYBounds] = useState<SoftBounds>({ min: "", max: "" });
+  const [yBounds, setYBounds] = useState<SoftBounds>(stored.softBounds);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [sortMode, setSortMode] = useState<SortMode>(
+    stored.sortMode === "drift" ? "drift" : "name",
+  );
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showEquil, setShowEquil] = useState(true);
   const [showKde, setShowKde] = useState(false);
@@ -81,6 +94,18 @@ export default function App() {
   useEffect(() => {
     if (session.generation > 0) reloadFocus();
   }, [session.generation, reloadFocus]);
+
+  // Persist taste: overlay defaults, soft bounds, dashboard sort.
+  useEffect(() => {
+    const { difference: _dropped, ...overlays } = flags;
+    void _dropped;
+    saveSettings(browserStorage(), {
+      version: 1,
+      overlays,
+      softBounds: yBounds,
+      sortMode,
+    });
+  }, [flags, yBounds, sortMode]);
 
   const refreshNow = useCallback(async () => {
     await session.refreshNow();
@@ -271,6 +296,7 @@ export default function App() {
               series={paramData.series}
               overlays={paramData.overlays}
               flags={flags}
+              setFlags={setFlags}
               timeLabel={session.meta?.time_label ?? "Simulation Time"}
               summary={paramData.summary}
               overlayError={paramData.overlayError}
