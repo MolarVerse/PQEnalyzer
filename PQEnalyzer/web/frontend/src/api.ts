@@ -17,12 +17,15 @@ export interface Meta {
   stale: boolean;
 }
 
+export type ParameterKind = "observable" | "diagnostic";
+
 export interface Parameter {
   name: string;
   unit: string;
   label: string;
   files: number;
   rows: number;
+  kind: ParameterKind;
 }
 
 export interface SeriesItem {
@@ -92,6 +95,7 @@ export interface SummaryResponse {
   label: string;
   files: StatBlock[];
   combined: StatBlock;
+  kind: ParameterKind;
 }
 
 export interface SummaryEntry {
@@ -102,6 +106,7 @@ export interface SummaryEntry {
   combined: StatBlock;
   spark: (number | null)[];
   hist: { edges: number[]; counts: number[] } | null;
+  kind: ParameterKind;
 }
 
 export interface KdeCurve {

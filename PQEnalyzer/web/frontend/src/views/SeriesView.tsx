@@ -241,8 +241,10 @@ export function SeriesView({
   const markers = useMemo(() => {
     const analysis = summary?.combined.analysis;
     const time = analysis?.equil_time;
+    // Diagnostics get no convergence verdicts, hence no marker either.
     // Index zero means nothing to discard: no marker to draw.
     if (
+      summary?.kind === "diagnostic" ||
       !showEquil ||
       time === undefined ||
       time === null ||
@@ -465,8 +467,19 @@ export function SeriesView({
               <span>{overlayError}</span>
             </p>
           )}
+          {summary?.kind === "diagnostic" && (
+            <p className="notice" role="note">
+              <span>
+                {focus} tracks the computation, not the simulated system — no
+                convergence analysis. A step change here vetoes the segment;
+                it never proves equilibration.
+              </span>
+            </p>
+          )}
           {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
-          {summary && <AnalysisLine stats={summary.combined} />}
+          {summary && summary.kind !== "diagnostic" && (
+            <AnalysisLine stats={summary.combined} />
+          )}
         </>
       ) : (
         <>
@@ -492,8 +505,19 @@ export function SeriesView({
               <span>{overlayError}</span>
             </p>
           )}
+          {summary?.kind === "diagnostic" && (
+            <p className="notice" role="note">
+              <span>
+                {focus} tracks the computation, not the simulated system — no
+                convergence analysis. A step change here vetoes the segment;
+                it never proves equilibration.
+              </span>
+            </p>
+          )}
           {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
-          {summary && <AnalysisLine stats={summary.combined} />}
+          {summary && summary.kind !== "diagnostic" && (
+            <AnalysisLine stats={summary.combined} />
+          )}
         </>
       )}
       <Modal

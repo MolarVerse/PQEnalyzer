@@ -147,6 +147,13 @@ per-file stats, and `PNG` / `CSV` download the chart and the
 full-resolution data. Soft y-axis bounds in the options panel widen the
 axis without clipping data.
 
+Parameters split into **observables** (energy, temperature, pressure,
+density, …) and **diagnostics** (`LOOPTIME`, atom counts, and any other
+zero-variance series). Diagnostics stay fully viewable, but they get no
+drift badges, no equilibration verdicts, and sort after observables:
+loop time tracks compute cost per step, not the simulated system, so a
+step change there vetoes the segment — it never proves equilibration.
+
 ## Plot Features
 
 The GUI, TUI, and web interface use the same plot features (the web keys

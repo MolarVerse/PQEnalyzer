@@ -96,6 +96,15 @@ export function HistogramView({
           <p className="output-empty">Computing histogram…</p>
         )}
       </div>
+      {summary?.kind === "diagnostic" && (
+        <p className="notice" role="note">
+          <span>
+            {focus} tracks the computation, not the simulated system — no
+            convergence analysis. A step change here vetoes the segment;
+            it never proves equilibration.
+          </span>
+        </p>
+      )}
       {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
       <Modal
         open={dataOpen}

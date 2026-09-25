@@ -697,6 +697,11 @@ button.pq-tag:focus-visible {
   box-shadow: inset 2px 0 0 var(--danger);
 }
 
+/* Diagnostic cards recede: compute metadata, never convergence evidence. */
+.spark-card.diagnostic {
+  background: var(--surface-subtle);
+}
+
 /* Dashboard equilibration glyphs inherit the same verdict hues. */
 .equil-yes {
   color: var(--success);

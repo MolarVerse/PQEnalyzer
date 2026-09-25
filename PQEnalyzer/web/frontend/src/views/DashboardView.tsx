@@ -56,9 +56,15 @@ export function DashboardView({
     return map;
   }, [parameterNames]);
 
+  // Diagnostics trail observables (name-sorted) and never drive
+  // drift order: their drift says nothing about the system state.
   const sorted = useMemo(() => {
+    const observables = summaries.filter((entry) => entry.kind !== "diagnostic");
+    const diagnostics = summaries
+      .filter((entry) => entry.kind === "diagnostic")
+      .sort((a, b) => a.name.localeCompare(b.name));
     if (sortMode === "drift") {
-      return [...summaries].sort((a, b) => {
+      observables.sort((a, b) => {
         const driftA = a.combined.drift;
         const driftB = b.combined.drift;
         if (driftA === null && driftB === null) return a.name.localeCompare(b.name);
@@ -67,7 +73,7 @@ export function DashboardView({
         return Math.abs(driftB) - Math.abs(driftA);
       });
     }
-    return summaries;
+    return [...observables, ...diagnostics];
   }, [summaries, sortMode]);
 
   return (
@@ -97,11 +103,17 @@ export function DashboardView({
         {sorted.map((entry) => {
           const color =
             colorFor.get(entry.name) ?? SERIES_COLORS[0];
+          const diagnostic = entry.kind === "diagnostic";
           return (
             <button
               key={entry.name}
               type="button"
-              className="spark-card"
+              className={`spark-card${diagnostic ? " diagnostic" : ""}`}
+              title={
+                diagnostic
+                  ? "Diagnostic parameter (compute metadata) — no convergence analysis"
+                  : undefined
+              }
               data-equil={
                 entry.combined.analysis?.equilibrated === undefined ||
                 entry.combined.analysis?.equilibrated === null
@@ -129,11 +141,15 @@ export function DashboardView({
               <span className="spark-foot">
                 <span>{formatValue(entry.combined.latest)}</span>
                 <small>
-                  <EquilGlyph
-                    equilibrated={entry.combined.analysis?.equilibrated}
-                  />
-                  <DriftBadge drift={entry.combined.drift} /> · mean{" "}
-                  {formatValue(entry.combined.mean)} ·{" "}
+                  {!diagnostic && (
+                    <>
+                      <EquilGlyph
+                        equilibrated={entry.combined.analysis?.equilibrated}
+                      />
+                      <DriftBadge drift={entry.combined.drift} /> ·{" "}
+                    </>
+                  )}
+                  mean {formatValue(entry.combined.mean)} ·{" "}
                   {entry.combined.rows.toLocaleString()} rows
                 </small>
               </span>
