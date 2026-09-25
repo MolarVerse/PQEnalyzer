@@ -7,16 +7,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatTick, formatValue } from "./api";
 
-/** Series hues follow the flat-mono data order (accent first). */
+/**
+ * File hues: vivid, mutually distant, legible on white. Order matters —
+ * the first slots cover the common one- and two-file sessions.
+ */
 export const SERIES_COLORS = [
   "#0f62fe",
-  "#005d5d",
+  "#d12771",
+  "#007d79",
+  "#ba4e00",
   "#6929c4",
   "#198038",
-  "#0043ce",
-  "#393939",
-  "#8e6a00",
   "#da1e28",
+  "#8e6a00",
 ];
 
 export interface OverlayStyle {
@@ -25,13 +28,16 @@ export interface OverlayStyle {
   width: number;
 }
 
-/** Derived overlays read as technical linework, not new data. */
+/**
+ * Derived overlays read as instruments, not data: near-ink strokes wide
+ * enough to survive under vivid files. Dash patterns (never hue alone)
+ * tell them apart; file hues never reuse these near-blacks.
+ */
 export const OVERLAY_STYLES: Record<string, OverlayStyle> = {
-  mean: { color: "#393939", dash: "6 4", width: 1.5 },
-  median: { color: "#6929c4", dash: "2 3", width: 1.5 },
-  cummulative_average: { color: "#0043ce", dash: "8 4", width: 1.5 },
-  self_correlation_mean: { color: "#6f6f6f", dash: "1 3", width: 1.5 },
-  // Solid ink: unmistakable against every file hue, including file one's blue.
+  mean: { color: "#161616", dash: "6 4", width: 2 },
+  median: { color: "#6929c4", dash: "2 3", width: 2 },
+  cummulative_average: { color: "#0043ce", dash: "8 4", width: 2 },
+  self_correlation_mean: { color: "#414141", dash: "1 3", width: 2 },
   running_average: { color: "#161616", width: 2 },
   difference: { color: "#da1e28", width: 2 },
 };
