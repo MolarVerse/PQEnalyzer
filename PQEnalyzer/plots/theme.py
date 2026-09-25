@@ -86,6 +86,15 @@ def palette_for_appearance_mode(appearance_mode=None):
     Return the palette matching a CustomTkinter appearance mode.
     """
 
+    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 uses the PQSetup flat-mono tokens.
+    try:
+        from ..flat_mono import FLAT_MONO_MPL_PALETTE, is_flat_mono_enabled
+
+        if is_flat_mono_enabled():
+            return FLAT_MONO_MPL_PALETTE
+    except ImportError:
+        pass
+
     resolved_mode = resolve_appearance_mode(appearance_mode)
     if resolved_mode == "Dark":
         return DARK_PALETTE
@@ -123,6 +132,15 @@ def apply_matplotlib_theme(appearance_mode=None, plot_scale=1.0):
     """
     Apply a CustomTkinter-aligned palette to matplotlib defaults.
     """
+
+    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 uses the PQSetup flat-mono tokens.
+    try:
+        from ..flat_mono import apply_flat_mono_matplotlib_theme, is_flat_mono_enabled
+
+        if is_flat_mono_enabled():
+            return apply_flat_mono_matplotlib_theme(plot_scale)
+    except ImportError:
+        pass
 
     palette = palette_for_appearance_mode(appearance_mode)
     font_sizes = {

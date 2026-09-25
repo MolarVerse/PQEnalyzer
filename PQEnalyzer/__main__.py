@@ -8,7 +8,7 @@ from ._logging import configure_logging, get_logger
 
 
 logger = get_logger(__name__)
-APP_MODES = {"gui", "tui"}
+APP_MODES = {"gui", "tui", "web"}
 
 
 def _argv_with_default_mode(argv):
@@ -89,7 +89,7 @@ def main():
     parser = argparse.ArgumentParser(
         prog="pqenalyzer",
         usage=(
-            "%(prog)s [-h] [-v] [gui|tui] "
+            "%(prog)s [-h] [-v] [gui|tui|web] "
             "[--pq | -q | --box | --opt] FILE [FILE ...]"
         ),
         description="Plot and monitor PQ simulation output.",
@@ -102,7 +102,7 @@ def main():
 
     subparsers = parser.add_subparsers(
         dest="mode",
-        metavar="[gui|tui]",
+        metavar="[gui|tui|web]",
         required=True,
     )
     gui_parser = subparsers.add_parser("gui", help="Open the GUI (default).")
@@ -112,6 +112,28 @@ def main():
         help="Open the terminal dashboard.",
     )
     _add_input_arguments(tui_parser)
+    # LOCAL-ONLY preview: browser front end sharing the desktop math.
+    web_parser = subparsers.add_parser(
+        "web",
+        help="Open the browser front end (local preview).",
+    )
+    _add_input_arguments(web_parser)
+    web_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Server host (loopback only).",
+    )
+    web_parser.add_argument(
+        "--port",
+        type=int,
+        default=8766,
+        help="Server port.",
+    )
+    web_parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Do not open a browser.",
+    )
 
     args = parser.parse_args(_argv_with_default_mode(sys.argv[1:]))
     configure_logging()
@@ -132,6 +154,25 @@ def main():
         from .apps import TuiApp
 
         TuiApp(reader).run()
+    elif args.mode == "web":
+        # Local preview only: reader already validated above.
+        from .web import serve
+
+        if not 1 <= args.port <= 65535:
+            parser.error("--port must be between 1 and 65535.")
+        if args.host not in ("127.0.0.1", "localhost", "::1"):
+            parser.error("--host must be a loopback address (127.0.0.1, localhost or ::1).")
+        try:
+            serve(
+                args.filenames,
+                _input_format(args, parser),
+                host=args.host,
+                port=args.port,
+                open_browser=not args.no_open,
+                reader=reader,
+            )
+        except ValueError as error:
+            parser.error(str(error))
     else:
         from .apps import App
 
