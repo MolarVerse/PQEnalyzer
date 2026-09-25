@@ -262,6 +262,13 @@ export function UPlotChart({
         {},
         ...datasets.map((dataset) => {
           const isOverlay = dataset.key.startsWith("overlay-");
+          // Level references (mean/median) arrive as two endpoints, like
+          // the GUI draws them with a single ax.plot call: bridge the
+          // aligned nulls so they render as continuous lines. Dense
+          // overlays keep honest gaps.
+          const isLevel =
+            dataset.key === "overlay-mean" ||
+            dataset.key === "overlay-median";
           return {
             label: dataset.label,
             stroke:
@@ -272,7 +279,7 @@ export function UPlotChart({
             dash: dataset.dash
               ? dataset.dash.split(" ").map(Number)
               : undefined,
-            spanGaps: false,
+            spanGaps: isLevel,
             points: { show: false },
           };
         }),
