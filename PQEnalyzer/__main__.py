@@ -102,7 +102,7 @@ def main():
 
     subparsers = parser.add_subparsers(
         dest="mode",
-        metavar="[gui|tui]",
+        metavar="[gui|tui|web]",
         required=True,
     )
     gui_parser = subparsers.add_parser("gui", help="Open the GUI (default).")
@@ -160,6 +160,8 @@ def main():
 
         if not 1 <= args.port <= 65535:
             parser.error("--port must be between 1 and 65535.")
+        if args.host not in ("127.0.0.1", "localhost", "::1"):
+            parser.error("--host must be a loopback address (127.0.0.1, localhost or ::1).")
         try:
             serve(
                 args.filenames,
