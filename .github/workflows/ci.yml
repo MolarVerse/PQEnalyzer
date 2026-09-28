@@ -48,3 +48,29 @@ jobs:
         fail_ci_if_error: true
         flags: unittests
         verbose: true
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    # MolarVerse checkout layout: the web frontend resolves
+    # @molarverse/pq-design through a sibling file: path.
+    - uses: actions/checkout@v4
+      with:
+        path: PQEnalyzer
+    - uses: actions/checkout@v4
+      with:
+        repository: MolarVerse/PQSetup
+        path: PQSetup
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: PQEnalyzer/PQEnalyzer/web/frontend/package-lock.json
+    - name: Install, typecheck, test and build the web frontend
+      working-directory: PQEnalyzer/PQEnalyzer/web/frontend
+      run: |
+        npm ci
+        npm test
+        npm run build
