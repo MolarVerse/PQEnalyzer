@@ -1,11 +1,11 @@
 """
 JSON data layer for the PQEnalyzer web front end (LOCAL-ONLY preview).
 
-Every number here flows through the shared code: ``readers`` for parsing,
-``energy_access`` for series/units, ``plots.features`` for overlay math, and
-``plots.labels`` for file labels. The web layer only shapes results into JSON:
-downsampling for transport, NaN sanitising (``null`` breaks SVG paths into
-honest gaps), and per-file histogram binning on shared edges.
+Inputs and shared calculations use ``readers`` for parsing,
+``energy_access`` for series/units, ``plots.features`` for time overlays, and
+``plots.labels`` for file labels. The web layer shapes results into JSON:
+downsampling for transport, NaN sanitising (``null`` denotes missing values),
+per-run autocorrelation, and per-file histogram binning on shared edges.
 """
 
 import math
@@ -22,6 +22,7 @@ from ..energy_access import (
     available_parameters,
     axis_label,
     concatenate_series,
+    difference_series,
     parameter_kind,
     parameter_unit_for_energies,
     series,
@@ -258,44 +259,107 @@ class WebState:
                 "values": _json_list(values),
             })
         time_unit = _time_unit(energies)
+        difference_available = False
+        if len(energies) == 2 and len(matching) == 2:
+            try:
+                difference_series(energies, parameter)
+                difference_available = True
+            except ValueError:
+                pass
         return {
             "parameter": parameter,
             "unit": unit,
             "label": parameter_label(parameter, unit),
             "time_unit": time_unit,
             "series": items,
+            "difference_available": difference_available,
         }
 
     def overlays(self, parameter, flags, window_size=""):
         """
-        Return enabled derived overlays using the shared feature evaluators.
+        Return references and per-file curves without joining run boundaries.
+
+        Mean and median describe the combined sample. Difference compares two
+        files on shared steps. All other curves belong to one file; a restart
+        or an independent run must not feed another run's moving statistics.
         """
-        options = PlotOptions(
-            mean=bool(flags.get("mean")),
-            median=bool(flags.get("median")),
-            cummulative_average=bool(flags.get("cummulative_average")),
-            self_correlation_mean=bool(flags.get("self_correlation_mean")),
-            difference=bool(flags.get("difference")),
-            running_average=bool(flags.get("running_average")),
-            window_size=str(window_size or ""),
-        )
         with self.lock:
             energies = list(self.reader.energies)
-            computed = list(iter_time_series_overlays(
-                energies, parameter, options, window_policy="clamp"))
+        matching = [
+            (index, energy) for index, energy in enumerate(energies)
+            if parameter in energy.info
+        ]
+        if not matching:
+            raise ValueError(
+                f"Parameter {parameter} is not present in any input file.")
         guides = []
-        for overlay in computed:
+
+        def add(key, label, source_time, source_values,
+                source_index=None, axis="time"):
             time, values, _ = _downsample(
-                np.asarray(overlay.time, dtype=float),
-                np.asarray(overlay.values, dtype=float),
+                np.asarray(source_time, dtype=float),
+                np.asarray(source_values, dtype=float),
                 MAX_POINTS,
             )
+            if key in {"mean", "median"}:
+                all_times = np.concatenate([
+                    np.asarray(simulation_time(energy), dtype=float)
+                    for _, energy in matching
+                ])
+                finite_times = all_times[np.isfinite(all_times)]
+                if finite_times.size:
+                    time = np.array([finite_times.min(), finite_times.max()])
             guides.append({
-                "key": overlay.feature.key,
-                "label": overlay.label,
+                "key": key,
+                "label": (f"{self.labels[matching[source_index][0]]} · {label}"
+                          if source_index is not None and len(matching) > 1
+                          else label),
+                "source_index": source_index,
+                "axis": axis,
                 "time": _json_list(time),
                 "values": _json_list(values),
             })
+
+        if flags.get("difference"):
+            options = PlotOptions(difference=True)
+            for overlay in iter_time_series_overlays(
+                    energies, parameter, options):
+                add(overlay.feature.key, overlay.label,
+                    overlay.time, overlay.values)
+            return {"parameter": parameter, "overlays": guides}
+
+        references = PlotOptions(mean=bool(flags.get("mean")),
+                                 median=bool(flags.get("median")))
+        if references.mean or references.median:
+            for overlay in iter_time_series_overlays(
+                    energies, parameter, references):
+                add(overlay.feature.key, overlay.label,
+                    overlay.time, overlay.values)
+
+        for source_index, (_, energy) in enumerate(matching):
+            values = np.asarray(series(energy, parameter).values, dtype=float)
+            if flags.get("cummulative_average") or flags.get("running_average"):
+                requested = str(window_size).strip()
+                if not requested:
+                    # Auto defaults to roughly 5% of this run, with at least
+                    # two plotted points when it has more than one sample.
+                    requested = str(min(1000, max(1, values.size - 1),
+                                        max(2, math.ceil(values.size * 0.05))))
+                options = PlotOptions(
+                    cummulative_average=bool(flags.get("cummulative_average")),
+                    running_average=bool(flags.get("running_average")),
+                    window_size=requested,
+                )
+                for overlay in iter_time_series_overlays(
+                        [energy], parameter, options, window_policy="clamp"):
+                    add(overlay.feature.key, overlay.label,
+                        overlay.time, overlay.values, source_index)
+            if flags.get("autocorrelation"):
+                lag, correlation = Statistic.autocorrelation_values(
+                    values, max_lag=min(values.size // 2, 1000))
+                if lag.size:
+                    add("autocorrelation", "Autocorrelation", lag,
+                        correlation, source_index, "lag")
         return {"parameter": parameter, "overlays": guides}
 
     def histogram(self, parameter, bins=HISTOGRAM_BINS_DEFAULT):
@@ -659,14 +723,16 @@ def _kind_of(energies, parameter):
 
 def _downsample(time, values, max_points):
     """
-    Stride downsample paired arrays, returning arrays plus stride used.
+    Stride downsample paired arrays and retain the final observation.
     """
     count = int(min(time.size, values.size))
     time, values = time[:count], values[:count]
     if count <= max_points or count == 0:
         return time, values, 1
     stride = math.ceil(count / max_points)
-    return time[::stride], values[::stride], stride
+    indices = np.arange(0, count, stride)
+    indices[-1] = count - 1
+    return time[indices], values[indices], stride
 
 
 def _json_list(array):

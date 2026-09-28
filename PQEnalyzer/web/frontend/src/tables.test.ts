@@ -13,6 +13,7 @@ function seriesResponse(): SeriesResponse {
     unit: "K",
     label: "x",
     time_unit: "ps",
+    difference_available: true,
     series: [
       {
         label: "md-01.en",
@@ -102,10 +103,10 @@ describe("alignSeries", () => {
     ]);
     expect(aligned.x).toEqual([1, 3, 5, 5001, 5003]);
     expect(aligned.columns).toEqual([
-      [10, 30, 50, null, null],
-      [null, null, null, 20, 40],
+      [10, 30, 50, undefined, undefined],
+      [undefined, undefined, undefined, 20, 40],
       // First value wins on duplicate times; null times ignored.
-      [11, 33, null, null, null],
+      [11, 33, undefined, undefined, undefined],
     ]);
   });
 
@@ -115,6 +116,17 @@ describe("alignSeries", () => {
     ]);
     expect(aligned.x).toEqual([2]);
     expect(aligned.columns).toEqual([[null]]);
+  });
+
+  it("keeps explicit missing values distinct from other series' times", () => {
+    const aligned = alignSeries([
+      { time: [1, 2, 3], values: [4, null, 6] },
+      { time: [1.5, 2.5], values: [7, 8] },
+    ]);
+    expect(aligned.columns).toEqual([
+      [4, undefined, null, undefined, 6],
+      [undefined, 7, undefined, 8, undefined],
+    ]);
   });
 
   it("handles empty input", () => {

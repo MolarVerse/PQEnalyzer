@@ -37,7 +37,7 @@ export const OVERLAY_STYLES: Record<string, OverlayStyle> = {
   mean: { color: "#161616", dash: "6 4", width: 2 },
   median: { color: "#6929c4", dash: "2 3", width: 2 },
   cummulative_average: { color: "#0043ce", dash: "8 4", width: 2 },
-  self_correlation_mean: { color: "#414141", dash: "1 3", width: 2 },
+  autocorrelation: { color: "#414141", dash: "1 3", width: 2 },
   running_average: { color: "#161616", width: 2 },
   difference: { color: "#da1e28", width: 2 },
 };
@@ -50,6 +50,7 @@ export interface LineDataset {
   color: string;
   dash?: string;
   width: number;
+  sourceIndex?: number | null;
   /** Mark the latest finite point (raw series, not derived overlays). */
   endpoint?: boolean;
 }
@@ -81,13 +82,10 @@ export function Legend({
   items,
   hidden,
   onToggle,
-  values,
 }: {
   items: { key: string; label: string; color: string; dash?: string }[];
   hidden: Set<string>;
   onToggle: (key: string) => void;
-  /** Latest value per item key (Grafana-style legend values). */
-  values?: Map<string, number | null>;
 }) {
   if (!items.length) return null;
   // Files first, derived overlays after a divider (datasets arrive ordered).
@@ -96,7 +94,6 @@ export function Legend({
     <div className="chart-legend" role="group" aria-label="Series visibility">
       {items.map((item, index) => {
         const off = hidden.has(item.key);
-        const value = values?.get(item.key);
         return (
           <span className="legend-item" key={item.key}>
             {index === splitAt && index > 0 && (
@@ -121,9 +118,6 @@ export function Legend({
                 />
               </svg>
               <span>{item.label}</span>
-              {value !== undefined && (
-                <strong>{value === null ? "n/a" : formatValue(value)}</strong>
-              )}
             </button>
           </span>
         );

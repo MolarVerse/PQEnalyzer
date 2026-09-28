@@ -11,11 +11,12 @@ import {
   type Command,
 } from "@molarverse/pq-design";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import {
   formatUnit,
   type OverlayFlags,
 } from "./api";
-import { AnalysisBlock, HistogramBlock, OVERLAY_DEFS, OverlaysBlock, YAxisBlock, type SoftBounds } from "./components/RailBlocks";
+import { AnalysisPicker, HistogramBlock, NO_OVERLAYS, OVERLAY_DEFS, YAxisBlock, toggleOverlay, type SoftBounds } from "./components/RailBlocks";
 import { ShortcutHelp } from "./components/ShortcutHelp";
 import { ModeSeg } from "./components/Chrome";
 import { MODES, MODE_LABEL } from "./mode";
@@ -33,14 +34,6 @@ import {
 
 
 
-const EMPTY_FLAGS: OverlayFlags = {
-  mean: false,
-  median: false,
-  cummulative_average: false,
-  self_correlation_mean: false,
-  difference: false,
-  running_average: false,
-};
 /** Track a CSS media query so rail blocks render in exactly one place. */
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(
@@ -62,14 +55,14 @@ function useMediaQuery(query: string): boolean {
 
 
 export default function App() {
-  // Taste that survives reloads: overlay defaults (mean on first run),
+  // Taste that survives reloads: overlay defaults (combined mean),
   // soft bounds, and dashboard sort persist per browser.
   const [stored] = useState(() => loadSettings(browserStorage()));
   const [flags, setFlags] = useState<OverlayFlags>(() => ({
-    ...EMPTY_FLAGS,
+    ...NO_OVERLAYS,
     ...stored.overlays,
   }));
-  const [windowSize, setWindowSize] = useState("1000");
+  const [windowSize, setWindowSize] = useState("");
   const [bins, setBins] = useState("48");
   const [yBounds, setYBounds] = useState<SoftBounds>(stored.softBounds);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -164,9 +157,8 @@ export default function App() {
         (def) => def.shortcut === event.key.toLowerCase(),
       )?.key;
       if (overlayKey) {
-        if (overlayKey === "difference" && session.fileCount !== 2) return;
-        if (overlayKey !== "difference" && flags.difference) return;
-        setFlags((current) => ({ ...current, [overlayKey]: !current[overlayKey] }));
+        if (overlayKey === "difference" && !paramData.series?.difference_available) return;
+        setFlags((current) => toggleOverlay(current, overlayKey));
         return;
       }
       const modeIndex = ["1", "2"].indexOf(event.key);
@@ -174,15 +166,15 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session.fileCount, flags.difference, focus, focusParameter, helpOpen, paletteOpen, selectMode, toolsOpen]);
+  }, [paramData.series?.difference_available, focus, focusParameter, helpOpen, paletteOpen, selectMode, toolsOpen]);
 
-  /** Upper bound for the smoothing slider: the longest loaded file. */
+  /** Largest valid manual window among the loaded files. */
   const maxWindow = useMemo(
     () =>
       paramData.series?.series.reduce(
         (longest, item) => Math.max(longest, item.rows),
-        1000,
-      ) ?? 1000,
+        1,
+      ) ?? 1,
     [paramData.series],
   );
 
@@ -220,7 +212,7 @@ export default function App() {
 
 
   return (
-    <div className="web-shell">
+    <div className={`web-shell${toolsOpen && focus !== null ? " tools-open" : ""}`}>
       <header className="web-header">
         <div className="brand">
           <img src="/icon.png" alt="" />
@@ -268,7 +260,7 @@ export default function App() {
       </header>
 
       <div className="web-body">
-        <main className={`web-main${focus === null ? " scroll" : ""}`}>
+        <main className={`web-main${focus === null ? "" : " focused"}`}>
           {narrow && (
             <div className="narrow-views">
               <ModeSeg mode={mode} onSelect={selectMode} />
@@ -295,8 +287,8 @@ export default function App() {
               seriesLoading={paramData.seriesLoading}
               series={paramData.series}
               overlays={paramData.overlays}
+              overlaysLoading={paramData.overlaysLoading}
               flags={flags}
-              setFlags={setFlags}
               timeLabel={session.meta?.time_label ?? "Simulation Time"}
               summary={paramData.summary}
               overlayError={paramData.overlayError}
@@ -344,36 +336,58 @@ export default function App() {
           id="chart-tools"
           className="tools-panel"
           role="dialog"
-          aria-label={mode === "series" ? "Overlay options" : "Histogram options"}
+          aria-label={mode === "series" ? "Analysis options" : "Histogram options"}
         >
           <div className="tools-head">
-            <strong>{mode === "series" ? "Overlays" : "Histogram"}</strong>
-            <button
-              type="button"
-              className="ghost-action"
-              aria-label="Close options"
-              title="Close (Esc)"
-              onClick={() => setToolsOpen(false)}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
+            <strong>{mode === "series" ? "Analysis" : "Histogram"}</strong>
+            <div className="tools-head-actions">
+              {mode === "series" && Object.values(flags).some(Boolean) && (
+                <button
+                  type="button"
+                  className="ghost-action"
+                  aria-label="Clear analysis"
+                  title="Clear analysis"
+                  onClick={() => setFlags({ ...NO_OVERLAYS })}
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="ghost-action"
+                aria-label="Close options"
+                title="Close (Esc)"
+                onClick={() => setToolsOpen(false)}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
           </div>
           {mode === "series" ? (
             <>
-              <OverlaysBlock
+              <AnalysisPicker
                 flags={flags}
                 setFlags={setFlags}
                 fileCount={session.fileCount}
+                canDifference={paramData.series?.difference_available ?? false}
                 windowSize={windowSize}
                 setWindowSize={setWindowSize}
                 maxWindow={maxWindow}
               />
-              <YAxisBlock bounds={yBounds} setBounds={setYBounds} />
-              <AnalysisBlock
-                stats={paramData.summary?.combined ?? null}
-                showMarker={showEquil}
-                setShowMarker={setShowEquil}
-              />
+              <details className="analysis-display">
+                <summary>Display</summary>
+                <YAxisBlock bounds={yBounds} setBounds={setYBounds} />
+                {paramData.summary?.kind !== "diagnostic" && (
+                  <label className="analysis-marker">
+                    <input
+                      type="checkbox"
+                      checked={showEquil}
+                      onChange={(event) => setShowEquil(event.target.checked)}
+                    />
+                    Show equilibration marker
+                  </label>
+                )}
+              </details>
             </>
           ) : (
             <HistogramBlock

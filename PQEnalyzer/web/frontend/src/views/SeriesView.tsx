@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Modal } from "@molarverse/pq-design";
-import { RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Info, Modal } from "@molarverse/pq-design";
+import { Download, RefreshCw } from "lucide-react";
 import {
   Legend,
   OVERLAY_STYLES,
   SERIES_COLORS,
+  type LineDataset,
 } from "../charts";
 import { PRESETS, UPlotChart, presetRangeFor, type UPlotChartHandle } from "../components/UPlotChart";
 import { formatUnit, formatValue, type OverlayFlags, type OverlayItem, type SeriesResponse, type SummaryResponse } from "../api";
 import { TitleRow } from "../components/Chrome";
-import { OverlayStrip } from "../components/OverlayStrip";
 import { AnalysisLine, StatLine } from "../components/Stats";
 import { SeriesDataTable } from "../components/DataTable";
 import { RunsTable } from "../components/RunsTable";
@@ -27,8 +27,8 @@ export interface SeriesViewProps {
   seriesLoading: boolean;
   series: SeriesResponse | null;
   overlays: OverlayItem[];
+  overlaysLoading: boolean;
   flags: OverlayFlags;
-  setFlags: Dispatch<SetStateAction<OverlayFlags>>;
   timeLabel: string;
   summary: SummaryResponse | null;
   overlayError: string | null;
@@ -62,8 +62,8 @@ export function SeriesView({
   seriesLoading,
   series,
   overlays,
+  overlaysLoading,
   flags,
-  setFlags,
   timeLabel,
   summary,
   overlayError,
@@ -78,13 +78,22 @@ export function SeriesView({
   const [split, setSplit] = useState(false);
   const [splitZoom, setSplitZoom] = useState<TimeRange | null>(null);
   const mainRef = useRef<UPlotChartHandle | null>(null);
+  const correlationRef = useRef<UPlotChartHandle | null>(null);
   const panelRefs = useRef(new Map<string, UPlotChartHandle | null>());
   useEffect(() => {
     setHidden(new Set());
     setDataOpen(false);
     setRunsOpen(false);
+    setSplit(false);
     setSplitZoom(null);
   }, [focus]);
+
+  useEffect(() => {
+    if (flags.difference) {
+      setSplit(false);
+      setSplitZoom(null);
+    }
+  }, [flags.difference]);
 
   const toggleHidden = (key: string) => {
     setHidden((current) => {
@@ -95,7 +104,7 @@ export function SeriesView({
     });
   };
 
-  const datasets = useMemo(() => {
+  const datasets = useMemo<LineDataset[]>(() => {
     // Difference mode mirrors the desktop: raw series hide, the delta stands
     // alone. The backend likewise returns only the difference overlay.
     const showFiles = !(
@@ -112,14 +121,19 @@ export function SeriesView({
           endpoint: true,
         })) ?? [])
       : [];
-    const derived = overlays.map((overlay) => ({
-      key: `overlay-${overlay.key}`,
-      label: overlay.label,
+    const derived = overlays.filter((overlay) => overlay.axis === "time").map((overlay) => ({
+      key: `overlay-${overlay.key}-${overlay.source_index ?? "combined"}`,
+      label: overlay.label
+        .replace("Running Average", "run avg")
+        .replace("Cumulative Average", "cum avg"),
       time: overlay.time,
       values: overlay.values,
-      color: OVERLAY_STYLES[overlay.key]?.color ?? "#393939",
+      color: overlay.source_index === null
+        ? (OVERLAY_STYLES[overlay.key]?.color ?? "#393939")
+        : SERIES_COLORS[overlay.source_index % SERIES_COLORS.length],
       dash: OVERLAY_STYLES[overlay.key]?.dash,
       width: OVERLAY_STYLES[overlay.key]?.width ?? 1.5,
+      sourceIndex: overlay.source_index,
     }));
     return [...files, ...derived];
   }, [series, overlays, flags.difference]);
@@ -127,12 +141,13 @@ export function SeriesView({
   /** Small multiples: one panel per file, overlays repeated as reference. */
   const panels = useMemo(() => {
     if (!split || !series) return null;
-    const derived = datasets.filter((dataset) =>
-      dataset.key.startsWith("overlay-"),
-    );
     return series.series
       .map((item, index) => {
         const file = datasets.find((dataset) => dataset.key === `file-${index}`);
+        const derived = datasets.filter((dataset) =>
+          dataset.key.startsWith("overlay-") &&
+          (dataset.sourceIndex === null || dataset.sourceIndex === index),
+        );
         const panel = [...(file ? [file] : []), ...derived];
         if (!panel.length) return null;
         let latest: number | null = null;
@@ -154,6 +169,70 @@ export function SeriesView({
       })
       .filter((panel) => panel !== null);
   }, [split, series, datasets]);
+
+  const correlationDatasets = useMemo(() =>
+    overlays.filter((overlay) => overlay.axis === "lag").map((overlay) => ({
+      key: `correlation-${overlay.source_index ?? "combined"}`,
+      label: series?.series[overlay.source_index ?? -1]?.label ?? overlay.label,
+      time: overlay.time,
+      values: overlay.values,
+      color: overlay.source_index === null
+        ? "#161616"
+        : SERIES_COLORS[overlay.source_index % SERIES_COLORS.length],
+      width: 2,
+    })), [overlays, series]);
+
+  const correlationPanel = flags.autocorrelation && (
+    <div className="correlation-panel">
+      <div className="correlation-heading">
+        <h3>Autocorrelation</h3>
+        <Info text="Mean-centered and normalized to 1 at lag 0. The chart shows up to half of each run, capped at 1,000 lag steps." />
+        {correlationDatasets.length > 0 && (
+          <button
+            type="button"
+            className="ghost-action"
+            aria-label="Download autocorrelation chart as PNG"
+            title="Download autocorrelation chart as PNG"
+            onClick={() => {
+              const url = correlationRef.current?.exportPNG();
+              if (url) downloadDataURL(url, pngName(focus, "autocorrelation"));
+            }}
+          >
+            <Download size={14} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {correlationDatasets.length ? (
+        <>
+          {series && correlationDatasets.length < series.series.length && (
+            <p className="correlation-note">
+              {series.series.length - correlationDatasets.length} {series.series.length - correlationDatasets.length === 1 ? "run" : "runs"} omitted: fewer than two finite, varying values.
+            </p>
+          )}
+          <Legend
+            items={correlationDatasets.map((item) => ({
+              key: item.key, label: item.label, color: item.color,
+            }))}
+            hidden={hidden}
+            onToggle={toggleHidden}
+          />
+          <UPlotChart
+            datasets={correlationDatasets}
+            hidden={hidden}
+            timeLabel="Lag (steps)"
+            ariaLabel="Autocorrelation by lag. Drag to zoom, double-click to reset."
+            height={240}
+            hideFooter
+            ref={correlationRef}
+          />
+        </>
+      ) : overlaysLoading ? (
+        <p className="notice info">Calculating autocorrelation…</p>
+      ) : overlayError ? null : (
+        <p className="notice info">Autocorrelation needs at least two finite, varying values in a run.</p>
+      )}
+    </div>
+  );
 
   const fileCount = series?.series.length ?? 0;
 
@@ -216,10 +295,7 @@ export function SeriesView({
 
   const caption = useMemo(() => {
     if (!series) return undefined;
-    const rows = series.series.reduce(
-      (longest, item) => Math.max(longest, item.rows),
-      0,
-    );
+    const rows = series.series.reduce((total, item) => total + item.rows, 0);
     const strides = [...new Set(series.series.map((item) => item.stride))];
     const strideNote =
       strides.length === 1 && strides[0] > 1
@@ -232,12 +308,15 @@ export function SeriesView({
     if (times.length >= 2) {
       const ordered = [...times].sort((a, b) => a - b);
       const span = ordered[ordered.length - 1] - ordered[0];
-      const diffs = ordered.slice(1).map((t, i) => t - ordered[i]);
+      const diffs = series.series.flatMap((item) => {
+        const runTimes = item.time.filter((t): t is number => typeof t === "number");
+        return runTimes.slice(1).map((t, i) => t - runTimes[i]).filter((dt) => dt > 0);
+      });
       const dt = diffs.sort((a, b) => a - b)[Math.floor(diffs.length / 2)];
       const unitNote = series.time_unit ? ` ${series.time_unit}` : "";
-      spanNote = ` · Δt ${formatValue(dt)}${unitNote} · ${formatValue(span)}${unitNote}`;
+      spanNote = ` · ${diffs.length ? `Δt ${formatValue(dt)}${unitNote} · ` : ""}span ${formatValue(span)}${unitNote}`;
     }
-    return `${rows.toLocaleString()} rows${strideNote}${spanNote}`;
+    return `${rows.toLocaleString()} samples · ${series.series.length} run${series.series.length === 1 ? "" : "s"}${strideNote}${spanNote}`;
   }, [series]);
 
   /** MSER marker for the series chart (equilibration point). */
@@ -275,23 +354,6 @@ export function SeriesView({
       })),
     [datasets],
   );
-
-  /** Latest finite value per legend entry (Grafana-style legend values). */
-  const legendValues = useMemo(() => {
-    const values = new Map<string, number | null>();
-    datasets.forEach((dataset) => {
-      let latest: number | null = null;
-      for (let i = dataset.values.length - 1; i >= 0; i -= 1) {
-        const value = dataset.values[i];
-        if (typeof value === "number") {
-          latest = value;
-          break;
-        }
-      }
-      values.set(dataset.key, latest);
-    });
-    return values;
-  }, [datasets]);
 
   /** Transported-points table (built once per load, not per render). */
   const table = useMemo(
@@ -350,27 +412,27 @@ export function SeriesView({
             <button
               type="button"
               className="ghost-action"
-              title="Download chart as PNG"
+              aria-label="Download time chart as PNG"
+              title="Download time chart as PNG"
               onClick={exportPNG}
             >
-              PNG
+              <Download size={14} aria-hidden="true" />
             </button>
             <button
               type="button"
-              className="ghost-action"
+              className="ghost-action analysis-trigger"
               aria-expanded={toolsOpen}
               aria-controls="chart-tools"
-              title="Overlay options (o)"
+              title="Choose analysis (o)"
               onClick={onToggleTools}
             >
-              Overlays
+              Analysis
               {activeOverlayCount > 0 && (
                 <b className="count-badge">{activeOverlayCount}</b>
               )}
             </button>
-            <button type="button" className="ghost-action" onClick={onRefresh}>
+            <button type="button" className="ghost-action refresh-action" aria-label="Refresh files" title="Refresh files" onClick={onRefresh}>
               <RefreshCw size={14} aria-hidden="true" />
-              Refresh
             </button>
           </>
         }
@@ -400,13 +462,6 @@ export function SeriesView({
               items={legendItems}
               hidden={hidden}
               onToggle={toggleHidden}
-              values={legendValues}
-            />
-            <OverlayStrip
-              flags={flags}
-              setFlags={setFlags}
-              overlays={overlays}
-              fileCount={fileCount}
             />
             <div className="split-panels">
               {panels.map((panel) => (
@@ -432,6 +487,7 @@ export function SeriesView({
                     zoom={splitZoom}
                     onZoomChange={setSplitZoom}
                     softBounds={softBounds}
+                    resetKey={`${focus}-${panel.label}`}
                     ref={(handle) => {
                       if (handle) panelRefs.current.set(panel.label, handle);
                       else panelRefs.current.delete(panel.label);
@@ -440,9 +496,11 @@ export function SeriesView({
                 </div>
               ))}
             </div>
+            {correlationPanel}
             <div className="chart-foot">
-              <span className="chart-presets" role="group" aria-label="Time range">
-                {PRESETS.map((preset) => {
+              {(series?.series.some((item) => item.rows > 1000) ?? false) && (
+                <span className="chart-presets" role="group" aria-label="Time range">
+                {PRESETS.filter((preset) => preset.points === null || series!.series.some((item) => item.rows > preset.points!)).map((preset) => {
                   const active = isSplitPresetActive(preset.points);
                   return (
                     <button
@@ -467,7 +525,8 @@ export function SeriesView({
                     </button>
                   );
                 })}
-              </span>
+                </span>
+              )}
               {caption && <span>{caption}</span>}
             </div>
           </div>
@@ -497,13 +556,6 @@ export function SeriesView({
               items={legendItems}
               hidden={hidden}
               onToggle={toggleHidden}
-              values={legendValues}
-            />
-            <OverlayStrip
-              flags={flags}
-              setFlags={setFlags}
-              overlays={overlays}
-              fileCount={fileCount}
             />
             <UPlotChart
               datasets={datasets}
@@ -512,8 +564,10 @@ export function SeriesView({
               caption={caption}
               markers={markers}
               softBounds={softBounds}
+              resetKey={focus}
               ref={mainRef}
             />
+            {correlationPanel}
           </div>
           {overlayError && (
             <p className="notice error" role="alert">

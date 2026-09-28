@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchHistogram,
   fetchOverlays,
@@ -29,57 +29,92 @@ export function useParameterData(
   const [histogram, setHistogram] = useState<HistogramResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [overlayError, setOverlayError] = useState<string | null>(null);
+  const [overlaysLoading, setOverlaysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seriesLoading, setSeriesLoading] = useState(false);
+  const [loadedRevision, setLoadedRevision] = useState(0);
+  const seriesRequest = useRef(0);
 
   const loadParameter = useCallback(
     async (name: string) => {
+      const request = ++seriesRequest.current;
       setError(null);
-      setOverlayError(null);
       setSeriesLoading(true);
       try {
         const [loadedSeries, loadedSummary] = await Promise.all([
           fetchSeries(name),
           fetchSummary(name),
         ]);
+        if (request !== seriesRequest.current) return;
         setSeries(loadedSeries);
         setSummary(loadedSummary);
-        if (Object.values(flags).some(Boolean)) {
-          try {
-            const loaded = await fetchOverlays(name, flags, windowSize);
-            setOverlays(loaded.overlays);
-          } catch (error) {
-            setOverlays([]);
-            setOverlayError(error instanceof Error ? error.message : String(error));
-          }
-        } else {
-          setOverlays([]);
-        }
+        setLoadedRevision((current) => current + 1);
       } catch (error) {
-        setError(error instanceof Error ? error.message : String(error));
+        if (request === seriesRequest.current) {
+          setError(error instanceof Error ? error.message : String(error));
+        }
       } finally {
-        setSeriesLoading(false);
+        if (request === seriesRequest.current) setSeriesLoading(false);
       }
     },
-    [flags, windowSize],
+    [],
   );
 
   useEffect(() => {
-    if (focus) void loadParameter(focus);
+    if (focus) {
+      setSeries(null);
+      setSummary(null);
+      setOverlays([]);
+      setHistogram(null);
+      void loadParameter(focus);
+    } else {
+      seriesRequest.current += 1;
+      setSeries(null);
+      setSummary(null);
+    }
   }, [focus, loadParameter]);
 
   useEffect(() => {
+    let active = true;
+    setOverlays([]);
+    setOverlayError(null);
+    if (!focus || series?.parameter !== focus || !Object.values(flags).some(Boolean)) {
+      setOverlaysLoading(false);
+      return () => { active = false; };
+    }
+    setOverlaysLoading(true);
+    fetchOverlays(focus, flags, windowSize)
+      .then((loaded) => {
+        if (active) {
+          setOverlays(loaded.overlays);
+          setOverlaysLoading(false);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setOverlayError(error instanceof Error ? error.message : String(error));
+          setOverlaysLoading(false);
+        }
+      });
+    return () => { active = false; };
+  }, [focus, series?.parameter, flags, windowSize, loadedRevision]);
+
+  useEffect(() => {
     if (!focus || mode !== "histogram") return;
+    let active = true;
+    setHistogram(null);
     fetchHistogram(focus, Number(bins) || 48)
-      .then(setHistogram)
-      .catch((error: unknown) =>
-        setError(error instanceof Error ? error.message : String(error)),
-      );
-  }, [focus, mode, bins]);
+      .then((loaded) => { if (active) setHistogram(loaded); })
+      .catch((error: unknown) => {
+        if (active) setError(error instanceof Error ? error.message : String(error));
+      });
+    return () => { active = false; };
+  }, [focus, mode, bins, loadedRevision]);
 
   return {
     series,
     overlays,
+    overlaysLoading,
     histogram,
     summary,
     overlayError,

@@ -52,13 +52,15 @@ export interface AlignedSeries {
   /** Union of finite times across datasets, ascending. */
   x: number[];
   /** One column per dataset, aligned to x (null = no point there). */
-  columns: (number | null)[][];
+  columns: (number | null | undefined)[][];
 }
 
 /**
  * Align heterogeneous time grids onto one union x axis for canvas plotting.
- * Exact (no resampling): each dataset keeps its own values, nulls elsewhere
- * render as honest gaps. First value wins on duplicate times.
+ * Exact (no resampling): undefined means a time belongs to another series,
+ * while an explicit null is a real missing value in this series. uPlot joins
+ * across undefined alignment slots and keeps nulls as visible gaps.
+ * First value wins on duplicate times.
  */
 export function alignSeries(
   datasets: { time: (number | null)[]; values: (number | null)[] }[],
@@ -78,6 +80,7 @@ export function alignSeries(
   );
   const columns = perDataset.map((map) =>
     x.map((t) => {
+      if (!map.has(t)) return undefined;
       const v = map.get(t);
       return typeof v === "number" && Number.isFinite(v) ? v : null;
     }),

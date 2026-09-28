@@ -61,6 +61,18 @@ describe("loadSettings", () => {
     expect(loaded.overlays).toEqual({ mean: false });
   });
 
+  it("maps the old self-correlation preference to autocorrelation", () => {
+    const loaded = loadSettings(memoryStorage({
+      [SETTINGS_KEY]: JSON.stringify({
+        version: 1,
+        overlays: { mean: false, self_correlation_mean: true },
+        softBounds: { min: "", max: "" },
+        sortMode: "name",
+      }),
+    }));
+    expect(loaded.overlays).toEqual({ mean: false, autocorrelation: true });
+  });
+
   it("keeps defaults for malformed bounds and sort", () => {
     const loaded = loadSettings(
       memoryStorage({

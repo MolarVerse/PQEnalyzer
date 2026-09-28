@@ -118,6 +118,20 @@ class TestStatistic:
         assert np.all(time == [1, 2, 3, 4, 5])
         assert np.all(self_correlation_mean == [0, 0, 0, 0, 0])
 
+    def test_normalized_autocorrelation_is_on_lag_axis(self):
+        lags, correlation = Statistic.autocorrelation_values(
+            [1, 2, 3, 4, 5], max_lag=2)
+        assert np.array_equal(lags, [0, 1, 2])
+        assert np.allclose(correlation, [1, 0.4, -0.1])
+        assert np.allclose(Statistic.autocorrelation_values(
+            [1, 2, 3, 4, 5])[1], [1, 0.4, -0.1, -0.4, -0.4])
+
+    def test_autocorrelation_rejects_undefined_series(self):
+        for values in ([2, 2, 2], [1, np.nan, 3], [1]):
+            lags, correlation = Statistic.autocorrelation_values(values)
+            assert lags.size == 0
+            assert correlation.size == 0
+
     def test_running_average(self):
         time, running_average = Statistic.running_average_values(
             [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], 2)

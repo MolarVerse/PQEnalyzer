@@ -1,30 +1,56 @@
 import { Field, Info, Toggle } from "@molarverse/pq-design";
 import type { Dispatch, SetStateAction } from "react";
-import type { OverlayFlags, StatBlock } from "../api";
+import type { OverlayFlags } from "../api";
 
 export interface SharedControls {
   flags: OverlayFlags;
   setFlags: Dispatch<SetStateAction<OverlayFlags>>;
   fileCount: number;
+  canDifference: boolean;
 }
 
 export const OVERLAY_DEFS: {
   key: keyof OverlayFlags;
   label: string;
   shortcut: string;
+  description: string;
 }[] = [
-  { key: "mean", label: "Mean", shortcut: "m" },
-  { key: "median", label: "Median", shortcut: "n" },
-  { key: "cummulative_average", label: "Cumulative average", shortcut: "c" },
-  { key: "self_correlation_mean", label: "Self-correlation mean", shortcut: "s" },
-  { key: "difference", label: "Difference (1 − 2)", shortcut: "x" },
-  { key: "running_average", label: "Running average", shortcut: "a" },
+  { key: "mean", label: "Mean", shortcut: "m", description: "One guide across all runs" },
+  { key: "median", label: "Median", shortcut: "n", description: "One guide across all runs" },
+  { key: "cummulative_average", label: "Cumulative average", shortcut: "c", description: "Restarts at each run" },
+  { key: "running_average", label: "Running average", shortcut: "a", description: "Smooths each run separately" },
+  { key: "autocorrelation", label: "Autocorrelation", shortcut: "s", description: "Separate chart by lag" },
+  { key: "difference", label: "Difference (1 − 2)", shortcut: "x", description: "Subtracts run 2 on shared steps" },
 ];
 
-export function OverlaysBlock({
+export const NO_OVERLAYS: OverlayFlags = {
+  mean: false,
+  median: false,
+  cummulative_average: false,
+  running_average: false,
+  autocorrelation: false,
+  difference: false,
+};
+
+export function toggleOverlay(current: OverlayFlags, key: keyof OverlayFlags): OverlayFlags {
+  if (key === "difference") {
+    return { ...NO_OVERLAYS, difference: !current.difference };
+  }
+  return { ...current, difference: false, [key]: !current[key] };
+}
+
+const ANALYSIS_GROUPS = [
+  { title: "Reference", keys: ["mean", "median"] },
+  { title: "Trend per run", keys: ["cummulative_average", "running_average"] },
+  { title: "Correlation", keys: ["autocorrelation"] },
+  { title: "Compare runs", keys: ["difference"] },
+] as const;
+
+export function AnalysisPicker({
   flags,
   setFlags,
   fileCount,
+  canDifference,
   windowSize,
   setWindowSize,
   maxWindow,
@@ -33,62 +59,55 @@ export function OverlaysBlock({
   setWindowSize: (value: string) => void;
   maxWindow: number;
 }) {
-  const sliderValue = Math.min(
-    Math.max(Number(windowSize) || 1, 1),
-    Math.max(maxWindow, 1),
-  );
   return (
-    <section className="setup-section">
-      <h2 className="section-title">
-        Overlays
-        <Info text="Derived curves use the same math as the desktop GUI and TUI. Keyboard: m mean · n median · c cumulative · s self-correlation · x difference · a running average." />
-      </h2>
-      <div className="toggle-group">
-        {OVERLAY_DEFS.map((def) => (
-          <Toggle
-            key={def.key}
-            label={def.label}
-            checked={flags[def.key]}
-            disabled={
-              (def.key === "difference" && fileCount !== 2) ||
-              (def.key !== "difference" && flags.difference)
-            }
-            onChange={(value) =>
-              setFlags((current) => ({ ...current, [def.key]: value }))
-            }
-          />
-        ))}
-      </div>
-      {flags.running_average && (
-        <>
-          <Field
-            label="Running-average window"
-            unit="steps"
-            info="Clamped to the series length."
-          >
-            <input
-              type="number"
-              min={1}
-              max={maxWindow}
-              value={windowSize}
-              onChange={(event) => setWindowSize(event.target.value)}
-            />
-          </Field>
-          <label className="smooth-slider">
-            <span>Smooth</span>
-            <input
-              type="range"
-              min={1}
-              max={Math.max(maxWindow, 1)}
-              step={1}
-              value={sliderValue}
-              aria-label="Smoothing window in steps"
-              onChange={(event) => setWindowSize(event.target.value)}
-            />
-            <output>{sliderValue.toLocaleString()}</output>
-          </label>
-        </>
-      )}
+    <section className="analysis-picker">
+      {ANALYSIS_GROUPS.map((group) => (
+        <div className="analysis-group" role="group" aria-label={group.title} key={group.title}>
+          <h2>{group.title}</h2>
+          {group.keys.map((key) => {
+            const def = OVERLAY_DEFS.find((item) => item.key === key)!;
+            const unavailable = key === "difference" && (!canDifference || fileCount !== 2);
+            return (
+              <button
+                key={key}
+                type="button"
+                className="analysis-option"
+                aria-pressed={flags[key]}
+                title={def.description}
+                disabled={unavailable}
+                onClick={() => setFlags((current) => toggleOverlay(current, key))}
+              >
+                <span className="analysis-check" aria-hidden="true">{flags[key] ? "✓" : ""}</span>
+                <span className="analysis-option-label">{def.label}</span>
+              </button>
+            );
+          })}
+          {group.title === "Trend per run" && flags.running_average && (
+            <div className="analysis-window">
+              <Field
+                label="Window"
+                unit="steps"
+                info="Auto uses about 5% of each run and keeps at least two plotted points."
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={maxWindow}
+                  value={windowSize}
+                  placeholder="auto"
+                  onChange={(event) => setWindowSize(event.target.value)}
+                />
+              </Field>
+              {windowSize && (
+                <button type="button" onClick={() => setWindowSize("")}>Use auto</button>
+              )}
+            </div>
+          )}
+          {group.title === "Compare runs" && !canDifference && (
+            <p className="analysis-help">Needs 2 runs with shared steps.</p>
+          )}
+        </div>
+      ))}
     </section>
   );
 }
@@ -191,80 +210,6 @@ export function YAxisBlock({
             }
           />
         </Field>
-      </div>
-    </section>
-  );
-}
-
-export function AnalysisBlock({
-  stats,
-  showMarker,
-  setShowMarker,
-}: {
-  stats: StatBlock | null;
-  showMarker: boolean;
-  setShowMarker: (value: boolean) => void;
-}) {
-  const analysis = stats?.analysis;
-  const equilibrated = analysis?.equilibrated ?? null;
-  const discarded = analysis?.discarded_fraction ?? null;
-  return (
-    <section className="setup-section">
-      <h2 className="section-title">
-        Analysis
-        <Info text="Correlated error bars (Flyvbjerg–Petersen blocking, Geyer truncation) and MSER equilibration. Naive std over root-n underestimates uncertainty for simulation data." />
-      </h2>
-      <dl className="analysis-list">
-        <div>
-          <dt>Correlation time</dt>
-          <dd>
-            {analysis?.correlation_time != null
-              ? `${Math.round(analysis.correlation_time)} steps`
-              : "n/a"}
-          </dd>
-        </div>
-        <div>
-          <dt>Inefficiency</dt>
-          <dd>
-            {analysis?.inefficiency != null
-              ? Math.round(analysis.inefficiency).toLocaleString()
-              : "n/a"}
-          </dd>
-        </div>
-        <div>
-          <dt>Effective N</dt>
-          <dd>
-            {analysis?.n_effective != null
-              ? Math.round(analysis.n_effective).toLocaleString()
-              : "n/a"}
-          </dd>
-        </div>
-        <div>
-          <dt>Equilibrated</dt>
-          <dd>
-            {equilibrated === null ? (
-              "n/a"
-            ) : (
-              <span className={`pq-tag ${equilibrated ? "ok" : "missing"}`}>
-                <span className="pq-tag-value">
-                  {equilibrated ? "yes" : "no"}
-                  {discarded !== null
-                    ? ` · ${Math.round(discarded * 100)}% cut`
-                    : ""}
-                </span>
-              </span>
-            )}
-          </dd>
-        </div>
-      </dl>
-      <div className="toggle-group">
-        <Toggle
-          label="Equilibration marker"
-          info="Shows the MSER equilibration point on the chart."
-          checked={showMarker}
-          disabled={analysis?.equil_time == null}
-          onChange={setShowMarker}
-        />
       </div>
     </section>
   );

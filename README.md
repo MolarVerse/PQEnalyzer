@@ -127,11 +127,15 @@ What you see:
 - **Series / Histogram** — press `1` / `2` to switch the chart language.
   Drag to zoom, double-click to reset, hover for values. `Split` shows
   one panel per file with a shared zoom.
-- **Overlays lead** — the strip under the legend toggles derived curves
-  with live values (or picks a preset: Reference, Spread, Trend,
-  Equilibrate, Correlate). The combined mean is on from the first paint;
-  raw series recede while any overlay is active. Your overlay defaults,
-  soft bounds, and dashboard sort persist per browser.
+- **Analysis** — open `Analysis` above the chart to choose a reference,
+  a trend per run, autocorrelation, or a difference between two runs.
+  The combined mean is shown initially. Cumulative and running averages
+  restart for each file; the running window defaults to about 5% of
+  each run. Autocorrelation appears in a separate chart with lag in
+  steps. Difference is available only when exactly two files share
+  time or step values. Chart legend entries identify each result's
+  source. Analysis choices, soft bounds, and dashboard sort persist
+  per browser, except difference, which must be selected each time.
 - **Live updates** — the header badge reads `watching` while files are
   watched, `stale` when they changed on disk (refresh or resume watching
   to reload), `paused` when watching is off, and `offline` if the
@@ -141,16 +145,17 @@ What you see:
 | --- | --- |
 | `Ctrl+K` | Search parameters and modes |
 | `1` / `2` | Series / histogram mode |
-| `m`, `n`, `c`, `s`, `a` | Mean, median, cumulative/self-correlation/running average overlays |
+| `m`, `n`, `c`, `s`, `a` | Mean, median, cumulative average, autocorrelation, running average |
 | `x` | Difference of two files |
-| `o` | Overlay and analysis options |
+| `o` | Analysis or histogram options |
 | `?` | This shortcut list |
 | `Esc` | Close panel, then back to the dashboard |
 
 `Data` shows the transported points as a table, `Runs` the sortable
 per-file stats, and `PNG` / `CSV` download the chart and the
-full-resolution data. Soft y-axis bounds in the options panel widen the
-axis without clipping data.
+full-resolution data. The autocorrelation chart has its own PNG action.
+`Chart display` in the Analysis panel holds the equilibration marker and
+soft y-axis bounds, which widen the axis without clipping data.
 
 Parameters split into **observables** (energy, temperature, pressure,
 density, …) and **diagnostics** (`LOOPTIME`, atom counts, and any other
@@ -161,8 +166,9 @@ step change there vetoes the segment — it never proves equilibration.
 
 ## Plot Features
 
-The GUI, TUI, and web interface use the same plot features (the web keys
-match the TUI keys):
+The GUI and TUI offer these plot features. Web uses the same shortcuts and
+shared series/plot math for its time overlays, and shows a normalized
+autocorrelation separately by lag instead of Self-Correlation Mean:
 
 | Feature | Time series | Histogram | TUI key |
 | --- | --- | --- | --- |
@@ -173,7 +179,9 @@ match the TUI keys):
 | Difference (1 - 2) | yes | no | `x` |
 | Running Average | yes | no | `a` |
 
-Self-Correlation Mean stays on the data's original scale; it is not normalized.
+Self-Correlation Mean in the GUI/TUI stays on the data's original scale; it
+is not normalized. The web autocorrelation is mean-centered and normalized
+to 1 at lag zero, calculated separately for each run.
 
 ## Multiple Files
 

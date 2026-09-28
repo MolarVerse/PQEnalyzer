@@ -87,7 +87,7 @@ def create_app(filenames, input_format="auto", reader=None):
         mean: bool = False,
         median: bool = False,
         cummulative_average: bool = False,
-        self_correlation_mean: bool = False,
+        autocorrelation: bool = False,
         difference: bool = False,
         running_average: bool = False,
         window_size: str = "",
@@ -97,7 +97,7 @@ def create_app(filenames, input_format="auto", reader=None):
                 "mean": mean,
                 "median": median,
                 "cummulative_average": cummulative_average,
-                "self_correlation_mean": self_correlation_mean,
+                "autocorrelation": autocorrelation,
                 "difference": difference,
                 "running_average": running_average,
             }, window_size=window_size)

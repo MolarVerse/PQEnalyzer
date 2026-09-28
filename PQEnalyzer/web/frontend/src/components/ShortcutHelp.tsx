@@ -22,7 +22,7 @@ export function ShortcutHelp() {
             <kbd>{def.shortcut}</kbd>
           </span>
           <span>
-            {def.label} overlay{def.key === "difference" ? " (2 files only)" : ""}
+            {def.label}{def.key === "difference" ? " (2 files with shared steps)" : ""}
           </span>
         </div>
       ))}
@@ -30,7 +30,7 @@ export function ShortcutHelp() {
         <span>
           <kbd>o</kbd>
         </span>
-        <span>Overlay / histogram options panel</span>
+        <span>Analysis / histogram options</span>
       </div>
       <div className="shortcut-row">
         <span>

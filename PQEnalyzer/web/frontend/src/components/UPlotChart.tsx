@@ -44,6 +44,9 @@ export interface UPlotChartProps {
   datasets: LineDataset[];
   hidden: Set<string>;
   timeLabel: string;
+  ariaLabel?: string;
+  /** Reset zoom when the focused parameter changes, not on overlay changes. */
+  resetKey?: string;
   height?: number;
   /** Provenance line for the footer, e.g. "5,000 pts · stride 2". */
   caption?: string;
@@ -83,6 +86,8 @@ export function UPlotChart({
   datasets,
   hidden,
   timeLabel,
+  ariaLabel = "Time series chart. Drag to zoom, double-click to reset.",
+  resetKey,
   height = 380,
   caption,
   markers = [],
@@ -147,12 +152,12 @@ export function UPlotChart({
     [datasets],
   );
 
-  // A new parameter resets the zoom; y always spans the full data so
-  // zoomed views stay comparable with the unzoomed one.
+  // A new parameter resets zoom. Updating an overlay preserves the user's
+  // selected range; y still spans the full visible data.
   useEffect(() => {
     setZoom(null);
     setCursorIdx(null);
-  }, [datasets]);
+  }, [resetKey]);
 
   const yRange = useMemo(() => {
     let v0 = Infinity;
@@ -262,13 +267,6 @@ export function UPlotChart({
         {},
         ...datasets.map((dataset) => {
           const isOverlay = dataset.key.startsWith("overlay-");
-          // Level references (mean/median) arrive as two endpoints, like
-          // the GUI draws them with a single ax.plot call: bridge the
-          // aligned nulls so they render as continuous lines. Dense
-          // overlays keep honest gaps.
-          const isLevel =
-            dataset.key === "overlay-mean" ||
-            dataset.key === "overlay-median";
           return {
             label: dataset.label,
             stroke:
@@ -279,8 +277,11 @@ export function UPlotChart({
             dash: dataset.dash
               ? dataset.dash.split(" ").map(Number)
               : undefined,
-            spanGaps: isLevel,
-            points: { show: false },
+            spanGaps: false,
+            points: {
+              show: dataset.values.filter((value) => typeof value === "number").length === 1 ||
+                new Set(dataset.time.filter((time) => typeof time === "number")).size === 1,
+            },
           };
         }),
       ],
@@ -361,7 +362,14 @@ export function UPlotChart({
     );
   }
 
-  const bbox = plot?.bbox;
+  // uPlot exposes bbox in device pixels, while valToPos() and our HTML
+  // annotations use CSS pixels. Mixing them shifts dots and markers on
+  // high-density displays.
+  const bbox = plot ? {
+    left: plot.bbox.left / uPlot.pxRatio,
+    top: plot.bbox.top / uPlot.pxRatio,
+    height: plot.bbox.height / uPlot.pxRatio,
+  } : null;
   const scaleX = plot ? { min: plot.scales.x.min!, max: plot.scales.x.max! } : null;
   const inView = (t: number) =>
     scaleX !== null && t >= scaleX.min && t <= scaleX.max;
@@ -417,7 +425,7 @@ export function UPlotChart({
     const second = event.touches[1];
     const rect = event.currentTarget.getBoundingClientRect();
     const centerPx =
-      (first.clientX + second.clientX) / 2 - rect.left - plot.bbox.left;
+      (first.clientX + second.clientX) / 2 - rect.left - plot.bbox.left / uPlot.pxRatio;
     const scales = plot.scales.x;
     if (scales.min == null || scales.max == null) return;
     pinchRef.current = {
@@ -455,7 +463,7 @@ export function UPlotChart({
         ref={setWrapEl}
         data-zoom={zoom ? `${zoom.t0.toFixed(0)}-${zoom.t1.toFixed(0)}` : "all"}
         role="img"
-        aria-label="Time series chart. Drag to zoom, double-click to reset."
+        aria-label={ariaLabel}
         onMouseDown={(event) => {
           if (event.button === 0) setSelecting(true);
         }}
@@ -561,8 +569,9 @@ export function UPlotChart({
       </div>
       {!hideFooter && (
         <div className="chart-foot">
-          <span className="chart-presets" role="group" aria-label="Time range">
-            {PRESETS.map((preset) => {
+          {datasets.some((dataset) => dataset.time.length > 1000) && (
+            <span className="chart-presets" role="group" aria-label="Time range">
+            {PRESETS.filter((preset) => preset.points === null || datasets.some((dataset) => dataset.time.length > preset.points!)).map((preset) => {
               const active = isPresetActive(preset.points);
               return (
                 <button
@@ -582,7 +591,8 @@ export function UPlotChart({
                 </button>
               );
             })}
-          </span>
+            </span>
+          )}
           {caption && <span>{caption}</span>}
         </div>
       )}

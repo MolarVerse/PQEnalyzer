@@ -45,11 +45,14 @@ export interface SeriesResponse {
   label: string;
   time_unit: string;
   series: SeriesItem[];
+  difference_available: boolean;
 }
 
 export interface OverlayItem {
   key: string;
   label: string;
+  source_index: number | null;
+  axis: "time" | "lag";
   time: (number | null)[];
   values: (number | null)[];
 }
@@ -58,7 +61,7 @@ export interface OverlayFlags {
   mean: boolean;
   median: boolean;
   cummulative_average: boolean;
-  self_correlation_mean: boolean;
+  autocorrelation: boolean;
   difference: boolean;
   running_average: boolean;
 }

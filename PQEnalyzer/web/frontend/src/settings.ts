@@ -34,7 +34,7 @@ const KNOWN_OVERLAYS: (keyof OverlayFlags)[] = [
   "mean",
   "median",
   "cummulative_average",
-  "self_correlation_mean",
+  "autocorrelation",
   "difference",
   "running_average",
 ];
@@ -77,6 +77,11 @@ export function loadSettings(storage?: StorageLike | null): WebSettings {
     const { difference: _dropped, ...rest } = cleanOverlays(record.overlays);
     void _dropped;
     settings.overlays = { ...settings.overlays, ...rest };
+    const old = (record.overlays as Record<string, unknown> | undefined)
+      ?.self_correlation_mean;
+    if (typeof old === "boolean" && !("autocorrelation" in rest)) {
+      settings.overlays.autocorrelation = old;
+    }
   }
   const bounds = record.softBounds as { min?: unknown; max?: unknown } | undefined;
   if (bounds && typeof bounds.min === "string" && typeof bounds.max === "string") {

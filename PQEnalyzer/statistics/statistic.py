@@ -37,6 +37,8 @@ class Statistic:
         Calculate a self-correlation mean for a Reader energy parameter.
     self_correlation_mean_values(time, values)
         Calculate a self-correlation mean for numeric arrays.
+    autocorrelation_values(values, max_lag)
+        Calculate normalized autocorrelation on lag steps for numeric values.
     running_average(energies, info_parameter, window_size)
         Calculate a centered running average for a Reader energy parameter.
     running_average_values(time, values, window_size)
@@ -237,6 +239,32 @@ class Statistic:
         )
 
         return time, self_correlation_mean
+
+    @staticmethod
+    def autocorrelation_values(values, max_lag=None) -> tuple:
+        """Return a normalized, mean-centered autocorrelation by lag in steps.
+
+        Lag zero is one. A constant series or a series with missing values has
+        no well-defined normalized autocorrelation and returns empty arrays.
+        FFT convolution keeps long trajectories practical to inspect.
+        """
+        data = np.asarray(values, dtype=float)
+        if data.ndim != 1 or data.size < 2 or not np.all(np.isfinite(data)):
+            return np.array([], dtype=float), np.array([], dtype=float)
+        centered = data - np.mean(data)
+        variance_sum = float(np.dot(centered, centered))
+        if variance_sum == 0:
+            return np.array([], dtype=float), np.array([], dtype=float)
+        count = data.size
+        fft_size = 1 << (2 * count - 1).bit_length()
+        spectrum = np.fft.rfft(centered, n=fft_size)
+        covariance = np.fft.irfft(spectrum * np.conj(spectrum),
+                                  n=fft_size)[:count]
+        limit = count if max_lag is None else min(count, max(1, int(max_lag) + 1))
+        lags = np.arange(limit, dtype=float)
+        correlation = covariance[:limit] / variance_sum
+        correlation[0] = 1.0
+        return lags, correlation
 
     @staticmethod
     def running_average(energies, info_parameter, window_size) -> tuple:
