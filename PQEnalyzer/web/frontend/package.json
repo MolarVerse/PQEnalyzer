@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@molarverse/pq-design": "https://github.com/MolarVerse/PQSetup/releases/download/pq-design-v0.1.1/molarverse-pq-design-0.1.1.tgz",
+    "@molarverse/pq-design": "https://github.com/MolarVerse/PQDesign/releases/download/v0.1.2/molarverse-pq-design-0.1.2.tgz",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

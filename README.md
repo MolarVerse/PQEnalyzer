@@ -208,9 +208,9 @@ npm run build
 
 Commit the generated files in `PQEnalyzer/web/static` when the frontend
 changes. The frontend installs the shared flat mono controls from a versioned
-[PQSetup design release](https://github.com/MolarVerse/PQSetup/releases?q=pq-design-v);
+[PQDesign release](https://github.com/MolarVerse/PQDesign/releases);
 no adjacent PQSetup checkout is needed. To update the shared design, follow
-the [design package guide](https://molarverse.github.io/PQSetup/design-system.html),
+the [design package guide](https://github.com/MolarVerse/PQDesign#readme),
 then update the archive URL and lockfile together. Keep chart and dashboard
 layout in PQEnalyzer.
 
