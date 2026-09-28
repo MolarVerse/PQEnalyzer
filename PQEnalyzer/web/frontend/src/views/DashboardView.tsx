@@ -82,7 +82,7 @@ export function DashboardView({
         <h2 className="section-title">
           Dashboard
           <span className="section-note">
-            {summaries.length} parameters · {fileCount} file{fileCount === 1 ? "" : "s"} · click a card to inspect
+            {summaries.length} parameters · {fileCount} file{fileCount === 1 ? "" : "s"}
           </span>
         </h2>
         <label className="dash-sort">
