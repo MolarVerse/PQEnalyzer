@@ -41,6 +41,7 @@ test = [
     "coverage",
     "pytest-cov",
     "pytest-benchmark",
+    "httpx",
 ]
 
 [tool.setuptools_scm]
