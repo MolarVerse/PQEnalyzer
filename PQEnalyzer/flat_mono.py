@@ -5,10 +5,8 @@ Reversible: delete this file and revert the small
 ``PQ_FLAT_MONO`` branches in ``plots/theme.py``, ``apps/app_layout.py`` and
 ``apps/tui.py``.
 
-``tokens.json`` in ``@molarverse/pq-design`` is the single source of truth.
-This module loads it from the sibling PQSetup checkout when available and
-falls back to the embedded copy below (same values, kept in sync by hand for
-this local preview).
+``tokens.json`` in MolarVerse/PQDesign is the source for the web theme.
+The opt-in desktop and terminal palettes below are local preview values.
 
 Enable the preview with::
 
@@ -17,74 +15,14 @@ Enable the preview with::
 Default behaviour (env var unset) is unchanged.
 """
 
-import json
 import os
-from pathlib import Path
 
 ENV_VAR = "PQ_FLAT_MONO"
-
-# Sibling checkout: MolarVerse/PQSetup/frontend/packages/pq-design/tokens.json
-_TOKENS_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "PQSetup"
-    / "frontend"
-    / "packages"
-    / "pq-design"
-    / "tokens.json"
-)
-
-# Embedded fallback (copy of tokens.json at time of preview).
-_EMBEDDED_TOKENS = {
-    "name": "MolarVerse flat-mono",
-    "font": {
-        "mono": '"IBM Plex Mono", "JetBrains Mono", ui-monospace, '
-        "SFMono-Regular, Menlo, Consolas, monospace"
-    },
-    "color": {
-        "background": "#f4f4f4",
-        "surface": "#ffffff",
-        "surface-subtle": "#f4f4f4",
-        "surface-blue": "#edf5ff",
-        "ink": "#161616",
-        "ink-soft": "#393939",
-        "muted": "#6f6f6f",
-        "border": "#e0e0e0",
-        "border-strong": "#8d8d8d",
-        "accent": "#0f62fe",
-        "accent-dark": "#0043ce",
-        "accent-soft": "#edf5ff",
-        "success": "#198038",
-        "success-soft": "#defbe6",
-        "warning": "#8e6a00",
-        "warning-soft": "#fcf4d6",
-        "danger": "#da1e28",
-        "danger-soft": "#fff1f1",
-        "selected": "#393939",
-        "focus": "#0f62fe",
-    },
-    "shape": {"radius": "0", "radius-sm": "0", "shadow": "none"},
-    "code": {"number": "#6929c4", "switch": "#198038", "file": "#005d5d"},
-}
 
 
 def is_flat_mono_enabled() -> bool:
     """Return True when the local flat-mono preview is requested."""
     return os.environ.get(ENV_VAR, "").strip() in {"1", "true", "yes", "on"}
-
-
-def load_tokens() -> dict:
-    """Return flat-mono tokens, preferring the sibling PQSetup checkout."""
-    try:
-        if _TOKENS_PATH.is_file():
-            return json.loads(_TOKENS_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        pass
-    return dict(_EMBEDDED_TOKENS)
-
-
-def tokens_path() -> Path:
-    """Return the tokens.json path used by this preview (may not exist)."""
-    return _TOKENS_PATH
 
 
 # Matplotlib palette derived from the tokens: Gray-10 surfaces, ink text,
