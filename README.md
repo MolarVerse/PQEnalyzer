@@ -196,6 +196,24 @@ pip install -e ".[test]"
 python -m pytest -m "not benchmark and not e2e"
 ```
 
+For the web frontend, use Node.js 24 and build the bundled files served by
+`pqenalyzer web`:
+
+```bash
+cd PQEnalyzer/web/frontend
+npm ci
+npm test
+npm run build
+```
+
+Commit the generated files in `PQEnalyzer/web/static` when the frontend
+changes. The frontend installs the shared flat mono controls from a versioned
+[PQSetup design release](https://github.com/MolarVerse/PQSetup/releases?q=pq-design-v);
+no adjacent PQSetup checkout is needed. To update the shared design, follow
+the [design package guide](https://molarverse.github.io/PQSetup/design-system.html),
+then update the archive URL and lockfile together. Keep chart and dashboard
+layout in PQEnalyzer.
+
 Run the end-to-end suite separately:
 
 ```bash
