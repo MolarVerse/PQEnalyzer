@@ -31,6 +31,8 @@ dependencies = [
     "plotext>=5.2,<6",
     "textual>=0.86,<9",
     "watchdog",
+    "fastapi",
+    "uvicorn",
 ]
 
 [project.optional-dependencies]
@@ -60,3 +62,9 @@ omit = [
 
 [project.scripts]
 pqenalyzer = "PQEnalyzer.__main__:main"
+
+[tool.setuptools.package-data]
+PQEnalyzer = [
+    "icons/*.png",
+    "web/static/**/*",
+]
