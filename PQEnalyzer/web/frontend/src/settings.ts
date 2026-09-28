@@ -1,7 +1,7 @@
 import type { OverlayFlags } from "./api";
 
 /**
- * Persisted UI taste (overlay defaults, soft bounds, dashboard sort).
+ * Persisted UI choices (analysis and dashboard sort).
  * Browser localStorage: survives server restarts and reloads, needs no
  * backend, stays per-user. Shape is versioned; anything unknown or
  * malformed falls back to built-in defaults. `difference` is never
@@ -10,7 +10,6 @@ import type { OverlayFlags } from "./api";
 export interface WebSettings {
   version: 1;
   overlays: Partial<OverlayFlags>;
-  softBounds: { min: string; max: string };
   sortMode: string;
 }
 
@@ -25,7 +24,6 @@ export function defaultSettings(): WebSettings {
   return {
     version: 1,
     overlays: { mean: true },
-    softBounds: { min: "", max: "" },
     sortMode: "name",
   };
 }
@@ -83,9 +81,8 @@ export function loadSettings(storage?: StorageLike | null): WebSettings {
       settings.overlays.autocorrelation = old;
     }
   }
-  const bounds = record.softBounds as { min?: unknown; max?: unknown } | undefined;
-  if (bounds && typeof bounds.min === "string" && typeof bounds.max === "string") {
-    settings.softBounds = { min: bounds.min, max: bounds.max };
+  if (settings.overlays.autocorrelation) {
+    settings.overlays = { autocorrelation: true };
   }
   if (record.sortMode === "name" || record.sortMode === "drift") {
     settings.sortMode = record.sortMode;

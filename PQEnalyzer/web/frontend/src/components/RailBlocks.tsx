@@ -1,4 +1,4 @@
-import { Field, Info, Toggle } from "@molarverse/pq-design";
+import { Field, Toggle } from "@molarverse/pq-design";
 import type { Dispatch, SetStateAction } from "react";
 import type { OverlayFlags } from "../api";
 
@@ -19,7 +19,7 @@ export const OVERLAY_DEFS: {
   { key: "median", label: "Median", shortcut: "n", description: "One guide across all runs" },
   { key: "cummulative_average", label: "Cumulative average", shortcut: "c", description: "Restarts at each run" },
   { key: "running_average", label: "Running average", shortcut: "a", description: "Smooths each run separately" },
-  { key: "autocorrelation", label: "Autocorrelation", shortcut: "s", description: "Separate chart by lag" },
+  { key: "autocorrelation", label: "Autocorrelation", shortcut: "s", description: "Switch chart to lag correlation" },
   { key: "difference", label: "Difference (1 − 2)", shortcut: "x", description: "Subtracts run 2 on shared steps" },
 ];
 
@@ -33,10 +33,10 @@ export const NO_OVERLAYS: OverlayFlags = {
 };
 
 export function toggleOverlay(current: OverlayFlags, key: keyof OverlayFlags): OverlayFlags {
-  if (key === "difference") {
-    return { ...NO_OVERLAYS, difference: !current.difference };
+  if (key === "difference" || key === "autocorrelation") {
+    return { ...NO_OVERLAYS, [key]: !current[key] };
   }
-  return { ...current, difference: false, [key]: !current[key] };
+  return { ...current, difference: false, autocorrelation: false, [key]: !current[key] };
 }
 
 const ANALYSIS_GROUPS = [
@@ -161,55 +161,6 @@ export function HistogramBlock({
           disabled={!kdeAvailable}
           onChange={setShowKde}
         />
-      </div>
-    </section>
-  );
-}
-
-export interface SoftBounds {
-  min: string;
-  max: string;
-}
-
-/** Expand-only y-axis bounds (Grafana-style soft min/max; blank = auto). */
-export function YAxisBlock({
-  bounds,
-  setBounds,
-}: {
-  bounds: SoftBounds;
-  setBounds: Dispatch<SetStateAction<SoftBounds>>;
-}) {
-  return (
-    <section className="setup-section">
-      <h2 className="section-title">
-        Y-axis
-        <Info text="Soft bounds widen the axis but never clip data. Blank means auto." />
-      </h2>
-      <div className="bounds-row">
-        <Field label="Soft min">
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="auto"
-            aria-label="Soft y-axis minimum"
-            value={bounds.min}
-            onChange={(event) =>
-              setBounds((current) => ({ ...current, min: event.target.value }))
-            }
-          />
-        </Field>
-        <Field label="Soft max">
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="auto"
-            aria-label="Soft y-axis maximum"
-            value={bounds.max}
-            onChange={(event) =>
-              setBounds((current) => ({ ...current, max: event.target.value }))
-            }
-          />
-        </Field>
       </div>
     </section>
   );

@@ -19,7 +19,7 @@ import {
 import uPlot, { type AlignedData } from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { formatTick, formatValue } from "../api";
-import { applySoftBounds, pinchRange, type TimeRange } from "../scale";
+import { pinchRange, type TimeRange } from "../scale";
 import { alignSeries } from "../tables";
 import type { LineDataset } from "../charts";
 
@@ -44,6 +44,8 @@ export interface UPlotChartProps {
   datasets: LineDataset[];
   hidden: Set<string>;
   timeLabel: string;
+  /** Keep discrete lag steps on integer tick marks. */
+  integerX?: boolean;
   ariaLabel?: string;
   /** Reset zoom when the focused parameter changes, not on overlay changes. */
   resetKey?: string;
@@ -57,8 +59,6 @@ export interface UPlotChartProps {
   /** Controlled zoom (split compare keeps panels in lockstep). */
   zoom?: TimeRange | null;
   onZoomChange?: (zoom: TimeRange | null) => void;
-  /** Expand-only y bounds from the tools panel ("auto" when blank). */
-  softBounds?: { min: string; max: string };
   ref?: Ref<UPlotChartHandle>;
 }
 
@@ -86,6 +86,7 @@ export function UPlotChart({
   datasets,
   hidden,
   timeLabel,
+  integerX = false,
   ariaLabel = "Time series chart. Drag to zoom, double-click to reset.",
   resetKey,
   height = 380,
@@ -94,7 +95,6 @@ export function UPlotChart({
   hideFooter = false,
   zoom: controlledZoom,
   onZoomChange,
-  softBounds,
   ref,
 }: UPlotChartProps) {
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
@@ -180,11 +180,8 @@ export function UPlotChart({
       const pad = (v1 - v0) * 0.06;
       range = [v0 - pad, v1 + pad];
     }
-    // Soft bounds widen only (memoized on the raw strings so the range
-    // identity — and with it the uPlot instance — stays stable).
-    if (softBounds) return applySoftBounds(range, softBounds.min, softBounds.max);
     return range;
-  }, [visible, softBounds?.min, softBounds?.max]);
+  }, [visible]);
 
   const xFull: [number, number] | null = useMemo(
     () =>
@@ -249,6 +246,14 @@ export function UPlotChart({
           grid: { show: false },
           ticks: { show: true, size: 5, width: 1, stroke: "#8d8d8d" },
           font: MONO_FONT,
+          splits: integerX ? (_u, _axis, min, max, foundIncr) => {
+            const step = Math.max(1, Math.ceil(foundIncr || (max - min) / 8));
+            const ticks: number[] = [];
+            for (let value = Math.ceil(min / step) * step; value <= max; value += step) {
+              ticks.push(value);
+            }
+            return ticks;
+          } : undefined,
           values: (_u, vals) => vals.map((v) => formatTick(v)),
           label: timeLabel,
           labelSize: 14,
@@ -310,7 +315,7 @@ export function UPlotChart({
     };
     // datasets identity change = new parameter/refresh: rebuild (the
     // [datasets] effect above has already cleared the zoom state).
-  }, [mountEl, size, data, yRange, dimmed, timeLabel, datasets]);
+  }, [mountEl, size, data, yRange, dimmed, timeLabel, integerX, datasets]);
 
   // Legend toggles ride setSeries (no rebuild, zoom preserved); y follows
   // the visible data like the zoom effect below.

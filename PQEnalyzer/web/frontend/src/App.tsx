@@ -1,6 +1,6 @@
 /*
  * PQEnalyzer Web shell (LOCAL-ONLY preview).
- * Display mode (series|histogram) is shared; focus (parameter|null) picks
+ * Chart type (series|histogram) is shared; focus (parameter|null) picks
  * the dashboard overview or one focused chart. A control only ever changes
  * what is below it.
  */
@@ -16,7 +16,7 @@ import {
   formatUnit,
   type OverlayFlags,
 } from "./api";
-import { AnalysisPicker, HistogramBlock, NO_OVERLAYS, OVERLAY_DEFS, YAxisBlock, toggleOverlay, type SoftBounds } from "./components/RailBlocks";
+import { AnalysisPicker, HistogramBlock, NO_OVERLAYS, OVERLAY_DEFS, toggleOverlay } from "./components/RailBlocks";
 import { ShortcutHelp } from "./components/ShortcutHelp";
 import { ModeSeg } from "./components/Chrome";
 import { MODES, MODE_LABEL } from "./mode";
@@ -55,8 +55,7 @@ function useMediaQuery(query: string): boolean {
 
 
 export default function App() {
-  // Taste that survives reloads: overlay defaults (combined mean),
-  // soft bounds, and dashboard sort persist per browser.
+  // Overlay defaults (combined mean) and dashboard sort persist per browser.
   const [stored] = useState(() => loadSettings(browserStorage()));
   const [flags, setFlags] = useState<OverlayFlags>(() => ({
     ...NO_OVERLAYS,
@@ -64,13 +63,11 @@ export default function App() {
   }));
   const [windowSize, setWindowSize] = useState("");
   const [bins, setBins] = useState("48");
-  const [yBounds, setYBounds] = useState<SoftBounds>(stored.softBounds);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(
     stored.sortMode === "drift" ? "drift" : "name",
   );
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [showEquil, setShowEquil] = useState(true);
   const [showKde, setShowKde] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const narrow = useMediaQuery("(max-width: 1100px)");
@@ -88,17 +85,16 @@ export default function App() {
     if (session.generation > 0) reloadFocus();
   }, [session.generation, reloadFocus]);
 
-  // Persist taste: overlay defaults, soft bounds, dashboard sort.
+  // Persist analysis choices and dashboard sort.
   useEffect(() => {
     const { difference: _dropped, ...overlays } = flags;
     void _dropped;
     saveSettings(browserStorage(), {
       version: 1,
       overlays,
-      softBounds: yBounds,
       sortMode,
     });
-  }, [flags, yBounds, sortMode]);
+  }, [flags, sortMode]);
 
   const refreshNow = useCallback(async () => {
     await session.refreshNow();
@@ -292,10 +288,8 @@ export default function App() {
               timeLabel={session.meta?.time_label ?? "Simulation Time"}
               summary={paramData.summary}
               overlayError={paramData.overlayError}
-              showEquil={showEquil}
               toolsOpen={toolsOpen}
               onToggleTools={() => setToolsOpen((open) => !open)}
-              softBounds={yBounds}
             />
           )}
 
@@ -364,31 +358,15 @@ export default function App() {
             </div>
           </div>
           {mode === "series" ? (
-            <>
-              <AnalysisPicker
-                flags={flags}
-                setFlags={setFlags}
-                fileCount={session.fileCount}
-                canDifference={paramData.series?.difference_available ?? false}
-                windowSize={windowSize}
-                setWindowSize={setWindowSize}
-                maxWindow={maxWindow}
-              />
-              <details className="analysis-display">
-                <summary>Display</summary>
-                <YAxisBlock bounds={yBounds} setBounds={setYBounds} />
-                {paramData.summary?.kind !== "diagnostic" && (
-                  <label className="analysis-marker">
-                    <input
-                      type="checkbox"
-                      checked={showEquil}
-                      onChange={(event) => setShowEquil(event.target.checked)}
-                    />
-                    Show equilibration marker
-                  </label>
-                )}
-              </details>
-            </>
+            <AnalysisPicker
+              flags={flags}
+              setFlags={setFlags}
+              fileCount={session.fileCount}
+              canDifference={paramData.series?.difference_available ?? false}
+              windowSize={windowSize}
+              setWindowSize={setWindowSize}
+              maxWindow={maxWindow}
+            />
           ) : (
             <HistogramBlock
               flags={flags}

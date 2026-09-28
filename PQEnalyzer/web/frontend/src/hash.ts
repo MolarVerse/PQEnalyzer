@@ -1,6 +1,6 @@
 /*
  * URL hash state for PQEnalyzer Web (LOCAL-ONLY preview).
- * The shareable link carries display mode (m) and focused parameter (p).
+ * The shareable link carries chart type (m) and focused parameter (p).
  */
 
 export type HashMode = "series" | "histogram";

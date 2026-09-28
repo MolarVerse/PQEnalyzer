@@ -1073,18 +1073,6 @@ button.pq-tag:focus-visible {
   border-bottom: 0;
 }
 
-/* ---- soft bounds: min/max side by side ---------------------------------------- */
-
-.bounds-row {
-  display: flex;
-  gap: 12px;
-}
-
-.bounds-row > * {
-  flex: 1;
-  min-width: 0;
-}
-
 /* ---- analysis controls ---------------------------------------------------- */
 
 .analysis-trigger {
@@ -1191,61 +1179,27 @@ button.pq-tag:focus-visible {
 .analysis-window > :first-child { flex: 1; }
 .analysis-window input { width: 100%; }
 
-.analysis-display {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.analysis-display summary {
-  cursor: pointer;
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.analysis-display .setup-section { padding-top: 16px; }
-
-.analysis-marker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
 .analysis-option:focus-visible,
-.analysis-window button:focus-visible,
-.analysis-display summary:focus-visible {
+.analysis-window button:focus-visible {
   outline: 2px solid var(--focus-color);
   outline-offset: 2px;
 }
 
-.correlation-panel {
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-}
-
-.correlation-heading {
+.chart-mode {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 16px;
-  padding: 12px 16px 4px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
 }
 
-.correlation-heading h3 {
-  margin: 0;
+.chart-mode strong {
   font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
-.correlation-heading .ghost-action { margin-left: auto; }
-
-.correlation-note {
+.chart-note {
   margin: 0;
-  padding: 2px 16px 8px;
+  padding: 8px 16px 0;
   color: var(--muted);
   font-size: 0.78rem;
 }

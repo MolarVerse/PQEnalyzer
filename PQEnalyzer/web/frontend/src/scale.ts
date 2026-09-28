@@ -1,6 +1,5 @@
 /**
- * Pure scale math for the series chart: pinch-zoom ranges and soft
- * (expand-only, Grafana-style) y bounds. No DOM, no uPlot.
+ * Pure scale math for chart pinch zoom. No DOM, no uPlot.
  */
 
 export interface TimeRange {
@@ -27,22 +26,4 @@ export function pinchRange(
     t0: center - newSpan * fraction,
     t1: center + newSpan * (1 - fraction),
   };
-}
-
-/**
- * Expand an axis range to include soft bounds. Unparseable or empty
- * inputs mean "auto" and never shrink the data range.
- */
-export function applySoftBounds(
-  range: [number, number],
-  minRaw: string,
-  maxRaw: string,
-): [number, number] {
-  let [v0, v1] = range;
-  const softMin = Number.parseFloat(minRaw);
-  const softMax = Number.parseFloat(maxRaw);
-  if (Number.isFinite(softMin)) v0 = Math.min(v0, softMin);
-  if (Number.isFinite(softMax)) v1 = Math.max(v1, softMax);
-  if (!(v1 > v0)) return range;
-  return [v0, v1];
 }

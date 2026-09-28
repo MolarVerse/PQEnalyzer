@@ -12,4 +12,12 @@ describe("analysis choices", () => {
     const reference = toggleOverlay(difference, "mean");
     expect(reference).toEqual({ ...NO_OVERLAYS, mean: true });
   });
+
+  it("uses autocorrelation as one chart mode", () => {
+    const trend = toggleOverlay(NO_OVERLAYS, "running_average");
+    const correlation = toggleOverlay(trend, "autocorrelation");
+    expect(correlation).toEqual({ ...NO_OVERLAYS, autocorrelation: true });
+    expect(toggleOverlay(correlation, "mean")).toEqual({ ...NO_OVERLAYS, mean: true });
+    expect(toggleOverlay(correlation, "autocorrelation")).toEqual(NO_OVERLAYS);
+  });
 });

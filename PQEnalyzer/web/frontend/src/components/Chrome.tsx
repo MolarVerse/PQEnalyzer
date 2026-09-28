@@ -3,7 +3,7 @@ import { MODE_LABEL, MODES, type Mode } from "../mode";
 
 export function ModeSeg({ mode, onSelect }: { mode: Mode; onSelect: (next: Mode) => void }) {
   return (
-    <div className="seg" role="tablist" aria-label="Display mode">
+    <div className="seg" role="tablist" aria-label="Chart type">
       {MODES.map((key) => (
         <button
           key={key}

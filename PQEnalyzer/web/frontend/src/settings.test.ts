@@ -38,12 +38,10 @@ describe("loadSettings", () => {
     saveSettings(storage, {
       version: 1,
       overlays: { mean: true, running_average: true },
-      softBounds: { min: "0", max: "" },
       sortMode: "drift",
     });
     const loaded = loadSettings(storage);
     expect(loaded.overlays).toEqual({ mean: true, running_average: true });
-    expect(loaded.softBounds).toEqual({ min: "0", max: "" });
     expect(loaded.sortMode).toBe("drift");
   });
 
@@ -53,7 +51,6 @@ describe("loadSettings", () => {
         [SETTINGS_KEY]: JSON.stringify({
           version: 1,
           overlays: { mean: false, difference: true, frobnicate: true },
-          softBounds: { min: "", max: "" },
           sortMode: "name",
         }),
       }),
@@ -66,14 +63,13 @@ describe("loadSettings", () => {
       [SETTINGS_KEY]: JSON.stringify({
         version: 1,
         overlays: { mean: false, self_correlation_mean: true },
-        softBounds: { min: "", max: "" },
         sortMode: "name",
       }),
     }));
-    expect(loaded.overlays).toEqual({ mean: false, autocorrelation: true });
+    expect(loaded.overlays).toEqual({ autocorrelation: true });
   });
 
-  it("keeps defaults for malformed bounds and sort", () => {
+  it("keeps defaults for malformed sort and ignores retired bounds", () => {
     const loaded = loadSettings(
       memoryStorage({
         [SETTINGS_KEY]: JSON.stringify({
@@ -84,7 +80,17 @@ describe("loadSettings", () => {
         }),
       }),
     );
-    expect(loaded.softBounds).toEqual({ min: "", max: "" });
+    expect(loaded).not.toHaveProperty("softBounds");
     expect(loaded.sortMode).toBe("name");
+  });
+
+  it("restores autocorrelation as the sole chart mode", () => {
+    const loaded = loadSettings(memoryStorage({
+      [SETTINGS_KEY]: JSON.stringify({
+        version: 1,
+        overlays: { mean: true, running_average: true, autocorrelation: true },
+      }),
+    }));
+    expect(loaded.overlays).toEqual({ autocorrelation: true });
   });
 });

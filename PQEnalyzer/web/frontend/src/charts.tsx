@@ -37,7 +37,6 @@ export const OVERLAY_STYLES: Record<string, OverlayStyle> = {
   mean: { color: "#161616", dash: "6 4", width: 2 },
   median: { color: "#6929c4", dash: "2 3", width: 2 },
   cummulative_average: { color: "#0043ce", dash: "8 4", width: 2 },
-  autocorrelation: { color: "#414141", dash: "1 3", width: 2 },
   running_average: { color: "#161616", width: 2 },
   difference: { color: "#da1e28", width: 2 },
 };

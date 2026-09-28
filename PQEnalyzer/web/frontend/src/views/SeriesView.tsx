@@ -13,7 +13,6 @@ import { TitleRow } from "../components/Chrome";
 import { AnalysisLine, StatLine } from "../components/Stats";
 import { SeriesDataTable } from "../components/DataTable";
 import { RunsTable } from "../components/RunsTable";
-import type { SoftBounds } from "../components/RailBlocks";
 import { seriesTable } from "../tables";
 import type { TimeRange } from "../scale";
 
@@ -32,10 +31,8 @@ export interface SeriesViewProps {
   timeLabel: string;
   summary: SummaryResponse | null;
   overlayError: string | null;
-  showEquil: boolean;
   toolsOpen: boolean;
   onToggleTools: () => void;
-  softBounds: SoftBounds;
 }
 
 function downloadDataURL(url: string, filename: string) {
@@ -67,10 +64,8 @@ export function SeriesView({
   timeLabel,
   summary,
   overlayError,
-  showEquil,
   toolsOpen,
   onToggleTools,
-  softBounds,
 }: SeriesViewProps) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [dataOpen, setDataOpen] = useState(false);
@@ -78,7 +73,6 @@ export function SeriesView({
   const [split, setSplit] = useState(false);
   const [splitZoom, setSplitZoom] = useState<TimeRange | null>(null);
   const mainRef = useRef<UPlotChartHandle | null>(null);
-  const correlationRef = useRef<UPlotChartHandle | null>(null);
   const panelRefs = useRef(new Map<string, UPlotChartHandle | null>());
   useEffect(() => {
     setHidden(new Set());
@@ -89,11 +83,11 @@ export function SeriesView({
   }, [focus]);
 
   useEffect(() => {
-    if (flags.difference) {
+    if (flags.difference || flags.autocorrelation) {
       setSplit(false);
       setSplitZoom(null);
     }
-  }, [flags.difference]);
+  }, [flags.difference, flags.autocorrelation]);
 
   const toggleHidden = (key: string) => {
     setHidden((current) => {
@@ -105,6 +99,18 @@ export function SeriesView({
   };
 
   const datasets = useMemo<LineDataset[]>(() => {
+    if (flags.autocorrelation) {
+      return overlays.filter((overlay) => overlay.axis === "lag").map((overlay) => ({
+        key: `correlation-${overlay.source_index ?? "combined"}`,
+        label: series?.series[overlay.source_index ?? -1]?.label ?? overlay.label,
+        time: overlay.time,
+        values: overlay.values,
+        color: overlay.source_index === null
+          ? "#161616"
+          : SERIES_COLORS[overlay.source_index % SERIES_COLORS.length],
+        width: 2,
+      }));
+    }
     // Difference mode mirrors the desktop: raw series hide, the delta stands
     // alone. The backend likewise returns only the difference overlay.
     const showFiles = !(
@@ -136,11 +142,11 @@ export function SeriesView({
       sourceIndex: overlay.source_index,
     }));
     return [...files, ...derived];
-  }, [series, overlays, flags.difference]);
+  }, [series, overlays, flags.difference, flags.autocorrelation]);
 
   /** Small multiples: one panel per file, overlays repeated as reference. */
   const panels = useMemo(() => {
-    if (!split || !series) return null;
+    if (!split || !series || flags.difference || flags.autocorrelation) return null;
     return series.series
       .map((item, index) => {
         const file = datasets.find((dataset) => dataset.key === `file-${index}`);
@@ -168,71 +174,7 @@ export function SeriesView({
         };
       })
       .filter((panel) => panel !== null);
-  }, [split, series, datasets]);
-
-  const correlationDatasets = useMemo(() =>
-    overlays.filter((overlay) => overlay.axis === "lag").map((overlay) => ({
-      key: `correlation-${overlay.source_index ?? "combined"}`,
-      label: series?.series[overlay.source_index ?? -1]?.label ?? overlay.label,
-      time: overlay.time,
-      values: overlay.values,
-      color: overlay.source_index === null
-        ? "#161616"
-        : SERIES_COLORS[overlay.source_index % SERIES_COLORS.length],
-      width: 2,
-    })), [overlays, series]);
-
-  const correlationPanel = flags.autocorrelation && (
-    <div className="correlation-panel">
-      <div className="correlation-heading">
-        <h3>Autocorrelation</h3>
-        <Info text="Mean-centered and normalized to 1 at lag 0. The chart shows up to half of each run, capped at 1,000 lag steps." />
-        {correlationDatasets.length > 0 && (
-          <button
-            type="button"
-            className="ghost-action"
-            aria-label="Download autocorrelation chart as PNG"
-            title="Download autocorrelation chart as PNG"
-            onClick={() => {
-              const url = correlationRef.current?.exportPNG();
-              if (url) downloadDataURL(url, pngName(focus, "autocorrelation"));
-            }}
-          >
-            <Download size={14} aria-hidden="true" />
-          </button>
-        )}
-      </div>
-      {correlationDatasets.length ? (
-        <>
-          {series && correlationDatasets.length < series.series.length && (
-            <p className="correlation-note">
-              {series.series.length - correlationDatasets.length} {series.series.length - correlationDatasets.length === 1 ? "run" : "runs"} omitted: fewer than two finite, varying values.
-            </p>
-          )}
-          <Legend
-            items={correlationDatasets.map((item) => ({
-              key: item.key, label: item.label, color: item.color,
-            }))}
-            hidden={hidden}
-            onToggle={toggleHidden}
-          />
-          <UPlotChart
-            datasets={correlationDatasets}
-            hidden={hidden}
-            timeLabel="Lag (steps)"
-            ariaLabel="Autocorrelation by lag. Drag to zoom, double-click to reset."
-            height={240}
-            hideFooter
-            ref={correlationRef}
-          />
-        </>
-      ) : overlaysLoading ? (
-        <p className="notice info">Calculating autocorrelation…</p>
-      ) : overlayError ? null : (
-        <p className="notice info">Autocorrelation needs at least two finite, varying values in a run.</p>
-      )}
-    </div>
-  );
+  }, [split, series, datasets, flags.difference, flags.autocorrelation]);
 
   const fileCount = series?.series.length ?? 0;
 
@@ -290,7 +232,7 @@ export function SeriesView({
       return;
     }
     const url = mainRef.current?.exportPNG();
-    if (url) downloadDataURL(url, pngName(focus, "series"));
+    if (url) downloadDataURL(url, pngName(focus, flags.autocorrelation ? "autocorrelation" : "series"));
   };
 
   const caption = useMemo(() => {
@@ -327,7 +269,6 @@ export function SeriesView({
     // Index zero means nothing to discard: no marker to draw.
     if (
       summary?.kind === "diagnostic" ||
-      !showEquil ||
       time === undefined ||
       time === null ||
       analysis?.equil_index === 0
@@ -336,7 +277,7 @@ export function SeriesView({
     }
     const unitNote = series?.time_unit ? ` ${series.time_unit}` : "";
     return [{ value: time, label: `equil ${formatValue(time)}${unitNote}` }];
-  }, [summary, showEquil, series]);
+  }, [summary, series]);
 
   /** Overlays currently on (badge on the tools button). */
   const activeOverlayCount = useMemo(
@@ -367,7 +308,7 @@ export function SeriesView({
         title={
           <>
             {focus}
-            {unit ? ` / ${formatUnit(unit)}` : ""}
+            {!flags.autocorrelation && unit ? ` / ${formatUnit(unit)}` : ""}
           </>
         }
         actions={
@@ -390,17 +331,12 @@ export function SeriesView({
                 Runs
               </button>
             )}
-            {fileCount > 1 && (
+            {fileCount > 1 && !flags.difference && !flags.autocorrelation && (
               <button
                 type="button"
                 className={`ghost-action${split ? " active" : ""}`}
                 aria-pressed={split}
-                title={
-                  flags.difference
-                    ? "Split is unavailable in difference mode"
-                    : "One panel per file, shared zoom"
-                }
-                disabled={flags.difference}
+                title="One panel per file, shared zoom"
                 onClick={() => {
                   setSplitZoom(null);
                   setSplit((value) => !value);
@@ -412,8 +348,8 @@ export function SeriesView({
             <button
               type="button"
               className="ghost-action"
-              aria-label="Download time chart as PNG"
-              title="Download time chart as PNG"
+              aria-label={`Download ${flags.autocorrelation ? "autocorrelation" : "time"} chart as PNG`}
+              title={`Download ${flags.autocorrelation ? "autocorrelation" : "time"} chart as PNG`}
               onClick={exportPNG}
             >
               <Download size={14} aria-hidden="true" />
@@ -486,7 +422,6 @@ export function SeriesView({
                     height={240}
                     zoom={splitZoom}
                     onZoomChange={setSplitZoom}
-                    softBounds={softBounds}
                     resetKey={`${focus}-${panel.label}`}
                     ref={(handle) => {
                       if (handle) panelRefs.current.set(panel.label, handle);
@@ -496,7 +431,6 @@ export function SeriesView({
                 </div>
               ))}
             </div>
-            {correlationPanel}
             <div className="chart-foot">
               {(series?.series.some((item) => item.rows > 1000) ?? false) && (
                 <span className="chart-presets" role="group" aria-label="Time range">
@@ -535,7 +469,7 @@ export function SeriesView({
               <span>{overlayError}</span>
             </p>
           )}
-          {summary?.kind === "diagnostic" && (
+          {!flags.autocorrelation && summary?.kind === "diagnostic" && (
             <p className="notice" role="note">
               <span>
                 {focus} tracks the computation, not the simulated system — no
@@ -544,37 +478,55 @@ export function SeriesView({
               </span>
             </p>
           )}
-          {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
-          {summary && summary.kind !== "diagnostic" && (
+          {!flags.autocorrelation && summary && <StatLine stats={summary.combined} unit={summary.unit} />}
+          {!flags.autocorrelation && summary && summary.kind !== "diagnostic" && (
             <AnalysisLine stats={summary.combined} />
           )}
         </>
       ) : (
         <>
           <div className="chart-card chart-fill">
+            {flags.autocorrelation && (
+              <div className="chart-mode">
+                <strong>Autocorrelation</strong>
+                <Info text="Mean-centered and normalized to 1 at lag 0. Up to half of each run, capped at 1,000 lag steps." />
+              </div>
+            )}
+            {flags.autocorrelation && !overlaysLoading && series && datasets.length < series.series.length && datasets.length > 0 && (
+              <p className="chart-note">{series.series.length - datasets.length} {series.series.length - datasets.length === 1 ? "run" : "runs"} omitted: insufficient data.</p>
+            )}
             <Legend
               items={legendItems}
               hidden={hidden}
               onToggle={toggleHidden}
             />
-            <UPlotChart
-              datasets={datasets}
-              hidden={hidden}
-              timeLabel={timeLabel}
-              caption={caption}
-              markers={markers}
-              softBounds={softBounds}
-              resetKey={focus}
-              ref={mainRef}
-            />
-            {correlationPanel}
+            {flags.autocorrelation && overlaysLoading ? (
+              <div className="chart-empty" role="status">Calculating…</div>
+            ) : flags.autocorrelation && datasets.length === 0 ? (
+              <div className="chart-empty" role="status">
+                {overlayError ? "Autocorrelation unavailable." : "Needs two varying values per run."}
+              </div>
+            ) : (
+              <UPlotChart
+                datasets={datasets}
+                hidden={hidden}
+                timeLabel={flags.autocorrelation ? "Lag (steps)" : timeLabel}
+                integerX={flags.autocorrelation}
+                ariaLabel={flags.autocorrelation ? "Autocorrelation by lag. Drag to zoom, double-click to reset." : undefined}
+                caption={flags.autocorrelation ? undefined : caption}
+                markers={flags.autocorrelation ? [] : markers}
+                hideFooter={flags.autocorrelation}
+                resetKey={`${focus}-${flags.autocorrelation ? "lag" : "time"}`}
+                ref={mainRef}
+              />
+            )}
           </div>
           {overlayError && (
             <p className="notice error" role="alert">
               <span>{overlayError}</span>
             </p>
           )}
-          {summary?.kind === "diagnostic" && (
+          {!flags.autocorrelation && summary?.kind === "diagnostic" && (
             <p className="notice" role="note">
               <span>
                 {focus} tracks the computation, not the simulated system — no
@@ -583,8 +535,8 @@ export function SeriesView({
               </span>
             </p>
           )}
-          {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
-          {summary && summary.kind !== "diagnostic" && (
+          {!flags.autocorrelation && summary && <StatLine stats={summary.combined} unit={summary.unit} />}
+          {!flags.autocorrelation && summary && summary.kind !== "diagnostic" && (
             <AnalysisLine stats={summary.combined} />
           )}
         </>

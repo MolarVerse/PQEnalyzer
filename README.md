@@ -131,10 +131,10 @@ What you see:
   a trend per run, autocorrelation, or a difference between two runs.
   The combined mean is shown initially. Cumulative and running averages
   restart for each file; the running window defaults to about 5% of
-  each run. Autocorrelation appears in a separate chart with lag in
-  steps. Difference is available only when exactly two files share
+  each run. Autocorrelation switches the chart to lag in steps.
+  Difference is available only when exactly two files share
   time or step values. Chart legend entries identify each result's
-  source. Analysis choices, soft bounds, and dashboard sort persist
+  source. Analysis choices and dashboard sort persist
   per browser, except difference, which must be selected each time.
 - **Live updates** — the header badge reads `watching` while files are
   watched, `stale` when they changed on disk (refresh or resume watching
@@ -153,9 +153,8 @@ What you see:
 
 `Data` shows the transported points as a table, `Runs` the sortable
 per-file stats, and `PNG` / `CSV` download the chart and the
-full-resolution data. The autocorrelation chart has its own PNG action.
-`Chart display` in the Analysis panel holds the equilibration marker and
-soft y-axis bounds, which widen the axis without clipping data.
+full-resolution data. PNG exports the chart currently shown. The
+equilibration marker appears on eligible time series.
 
 Parameters split into **observables** (energy, temperature, pressure,
 density, …) and **diagnostics** (`LOOPTIME`, atom counts, and any other
@@ -167,8 +166,8 @@ step change there vetoes the segment — it never proves equilibration.
 ## Plot Features
 
 The GUI and TUI offer these plot features. Web uses the same shortcuts and
-shared series/plot math for its time overlays, and shows a normalized
-autocorrelation separately by lag instead of Self-Correlation Mean:
+shared series/plot math for its time overlays, and switches the chart to
+normalized autocorrelation by lag instead of Self-Correlation Mean:
 
 | Feature | Time series | Histogram | TUI key |
 | --- | --- | --- | --- |
