@@ -110,7 +110,6 @@ def reset_dummy_plots():
 def make_app(auto_refresh=True):
     app = object.__new__(app_module.App)
     app.preferences = UserPreferences()
-    app.appearance_mode_setting = "System"
     app.appearance_mode = "Light"
     app.plot_scale = 1.0
     app.auto_refresh = FakeFlag(auto_refresh)
@@ -145,7 +144,7 @@ def test_gui_icon_path_resolves_from_layout_module():
     assert app_layout.ICON_PATH.is_file()
 
 
-def test_default_theme_applies_persisted_mode_without_gui_scaling(monkeypatch):
+def test_default_theme_uses_shared_light_palette(monkeypatch):
     calls = []
     monkeypatch.setattr(
         app_layout.ctk,
@@ -157,10 +156,10 @@ def test_default_theme_applies_persisted_mode_without_gui_scaling(monkeypatch):
         "set_default_color_theme",
         lambda value: calls.append(("color", value)),
     )
-    app_layout.configure_default_theme("Dark")
+    app_layout.configure_default_theme()
 
     assert calls == [
-        ("appearance", "Dark"),
+        ("appearance", "Light"),
         ("color", "blue"),
     ]
 
@@ -192,10 +191,7 @@ def test_selector_window_keeps_fixed_layout(monkeypatch):
 
 
 def test_sidebar_exposes_exact_plot_scale_presets(monkeypatch):
-    app = SimpleNamespace(
-        plot_scale=1.05,
-        appearance_mode_setting="Dark",
-    )
+    app = SimpleNamespace(plot_scale=1.05)
     scale_selections = []
 
     monkeypatch.setattr(app_layout.ctk, "CTkFrame", FakeWidget)
@@ -206,11 +202,7 @@ def test_sidebar_exposes_exact_plot_scale_presets(monkeypatch):
     monkeypatch.setattr(app_layout.ctk, "CTkFont", FakeWidget)
     monkeypatch.setattr(app_layout.Image, "open", lambda path: "image")
 
-    view = app_layout.SidebarView(
-        app,
-        lambda mode: None,
-        scale_selections.append,
-    )
+    view = app_layout.SidebarView(app, scale_selections.append)
     view.plot_scale_optionemenu.kwargs["command"]("100%")
 
     assert scale_selections == ["100%"]
@@ -218,8 +210,21 @@ def test_sidebar_exposes_exact_plot_scale_presets(monkeypatch):
     assert "100%" in view.plot_scale_optionemenu.kwargs["values"]
     assert "105%" in view.plot_scale_optionemenu.kwargs["values"]
     assert view.plot_scale_optionemenu.value == "105%"
-    assert view.appearance_mode_optionemenu.value == "Dark"
     assert app.plot_scale_optionemenu is view.plot_scale_optionemenu
+
+
+def test_flat_mono_font_uses_an_installed_family(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        app_layout.tkinter_font, "families", lambda: ("Menlo", "Helvetica"))
+    monkeypatch.setattr(
+        app_layout.ctk, "CTkFont",
+        lambda **options: captured.update(options) or options,
+    )
+
+    app_layout._flat_mono_font()
+
+    assert captured["family"] == "Menlo"
 
 
 @pytest.mark.parametrize(
@@ -423,14 +428,12 @@ def test_statistics_controls_view_exposes_plot_state_attributes(monkeypatch):
     assert app.mean is view.mean
     assert app.median is view.median
     assert app.cummulative_average is view.cumulative_average
-    assert app.self_correlation_mean is view.self_correlation_mean
     assert app.difference is view.difference
     assert app.running_average is view.running_average
     assert app.window_size is view.window_size
     assert view.mean.args[0] is view.statistics_frame
     assert view.median.args[0] is view.statistics_frame
     assert view.cumulative_average.args[0] is view.time_series_frame
-    assert view.self_correlation_mean.args[0] is view.time_series_frame
     assert view.difference.args[0] is view.time_series_frame
     assert view.running_average.args[0] is view.time_series_frame
     assert view.window_size.args[0] is view.time_series_frame
@@ -578,50 +581,6 @@ def test_plot_button_rejects_unknown_event():
         app_module.App._App__plot_button_event(make_app(), 3)
 
 
-def test_change_appearance_mode_updates_matplotlib_and_open_plots(monkeypatch):
-    app = make_app()
-    calls = []
-
-    class FakeFigure:
-
-        def __init__(self, number):
-            self.number = number
-
-    class FakePlot:
-
-        def __init__(self, number):
-            self.figure = FakeFigure(number)
-
-        def redraw(self):
-            calls.append(("redraw", self.figure.number))
-
-    open_plot = FakePlot(1)
-    closed_plot = FakePlot(2)
-    app.list_of_plots = [open_plot, closed_plot]
-
-    monkeypatch.setattr(app_module.ctk, "set_appearance_mode",
-                        lambda mode: calls.append(("ctk", mode)))
-    monkeypatch.setattr(app_module, "resolve_appearance_mode",
-                        lambda mode: "Dark")
-    monkeypatch.setattr(
-        app_module,
-        "apply_matplotlib_theme",
-        lambda mode, scale: calls.append(("mpl", mode, scale)),
-    )
-    monkeypatch.setattr(app_module.plt, "get_fignums", lambda: [1])
-
-    app_module.App._App__change_appearance_mode_event(app, "Dark")
-
-    assert app.appearance_mode == "Dark"
-    assert app.appearance_mode_setting == "Dark"
-    assert app.list_of_plots == [open_plot]
-    assert calls == [
-        ("ctk", "Dark"),
-        ("mpl", "Dark", 1.0),
-        ("redraw", 1),
-    ]
-
-
 def test_plot_scale_updates_plots_and_preset_without_scaling_gui(monkeypatch):
     app = make_app()
     app.plot_scale_optionemenu = FakeWidget()
@@ -673,7 +632,6 @@ def test_preferences_restore_controls_valid_for_current_files():
     app = make_app(auto_refresh=True)
     app.info = ["TEMPERATURE", "PRESSURE"]
     app.preferences = UserPreferences(
-        appearance_mode="Dark",
         plot_scale=1.25,
         selected_parameter="PRESSURE",
         auto_refresh=False,
@@ -684,19 +642,16 @@ def test_preferences_restore_controls_valid_for_current_files():
             plot_main=True,
         ).to_mapping(),
     )
-    app.appearance_mode_setting = "Dark"
     app.plot_scale = 1.25
     app.mean = FakeFlag(False)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(False)
     app.running_average = FakeFlag(False)
     app.plot_main_data = FakeFlag(False)
     app.window_size = FakeEntry("")
     app.info_optionmenu = FakeWidget()
     app.plot_scale_optionemenu = FakeWidget()
-    app.appearance_mode_optionemenu = FakeWidget()
 
     app_module.App._App__restore_preferences(app)
 
@@ -708,18 +663,15 @@ def test_preferences_restore_controls_valid_for_current_files():
     assert app._App__selected_info == "PRESSURE"
     assert app.info_optionmenu.value == "PRESSURE"
     assert app.plot_scale_optionemenu.value == "125%"
-    assert app.appearance_mode_optionemenu.value == "Dark"
 
 
 def test_preferences_capture_and_write_all_gui_controls(monkeypatch):
     app = make_app(auto_refresh=False)
-    app.appearance_mode_setting = "Light"
     app.plot_scale = 1.5
     app._App__selected_info = "PRESSURE"
     app.mean = FakeFlag(True)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(False)
     app.running_average = FakeFlag(True)
     app.plot_main_data = FakeFlag(True)
@@ -734,7 +686,6 @@ def test_preferences_capture_and_write_all_gui_controls(monkeypatch):
 
     assert app_module.App._App__write_preferences(app) is True
 
-    assert app.preferences.appearance_mode == "Light"
     assert app.preferences.plot_scale == 1.5
     assert app.preferences.selected_parameter == "PRESSURE"
     assert app.preferences.auto_refresh is False
@@ -742,12 +693,13 @@ def test_preferences_capture_and_write_all_gui_controls(monkeypatch):
     assert app.preferences.plot_options["running_average"] is True
     assert app.preferences.plot_options["window_size"] == "30"
     assert len(saved) == 1
+
+
 def test_select_plot_syncs_plot_options_to_controls(monkeypatch):
     app = make_app()
     app.mean = FakeFlag(False)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(False)
     app.running_average = FakeFlag(False)
     app.plot_main_data = FakeFlag(False)
@@ -759,7 +711,6 @@ def test_select_plot_syncs_plot_options_to_controls(monkeypatch):
             mean=True,
             median=True,
             cummulative_average=True,
-            self_correlation_mean=True,
             difference=True,
             running_average=True,
             window_size="25",
@@ -774,7 +725,6 @@ def test_select_plot_syncs_plot_options_to_controls(monkeypatch):
     assert app.mean.value is True
     assert app.median.value is True
     assert app.cummulative_average.value is True
-    assert app.self_correlation_mean.value is True
     assert app.difference.value is True
     assert app.running_average.value is True
     assert app.plot_main_data.value is True
@@ -787,7 +737,6 @@ def test_statistics_controls_redraw_selected_plot(monkeypatch):
     app.mean = FakeFlag(True)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(False)
     app.running_average = FakeFlag(True)
     app.plot_main_data = FakeFlag(False)
@@ -817,7 +766,6 @@ def test_statistics_controls_do_not_force_no_data_for_active_difference(
     app.mean = FakeFlag(False)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(True)
     app.running_average = FakeFlag(False)
     app.plot_main_data = FakeFlag(False)
@@ -846,7 +794,6 @@ def test_refresh_applies_controls_to_selected_plot(monkeypatch):
     app.mean = FakeFlag(False)
     app.median = FakeFlag(False)
     app.cummulative_average = FakeFlag(False)
-    app.self_correlation_mean = FakeFlag(False)
     app.difference = FakeFlag(False)
     app.running_average = FakeFlag(True)
     app.plot_main_data = FakeFlag(False)

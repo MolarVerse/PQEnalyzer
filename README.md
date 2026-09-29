@@ -89,9 +89,11 @@ Plot windows refit when resized. The Live Monitor also redistributes its grid;
 press `f` to fit it to the current screen. Use `Plot Size` in the sidebar, `+`
 and `-` in a plot window, or `Ctrl+0` / `Command+0` to restore `100%`.
 
-PQEnalyzer remembers the theme, plot size, window dimensions, selected
+PQEnalyzer remembers the plot size, window dimensions, selected
 parameter, auto-refresh state, and plot settings. Set
 `PQENALYZER_CONFIG_DIR` to override the platform settings directory.
+The desktop plots, GUI controls, and TUI use the same flat mono design
+tokens as the web view.
 
 ## TUI
 
@@ -170,21 +172,19 @@ step change there vetoes the segment — it never proves equilibration.
 ## Plot Features
 
 The GUI and TUI offer these plot features. Web uses the shared series and
-plot math for its time overlays. Its `s` shortcut shows normalized
-autocorrelation by lag instead of Self-Correlation Mean:
+plot math for its time overlays and adds normalized autocorrelation by lag
+with the `s` shortcut:
 
 | Feature | Time series | Histogram | TUI key |
 | --- | --- | --- | --- |
 | Mean | yes | yes | `m` |
 | Median | yes | yes | `n` |
 | Cumulative Average | yes | no | `c` |
-| Self-Correlation Mean | yes | no | `s` |
 | Difference (1 - 2) | yes | no | `x` |
 | Running Average | yes | no | `a` |
 
-Self-Correlation Mean in the GUI/TUI stays on the data's original scale; it
-is not normalized. The web autocorrelation is mean-centered and normalized
-to 1 at lag zero, calculated on all selected files as one sequence.
+Web autocorrelation is mean-centered and normalized to 1 at lag zero,
+calculated on all selected files as one sequence.
 
 ## Multiple Files
 
@@ -223,8 +223,10 @@ changes. The frontend installs the shared flat mono controls from a versioned
 [PQDesign release](https://github.com/MolarVerse/PQDesign/releases);
 no adjacent PQSetup checkout is needed. To update the shared design, follow
 the [design package guide](https://github.com/MolarVerse/PQDesign#readme),
-then update the archive URL and lockfile together. Keep chart and dashboard
-layout in PQEnalyzer.
+then update the archive URL and lockfile together. Copy that package's
+`tokens.json` to `PQEnalyzer/design/tokens.json`; CI checks they match.
+Desktop and TUI colors derive from this packaged snapshot. Keep chart and
+dashboard layout in PQEnalyzer.
 
 Run the end-to-end suite separately:
 

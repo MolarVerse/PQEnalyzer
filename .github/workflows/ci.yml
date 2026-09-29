@@ -72,3 +72,4 @@ jobs:
       run: |
         git diff --exit-code -- PQEnalyzer/web/static
         test -z "$(git ls-files --others --exclude-standard -- PQEnalyzer/web/static)"
+        cmp PQEnalyzer/design/tokens.json PQEnalyzer/web/frontend/node_modules/@molarverse/pq-design/tokens.json

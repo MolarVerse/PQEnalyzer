@@ -1,10 +1,7 @@
-"""
-Matplotlib theme helpers aligned with CustomTkinter appearance modes.
-"""
+"""Matplotlib theme helpers using the pinned PQDesign flat mono tokens."""
 
-import customtkinter as ctk
-import matplotlib
-from cycler import cycler
+from ..flat_mono import FLAT_MONO_MPL_PALETTE, apply_flat_mono_matplotlib_theme
+
 
 PLOT_FONT_SIZES = {
     "base": 12.0,
@@ -15,91 +12,10 @@ PLOT_FONT_SIZES = {
 }
 
 
-LIGHT_PALETTE = {
-    "figure.facecolor": "#f4f7fb",
-    "axes.facecolor": "#ffffff",
-    "axes.edgecolor": "#cbd5e1",
-    "axes.labelcolor": "#0f172a",
-    "text.color": "#0f172a",
-    "subtle.text": "#64748b",
-    "tick.color": "#475569",
-    "grid.color": "#e2e8f0",
-    "legend.facecolor": "#ffffff",
-    "legend.edgecolor": "#cbd5e1",
-    "annotation.facecolor": "#f1f5f9",
-    "annotation.edgecolor": "#cbd5e1",
-    "selected.edgecolor": "#2563eb",
-    "warning.color": "#b45309",
-    "colors": [
-        "#2563eb",
-        "#e11d48",
-        "#059669",
-        "#7c3aed",
-        "#d97706",
-        "#0891b2",
-        "#be123c",
-        "#16a34a",
-    ],
-}
-
-DARK_PALETTE = {
-    "figure.facecolor": "#0b1120",
-    "axes.facecolor": "#111827",
-    "axes.edgecolor": "#334155",
-    "axes.labelcolor": "#e5e7eb",
-    "text.color": "#e5e7eb",
-    "subtle.text": "#94a3b8",
-    "tick.color": "#cbd5e1",
-    "grid.color": "#1e293b",
-    "legend.facecolor": "#0f172a",
-    "legend.edgecolor": "#475569",
-    "annotation.facecolor": "#0f172a",
-    "annotation.edgecolor": "#475569",
-    "selected.edgecolor": "#60a5fa",
-    "warning.color": "#fbbf24",
-    "colors": [
-        "#60a5fa",
-        "#fb7185",
-        "#34d399",
-        "#c084fc",
-        "#fbbf24",
-        "#22d3ee",
-        "#f43f5e",
-        "#4ade80",
-    ],
-}
-
-
-def resolve_appearance_mode(appearance_mode=None):
-    """
-    Resolve ``System`` and unset modes to the active CustomTkinter mode.
-    """
-
-    if appearance_mode in {None, "System"}:
-        return ctk.get_appearance_mode()
-
-    return appearance_mode
-
-
 def palette_for_appearance_mode(appearance_mode=None):
-    """
-    Return the palette matching a CustomTkinter appearance mode.
-    """
+    """Return the shared flat mono palette for all desktop plots."""
 
-    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 uses the PQSetup flat-mono tokens.
-    try:
-        from ..flat_mono import FLAT_MONO_MPL_PALETTE, is_flat_mono_enabled
-
-        if is_flat_mono_enabled():
-            return FLAT_MONO_MPL_PALETTE
-    except ImportError:
-        pass
-
-    resolved_mode = resolve_appearance_mode(appearance_mode)
-    if resolved_mode == "Dark":
-        return DARK_PALETTE
-
-    return LIGHT_PALETTE
+    return FLAT_MONO_MPL_PALETTE
 
 
 def series_color(index, appearance_mode=None):
@@ -129,53 +45,9 @@ def scaled_font_size(font_size, plot_scale=1.0):
 
 
 def apply_matplotlib_theme(appearance_mode=None, plot_scale=1.0):
-    """
-    Apply a CustomTkinter-aligned palette to matplotlib defaults.
-    """
+    """Apply the shared flat mono palette to matplotlib defaults."""
 
-    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 uses the PQSetup flat-mono tokens.
-    try:
-        from ..flat_mono import apply_flat_mono_matplotlib_theme, is_flat_mono_enabled
-
-        if is_flat_mono_enabled():
-            return apply_flat_mono_matplotlib_theme(plot_scale)
-    except ImportError:
-        pass
-
-    palette = palette_for_appearance_mode(appearance_mode)
-    font_sizes = {
-        name: scaled_font_size(size, plot_scale)
-        for name, size in PLOT_FONT_SIZES.items()
-    }
-
-    matplotlib.rcParams.update({
-        "font.size": font_sizes["base"],
-        "figure.facecolor": palette["figure.facecolor"],
-        "axes.facecolor": palette["axes.facecolor"],
-        "axes.edgecolor": palette["axes.edgecolor"],
-        "axes.labelcolor": palette["axes.labelcolor"],
-        "axes.labelsize": font_sizes["axis_label"],
-        "axes.grid": True,
-        "axes.prop_cycle": cycler(color=palette["colors"]),
-        "axes.titleweight": "semibold",
-        "axes.titlesize": font_sizes["title"],
-        "lines.linewidth": 1.45,
-        "lines.solid_capstyle": "round",
-        "text.color": palette["text.color"],
-        "xtick.color": palette["tick.color"],
-        "xtick.labelsize": font_sizes["tick"],
-        "ytick.color": palette["tick.color"],
-        "ytick.labelsize": font_sizes["tick"],
-        "grid.color": palette["grid.color"],
-        "grid.alpha": 0.55,
-        "legend.facecolor": palette["legend.facecolor"],
-        "legend.edgecolor": palette["legend.edgecolor"],
-        "legend.fontsize": font_sizes["legend"],
-        "legend.framealpha": 0.95,
-        "savefig.facecolor": palette["figure.facecolor"],
-    })
-
-    return palette
+    return apply_flat_mono_matplotlib_theme(plot_scale)
 
 
 def apply_figure_theme(

@@ -21,7 +21,7 @@ from ..preferences import (
 from ..plots import PlotDashboard, PlotTime, PlotHistogram
 from ..plots.features import PLOT_FEATURES
 from ..plots.options import PlotOptions
-from ..plots.theme import apply_matplotlib_theme, resolve_appearance_mode
+from ..plots.theme import apply_matplotlib_theme
 from .file_watcher import FileChangeWatcher
 from .app_layout import (
     configure_default_theme,
@@ -60,12 +60,10 @@ class App(ctk.CTk):
         Initialize the root window and derive selectable parameters.
         """
         self.preferences = load_preferences()
-        self.appearance_mode_setting = self.preferences.appearance_mode
         self.plot_scale = self.preferences.plot_scale
-        configure_default_theme(self.appearance_mode_setting)
+        configure_default_theme()
         super().__init__()
-        self.appearance_mode = resolve_appearance_mode(
-            self.appearance_mode_setting)
+        self.appearance_mode = "Light"
         apply_matplotlib_theme(self.appearance_mode, self.plot_scale)
         configure_window(self)
 
@@ -111,7 +109,6 @@ class App(ctk.CTk):
             self.__restoring_preferences = True
         self.sidebar_view = SidebarView(
             self,
-            self.__change_appearance_mode_event,
             self.change_plot_scale,
         )
         self.plot_controls_view = PlotControlsView(
@@ -226,21 +223,6 @@ class App(ctk.CTk):
         self.preferences.plot_sizes[plot_kind] = remembered_size
         self.__schedule_preferences_save()
         return None
-
-    def __change_appearance_mode_event(self, new_appearance_mode: str):
-        """
-        Apply a CustomTkinter appearance-mode selection.
-        """
-
-        self.appearance_mode_setting = new_appearance_mode
-        ctk.set_appearance_mode(new_appearance_mode)
-        self.appearance_mode = resolve_appearance_mode(new_appearance_mode)
-        apply_matplotlib_theme(
-            self.appearance_mode,
-            self.__dict__.get("plot_scale", 1.0),
-        )
-        self.__redraw_plots()
-        self.__schedule_preferences_save()
 
     def __change_info_event(self, new_info: str):
         """
@@ -521,8 +503,6 @@ class App(ctk.CTk):
 
             self.plot_scale_optionemenu.set(
                 plot_scale_label(self.plot_scale))
-            self.appearance_mode_optionemenu.set(
-                self.appearance_mode_setting)
         finally:
             self.__restoring_preferences = False
 
@@ -553,7 +533,6 @@ class App(ctk.CTk):
         Copy the current widgets into the persistent preference object.
         """
 
-        self.preferences.appearance_mode = self.appearance_mode_setting
         self.preferences.plot_scale = self.plot_scale
         self.preferences.selected_parameter = self.__dict__.get(
             "_App__selected_info")

@@ -91,7 +91,6 @@ def test_terminal_chart_can_render_statistic_overlays():
         mean=True,
         median=True,
         cummulative_average=True,
-        self_correlation_mean=True,
         running_average=True,
         window_size="3",
     )
@@ -107,7 +106,6 @@ def test_terminal_chart_can_render_statistic_overlays():
     assert "Mean" in chart
     assert "Median" in chart
     assert "Cumulative Average" in chart
-    assert "Self-Correlation Mean" in chart
     assert "Running Average (3)" in chart
 
 

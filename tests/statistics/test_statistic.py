@@ -92,50 +92,6 @@ class TestStatistic:
         assert np.allclose(running, [1.5, np.nan, np.nan, 4.5, 5.5],
                            equal_nan=True)
 
-    def test_self_correlation_mean(self):
-        time, self_correlation_mean = (
-            Statistic.self_correlation_mean_values(
-                [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
-        assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.allclose(
-            self_correlation_mean,
-            [2, 2.5, 3, 3.5, 4],
-        )
-
-        energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
-        time, self_correlation_mean = (
-            Statistic.self_correlation_mean(energies, "SIMULATION-TIME"))
-        assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.allclose(
-            self_correlation_mean,
-            [2, 2.5, 3, 3.5, 4],
-        )
-
-        energies2 = Reader(["tests/data/md-02.en"], MDEngineFormat.PQ).energies
-        time, self_correlation_mean = (
-            Statistic.self_correlation_mean(energies2, "SIMULATION-TIME"))
-        assert np.all(time == [6, 7, 8, 9, 10])
-        assert np.allclose(
-            self_correlation_mean,
-            [7, 7.5, 8, 8.5, 9],
-        )
-
-    def test_self_correlation_mean_constant_data(self):
-        time, self_correlation_mean = (
-            Statistic.self_correlation_mean_values(
-                [1, 2, 3, 4, 5], [2, 2, 2, 2, 2]))
-
-        assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(self_correlation_mean == [2, 2, 2, 2, 2])
-
-        energies = Reader(["tests/data/md-01.en"], MDEngineFormat.PQ).energies
-
-        time, self_correlation_mean = (
-            Statistic.self_correlation_mean(energies, "E(INTRA)"))
-
-        assert np.all(time == [1, 2, 3, 4, 5])
-        assert np.all(self_correlation_mean == [0, 0, 0, 0, 0])
-
     def test_normalized_autocorrelation_is_on_lag_axis(self):
         lags, correlation = Statistic.autocorrelation_values(
             [1, 2, 3, 4, 5], max_lag=2)

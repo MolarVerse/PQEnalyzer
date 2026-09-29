@@ -41,6 +41,7 @@ jobs:
       run: |
         git diff --exit-code -- PQEnalyzer/web/static
         test -z "$(git ls-files --others --exclude-standard -- PQEnalyzer/web/static)"
+        cmp PQEnalyzer/design/tokens.json PQEnalyzer/web/frontend/node_modules/@molarverse/pq-design/tokens.json
     - name: Install test and build dependencies
       run: |
         python -m pip install '.[test]' build
@@ -59,6 +60,7 @@ jobs:
         /tmp/pqenalyzer-release-smoke/bin/python -m pip install dist/*.whl
         cd /tmp
         /tmp/pqenalyzer-release-smoke/bin/pqenalyzer --help
+        /tmp/pqenalyzer-release-smoke/bin/python -c "from PQEnalyzer.flat_mono import FLAT_MONO_TUI_CSS; assert 'Screen' in FLAT_MONO_TUI_CSS"
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:

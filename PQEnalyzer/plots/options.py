@@ -16,7 +16,6 @@ class PlotOptions:
     mean: bool = False
     median: bool = False
     cummulative_average: bool = False
-    self_correlation_mean: bool = False
     difference: bool = False
     running_average: bool = False
     window_size: str = ""

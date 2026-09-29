@@ -25,7 +25,6 @@ def test_preferences_round_trip_valid_values():
 
     user_preferences = preferences.UserPreferences.from_mapping(stored)
 
-    assert user_preferences.appearance_mode == "Dark"
     assert user_preferences.plot_scale == 1.5
     assert user_preferences.plot_sizes == {
         "single": (12.5, 8.0),
@@ -35,7 +34,6 @@ def test_preferences_round_trip_valid_values():
     assert user_preferences.auto_refresh is False
     assert user_preferences.plot_options["mean"] is True
     assert user_preferences.to_mapping() == {
-        "appearance_mode": "Dark",
         "plot_scale": 1.5,
         "plot_sizes": {
             "single": [12.5, 8.0],
@@ -190,15 +188,13 @@ def test_preferences_path_uses_xdg_or_linux_default(monkeypatch, tmp_path):
 def test_save_and_load_preferences(tmp_path):
     settings_path = tmp_path / "nested" / "settings.json"
     expected = preferences.UserPreferences(
-        appearance_mode="Light",
         plot_scale=1.25,
     )
 
     assert preferences.save_preferences(expected, settings_path) is True
     assert preferences.load_preferences(settings_path) == expected
-    assert json.loads(settings_path.read_text(encoding="utf-8"))[
-        "appearance_mode"
-    ] == "Light"
+    assert "appearance_mode" not in json.loads(
+        settings_path.read_text(encoding="utf-8"))
     assert not settings_path.with_suffix(".tmp").exists()
 
 

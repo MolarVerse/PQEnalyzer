@@ -8,11 +8,13 @@ testable.
 """
 
 import tkinter
+from tkinter import font as tkinter_font
 from pathlib import Path
 
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+from ..flat_mono import FLAT_MONO_CTK
 from ..preferences import PLOT_SCALE_LABELS, plot_scale_label
 from ..plots.features import STATISTIC_FEATURES, TIME_SERIES_FEATURES
 
@@ -20,63 +22,34 @@ from ..plots.features import STATISTIC_FEATURES, TIME_SERIES_FEATURES
 ICON_PATH = Path(__file__).resolve().parents[1] / "icons" / "icon.png"
 
 
-def configure_default_theme(appearance_mode="System"):
-    """
-    Configure the persisted CustomTkinter theme.
-    """
-
-    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 forces the flat-mono light theme.
-    # The language is Gray-10 light-only, square, mono.
-    try:
-        from ..flat_mono import is_flat_mono_enabled
-
-        if is_flat_mono_enabled():
-            ctk.set_appearance_mode("Light")
-            ctk.set_default_color_theme("blue")
-            return
-    except ImportError:
-        pass
-
-    ctk.set_appearance_mode(appearance_mode)
+def configure_default_theme():
+    """Use the shared light flat mono theme for desktop widgets."""
+    ctk.set_appearance_mode("Light")
     ctk.set_default_color_theme("blue")
 
 
-def _flat_mono_active():
-    """Return True when the local flat-mono preview is requested."""
-    try:
-        from ..flat_mono import is_flat_mono_enabled
-
-        return is_flat_mono_enabled()
-    except ImportError:
-        return False
-
-
 def _flat_mono_font(size=13, weight="normal"):
-    """Return a mono CTkFont for the flat-mono preview, else None."""
-    if not _flat_mono_active():
-        return None
+    """Choose an installed monospaced family from the shared font stack."""
     try:
-        from ..flat_mono import FLAT_MONO_CTK
-
-        family = FLAT_MONO_CTK["mono_font"][0]
-    except (ImportError, KeyError):
-        family = "IBM Plex Mono"
-    return ctk.CTkFont(family=family, size=size, weight=weight)
+        installed = set(tkinter_font.families())
+    except (RuntimeError, tkinter.TclError):
+        installed = set()
+    family = next(
+        (name for name in (*FLAT_MONO_CTK["mono_font"], "Monaco", "Courier")
+         if name in installed),
+        "Courier",
+    )
+    return ctk.CTkFont(
+        family=family, size=size, weight=weight)
 
 
 def _style_flat_mono_widgets(widgets, primary_buttons=(), section_titles=()):
-    """Apply square, hairline, mono styling (local preview only).
+    """Apply square, hairline, mono styling.
 
     ``primary_buttons`` marks Carbon primary actions (accent fill);
     other buttons render as secondary outlines. ``section_titles`` are
     labels restyled as uppercase group headings per the language.
     """
-    if not _flat_mono_active():
-        return
-    try:
-        from ..flat_mono import FLAT_MONO_CTK
-    except ImportError:
-        return
     for widget in widgets:
         if widget is None:
             continue
@@ -95,7 +68,7 @@ def _style_flat_mono_widgets(widgets, primary_buttons=(), section_titles=()):
                         corner_radius=FLAT_MONO_CTK["corner_radius"],
                         fg_color=FLAT_MONO_CTK["accent"],
                         hover_color=FLAT_MONO_CTK["accent_dark"],
-                        text_color="#ffffff",
+                        text_color=FLAT_MONO_CTK["surface"],
                         border_width=0,
                         height=32,
                         font=_flat_mono_font(size=13, weight="normal"),
@@ -129,7 +102,7 @@ def _style_flat_mono_widgets(widgets, primary_buttons=(), section_titles=()):
                     border_color=FLAT_MONO_CTK["border_strong"],
                     fg_color=FLAT_MONO_CTK["accent"],
                     hover_color=FLAT_MONO_CTK["accent"],
-                    checkmark_color="#ffffff",
+                    checkmark_color=FLAT_MONO_CTK["surface"],
                     text_color=FLAT_MONO_CTK["ink"],
                     checkbox_height=18,
                     checkbox_width=18,
@@ -178,66 +151,54 @@ def configure_window(app):
     app.iconphoto(False, ImageTk.PhotoImage(image))
 
     app.resizable(False, False)
-    # LOCAL-ONLY flat-mono preview: nudge the fixed window to its content
+    # Nudge the fixed window to its content
     # size after the toolkit settles. Tiling compositors may otherwise show
     # a clipped window; this only ever grows toward Tk's requested size.
-    if _flat_mono_active():
-        def _fit_to_content():
-            try:
-                app.update_idletasks()
-                req_w = app.winfo_reqwidth()
-                req_h = app.winfo_reqheight()
-                if req_w > app.winfo_width() or req_h > app.winfo_height():
-                    app.geometry(f"{max(req_w, app.winfo_width())}"
-                                 f"x{max(req_h, app.winfo_height())}")
-            except (ValueError, TypeError, AttributeError):
-                pass
-
+    def _fit_to_content():
         try:
-            app.after(1000, _fit_to_content)
-            app.after(3000, _fit_to_content)
+            app.update_idletasks()
+            req_w = app.winfo_reqwidth()
+            req_h = app.winfo_reqheight()
+            if req_w > app.winfo_width() or req_h > app.winfo_height():
+                app.geometry(f"{max(req_w, app.winfo_width())}"
+                             f"x{max(req_h, app.winfo_height())}")
         except (ValueError, TypeError, AttributeError):
             pass
+
+    try:
+        app.after(1000, _fit_to_content)
+        app.after(3000, _fit_to_content)
+    except (ValueError, TypeError, AttributeError):
+        pass
 
 
 class SidebarView:
     """
-    Sidebar logo and appearance-mode controls.
+    Sidebar logo and plot-size controls.
 
     Parameters
     ----------
     app : App
         Root application window.
-    change_appearance_mode_callback : callable
-        Callback invoked by the appearance-mode option menu.
     """
 
     def __init__(
         self,
         app,
-        change_appearance_mode_callback,
         change_plot_scale_callback,
     ):
         self.app = app
-        self.change_appearance_mode_callback = change_appearance_mode_callback
         self.change_plot_scale_callback = change_plot_scale_callback
 
         self.frame = ctk.CTkFrame(app, width=140, corner_radius=0)
         self.frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.frame.grid_rowconfigure(4, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
-        # LOCAL-ONLY flat-mono: Gray-10 sidebar, hairline, mono.
-        if _flat_mono_active():
-            try:
-                from ..flat_mono import FLAT_MONO_CTK
-
-                self.frame.configure(
-                    fg_color=FLAT_MONO_CTK["surface"],
-                    border_width=FLAT_MONO_CTK["border_width"],
-                    border_color=FLAT_MONO_CTK["border"],
-                )
-            except ImportError:
-                pass
+        self.frame.configure(
+            fg_color=FLAT_MONO_CTK["surface"],
+            border_width=FLAT_MONO_CTK["border_width"],
+            border_color=FLAT_MONO_CTK["border"],
+        )
 
         self.logo = ctk.CTkImage(
             Image.open(ICON_PATH),
@@ -250,17 +211,10 @@ class SidebarView:
         self.logo_label = ctk.CTkLabel(
             self.frame,
             text="PQEnalyzer",
-            font=_flat_mono_font(size=20, weight="bold")
-            or ctk.CTkFont(size=20, weight="bold"),
+            font=_flat_mono_font(size=20, weight="bold"),
         )
         self.logo_label.grid(row=1, column=0, padx=10, pady=10)
-        if _flat_mono_active():
-            try:
-                from ..flat_mono import FLAT_MONO_CTK
-
-                self.logo_label.configure(text_color=FLAT_MONO_CTK["ink"])
-            except ImportError:
-                pass
+        self.logo_label.configure(text_color=FLAT_MONO_CTK["ink"])
 
         self.plot_scale_label = ctk.CTkLabel(
             self.frame,
@@ -287,40 +241,14 @@ class SidebarView:
         self.plot_scale_optionemenu.set(
             plot_scale_label(getattr(app, "plot_scale", 1.0)))
 
-        self.appearance_mode_label = ctk.CTkLabel(
-            self.frame,
-            text="Appearance Mode:",
-            anchor="w",
-        )
-        self.appearance_mode_label.grid(row=7,
-                                        column=0,
-                                        padx=20,
-                                        pady=(10, 0))
-        self.appearance_mode_optionemenu = ctk.CTkOptionMenu(
-            self.frame,
-            values=["System", "Light", "Dark"],
-            command=change_appearance_mode_callback,
-        )
-        self.appearance_mode_optionemenu.grid(row=8,
-                                              column=0,
-                                              padx=20,
-                                              pady=(10, 10))
-        self.appearance_mode_optionemenu.set(
-            getattr(app, "appearance_mode_setting", "System"))
-
         app.sidebar_frame = self.frame
         app.logo = self.logo
         app.sidebar_image_label = self.image_label
         app.logo_label = self.logo_label
         app.plot_scale_optionemenu = self.plot_scale_optionemenu
-        app.appearance_mode_label = self.appearance_mode_label
-        app.appearance_mode_optionemenu = self.appearance_mode_optionemenu
-        # LOCAL-ONLY flat-mono preview styling.
         _style_flat_mono_widgets([
             self.plot_scale_label,
             self.plot_scale_optionemenu,
-            self.appearance_mode_label,
-            self.appearance_mode_optionemenu,
         ])
 
 
@@ -442,7 +370,7 @@ class PlotControlsView:
         app.button_plot = self.plot_button
         app.button_hist = self.histogram_button
         app.button_dashboard = self.dashboard_button
-        # LOCAL-ONLY flat-mono preview styling (Plot is the primary action).
+        # Plot is the primary action.
         _style_flat_mono_widgets([
             self.frame,
             self.auto_refresh_checkbox,
@@ -494,7 +422,7 @@ class ParameterSelectorView:
         app.info_frame = self.frame
         app.info_label = self.label
         app.info_optionmenu = self.optionmenu
-        # LOCAL-ONLY flat-mono preview styling.
+        # Apply the shared widget style.
         _style_flat_mono_widgets([self.frame, self.label, self.optionmenu])
 
 
@@ -602,7 +530,7 @@ class StatisticsControlsView:
         app.time_series_label = self.time_series_label
         app.running_average_window_size_label = self.window_size_label
         app.window_size = self.window_size
-        # LOCAL-ONLY flat-mono preview styling.
+        # Apply the shared widget style.
         _style_flat_mono_widgets([
             self.frame,
             self.statistics_frame,

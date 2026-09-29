@@ -30,11 +30,10 @@ def test_registry_defines_shared_gui_and_tui_features():
         "mean",
         "median",
         "cummulative_average",
-        "self_correlation_mean",
         "difference",
         "running_average",
     ]
-    assert shortcuts == ["m", "n", "c", "s", "x", "a"]
+    assert shortcuts == ["m", "n", "c", "x", "a"]
 
 
 def test_plot_options_can_read_registry_feature_defaults():
@@ -67,7 +66,6 @@ def test_plot_options_restore_and_serialize_known_values():
         "mean": True,
         "median": False,
         "cummulative_average": False,
-        "self_correlation_mean": False,
         "difference": False,
         "running_average": False,
         "window_size": "25",
@@ -81,7 +79,6 @@ def test_time_series_overlay_evaluator_uses_enabled_features():
         "mean",
         "median",
         "cummulative_average",
-        "self_correlation_mean",
         "running_average",
     )
     options.window_size = "2"
@@ -96,7 +93,6 @@ def test_time_series_overlay_evaluator_uses_enabled_features():
         "Mean",
         "Median",
         "Cumulative Average",
-        "Self-Correlation Mean",
         "Running Average (2)",
     ]
 

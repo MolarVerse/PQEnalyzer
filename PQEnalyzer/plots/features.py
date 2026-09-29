@@ -51,8 +51,6 @@ class PlotFeature:
 
         if self.key == "cummulative_average":
             return "cumulative"
-        if self.key == "self_correlation_mean":
-            return "self-corr"
         if self.key == "difference":
             return "difference"
         if self.key == "running_average":
@@ -121,18 +119,6 @@ TIME_SERIES_FEATURES = (
         view_attribute="cumulative_average",
         matplotlib_style={
             "linestyle": "-.",
-            "linewidth": 1.45,
-            "alpha": 0.9,
-            "zorder": 3,
-        },
-    ),
-    PlotFeature(
-        key="self_correlation_mean",
-        label="Self-Correlation Mean",
-        shortcut="s",
-        group="time_series",
-        matplotlib_style={
-            "linestyle": (0, (2, 2)),
             "linewidth": 1.45,
             "alpha": 0.9,
             "zorder": 3,
@@ -239,14 +225,6 @@ def iter_time_series_overlays(
     if options.cummulative_average:
         feature = PLOT_FEATURES_BY_KEY["cummulative_average"]
         time, values = Statistic.cumulative_average_values(
-            energy_series.time,
-            energy_series.values,
-        )
-        yield PlotSeries(feature, feature.label, time, values)
-
-    if options.self_correlation_mean:
-        feature = PLOT_FEATURES_BY_KEY["self_correlation_mean"]
-        time, values = Statistic.self_correlation_mean_values(
             energy_series.time,
             energy_series.values,
         )
