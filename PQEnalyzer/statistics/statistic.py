@@ -94,7 +94,8 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        mean = np.mean(data)
+        finite = data[np.isfinite(data)]
+        mean = np.mean(finite) if finite.size else np.nan
 
         return np.array([time[0], time[-1]]), np.array([mean, mean])
 
@@ -135,7 +136,8 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        median = np.median(data)
+        finite = data[np.isfinite(data)]
+        median = np.median(finite) if finite.size else np.nan
 
         return np.array([time[0], time[-1]]), np.array([median, median])
 
@@ -176,7 +178,12 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        cumulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
+        valid = np.isfinite(data)
+        count = np.cumsum(valid)
+        total = np.cumsum(np.where(valid, data, 0.0))
+        cumulative_average = np.divide(
+            total, count, out=np.full(len(data), np.nan), where=count > 0)
+        cumulative_average[~valid] = np.nan
 
         return time, cumulative_average
 
@@ -321,10 +328,14 @@ class Statistic:
         if len(data) < window_size:
             raise ValueError("Window size is larger than given data point")
 
+        valid = np.isfinite(data)
         padded_data = np.cumsum(
-            np.concatenate([[0.0], np.asarray(data, dtype=float)]))
+            np.concatenate([[0.0], np.where(valid, data, 0.0)]))
         data_sums = padded_data[window_size:] - padded_data[:-window_size]
         running_average = data_sums / window_size
+        valid_counts = np.cumsum(np.concatenate([[0], valid.astype(int)]))
+        window_counts = valid_counts[window_size:] - valid_counts[:-window_size]
+        running_average[window_counts != window_size] = np.nan
 
         padded_time = np.cumsum(
             np.concatenate([[0.0], np.asarray(time, dtype=float)]))
@@ -339,9 +350,8 @@ class Statistic:
         Estimate the correlated standard error of the mean.
 
         Naive ``std / sqrt(n)`` underestimates uncertainty for correlated
-        simulation data. This implements Flyvbjerg-Petersen blocking
-        (J. Chem. Phys. 91, 461, 1989) with Geyer initial-positive-sequence
-        truncation (Stat. Sci. 7, 473, 1992): the normalized autocorrelation
+        simulation data. This estimates autocorrelation by FFT and applies
+        Geyer's initial-positive-sequence truncation: the normalized autocorrelation
         from an FFT is summed over consecutive positive pairs, giving the
         integrated correlation time ``tau`` (in steps), the statistical
         inefficiency ``g`` and the effective sample size ``n / g``.
@@ -393,17 +403,17 @@ class Statistic:
     @staticmethod
     def mser_truncation_index(values, max_batches=500) -> int | None:
         """
-        Locate equilibration with the batched marginal-standard-error rule.
+        Estimate an initial truncation point with the batched MSER rule.
 
         The series is split into at most ``max_batches`` batches; the
         truncation point minimizing the standard error of the remaining
-        batch means marks the end of the initial transient. A constant
-        series needs no truncation and returns ``0``.
+        batch means proposes an initial cut. This does not establish
+        sufficient sampling. A constant series returns ``0``.
 
         Returns
         -------
         int or None
-            Index of the first equilibrated point, or ``None`` when fewer
+            Index of the proposed first retained point, or ``None`` when fewer
             than four finite values are available.
         """
 

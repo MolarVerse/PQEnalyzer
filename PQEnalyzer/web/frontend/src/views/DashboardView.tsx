@@ -6,7 +6,7 @@ import {
   type MiniGuide,
 } from "../charts";
 import { formatUnit, formatValue, type SummaryEntry } from "../api";
-import { DriftBadge, EquilGlyph } from "../components/Stats";
+import { DriftBadge } from "../components/Stats";
 import type { Mode } from "../mode";
 
 export type SortMode = "name" | "drift";
@@ -114,14 +114,6 @@ export function DashboardView({
                   ? "Diagnostic parameter (compute metadata) — no convergence analysis"
                   : undefined
               }
-              data-equil={
-                entry.combined.analysis?.equilibrated === undefined ||
-                entry.combined.analysis?.equilibrated === null
-                  ? undefined
-                  : entry.combined.analysis.equilibrated
-                    ? "yes"
-                    : "no"
-              }
               onClick={() => onInspect(entry.name)}
             >
               <span className="spark-head">
@@ -143,9 +135,6 @@ export function DashboardView({
                 <small>
                   {!diagnostic && (
                     <>
-                      <EquilGlyph
-                        equilibrated={entry.combined.analysis?.equilibrated}
-                      />
                       <DriftBadge drift={entry.combined.drift} /> ·{" "}
                     </>
                   )}

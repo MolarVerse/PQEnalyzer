@@ -246,7 +246,7 @@ class WebState:
         raw_time, time_label, time_unit = _chart_axis(
             combined.time, axis_label(energies[matching[0]]),
             _time_unit([energies[index] for index in matching]))
-        time, values, stride = _downsample(
+        time, values = _downsample(
             raw_time, raw_values, max_points)
         return {
             "parameter": parameter,
@@ -258,8 +258,7 @@ class WebState:
             "series": [{
                 "label": "All data",
                 "rows": int(raw_values.size),
-                "stride": stride,
-                "downsampled": stride > 1,
+                "downsampled": values.size < raw_values.size,
                 "min": _finite_min(raw_values),
                 "max": _finite_max(raw_values),
                 "time": _json_list(time),
@@ -288,7 +287,7 @@ class WebState:
         guides = []
 
         def add(key, label, source_time, source_values, axis="time"):
-            time, values, _ = _downsample(
+            time, values = _downsample(
                 np.asarray(source_time, dtype=float),
                 np.asarray(source_values, dtype=float),
                 MAX_POINTS,
@@ -428,8 +427,8 @@ class WebState:
                 combined.time, axis_label(energies[matching[0]]),
                 _time_unit([energies[index] for index in matching]))
             finite = values[np.isfinite(values)]
-            _, spark, _ = _downsample(time, values, SPARK_POINTS)
-            spark = [v for v in _json_list(spark) if v is not None]
+            _, spark = _downsample(time, values, SPARK_POINTS)
+            spark = _json_list(spark)
             combined_stats = _stats_of_array(
                 finite, label="combined", rows=int(values.size))
             kind = parameter_kind(name, finite)
@@ -552,12 +551,12 @@ def _chart_axis(time, label, unit):
 
 def _analysis_of(values, time):
     """
-    Return equilibration and correlation diagnostics for combined values.
+    Return truncation and correlation estimates for combined values.
 
     ``sem``/``inefficiency``/``correlation_time``/``n_effective`` come from
-    Flyvbjerg-Petersen blocking; ``equil_index``/``equil_time`` from the
-    batched MSER truncation rule. Everything is ``None`` when the series is
-    too short or has no spread.
+    FFT autocorrelation with Geyer's initial-positive-sequence truncation;
+    ``equil_index``/``equil_time`` come from the batched MSER rule. MSER
+    estimates an initial cut and does not establish that sampling is sufficient.
     """
     finite_time = np.asarray(time, dtype=float)
     finite = np.asarray(values, dtype=float)
@@ -575,7 +574,6 @@ def _analysis_of(values, time):
             "equil_index": None,
             "equil_time": None,
             "discarded_fraction": None,
-            "equilibrated": None,
         }
     equil_time = float(finite_time[min(equil_index, finite_time.size - 1)])
     fraction = equil_index / max(finite.size, 1)
@@ -587,7 +585,6 @@ def _analysis_of(values, time):
         "equil_index": int(equil_index),
         "equil_time": equil_time,
         "discarded_fraction": float(fraction),
-        "equilibrated": bool(fraction <= 0.5),
     }
 
 
@@ -703,16 +700,37 @@ def _kind_of(energies, parameter):
 
 def _downsample(time, values, max_points):
     """
-    Stride downsample paired arrays and retain the final observation.
+    Preserve endpoints, local extrema, and a missing-value gap per bucket.
+
+    Uniform striding can erase a short physical spike entirely. Each bucket
+    contributes at most three points, keeping the response within the budget.
     """
     count = int(min(time.size, values.size))
     time, values = time[:count], values[:count]
+    max_points = max(2, int(max_points))
     if count <= max_points or count == 0:
-        return time, values, 1
-    stride = math.ceil(count / max_points)
-    indices = np.arange(0, count, stride)
-    indices[-1] = count - 1
-    return time[indices], values[indices], stride
+        return time, values
+    if max_points < 5:
+        indices = np.linspace(0, count - 1, max_points, dtype=int)
+        return time[indices], values[indices]
+
+    bucket_count = min(count - 2, (max_points - 2) // 3)
+    edges = np.linspace(1, count - 1, bucket_count + 1, dtype=int)
+    indices = [0]
+    for start, stop in zip(edges[:-1], edges[1:]):
+        bucket = values[start:stop]
+        finite = np.flatnonzero(np.isfinite(bucket))
+        if finite.size:
+            indices.extend((
+                start + int(finite[np.argmin(bucket[finite])]),
+                start + int(finite[np.argmax(bucket[finite])]),
+            ))
+        missing = np.flatnonzero(~np.isfinite(bucket))
+        if missing.size:
+            indices.append(start + int(missing[0]))
+    indices.append(count - 1)
+    selected = np.unique(indices)
+    return time[selected], values[selected]
 
 
 def _json_list(array):

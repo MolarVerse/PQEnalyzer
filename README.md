@@ -152,13 +152,15 @@ What you see:
 | `Esc` | Close panel, then back to the dashboard |
 
 `Data` shows the transported points as a table, and `PNG` / `CSV` download
-the chart and the full-resolution data. PNG exports the chart currently shown. The
-equilibration marker appears on eligible time series.
+the chart and the full-resolution data. PNG exports the chart currently shown. An
+MSER marker shows an estimated initial cut on eligible time series. The mean,
+uncertainty, and other summary statistics still use all samples. The cut is
+not a verdict that the simulation has converged.
 
 Parameters split into **observables** (energy, temperature, pressure,
 density, …) and **diagnostics** (`LOOPTIME`, atom counts, and any other
 zero-variance series). Diagnostics stay fully viewable, but they get no
-drift badges, no equilibration verdicts, and sort after observables:
+drift badges or MSER cuts, and sort after observables:
 loop time tracks compute cost per step, not the simulated system, so a
 step change there vetoes the segment — it never proves equilibration.
 

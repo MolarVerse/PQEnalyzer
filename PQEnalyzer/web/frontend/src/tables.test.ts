@@ -19,7 +19,6 @@ function seriesResponse(): SeriesResponse {
       {
         label: "All data",
         rows: 10000,
-        stride: 2,
         downsampled: true,
         min: 240,
         max: 360,
@@ -51,7 +50,6 @@ describe("seriesTable", () => {
         {
           label: "long.en",
           rows: 100000,
-          stride: 50,
           downsampled: true,
           min: 0,
           max: 1,

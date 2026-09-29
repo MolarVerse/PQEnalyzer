@@ -31,7 +31,6 @@ export interface Parameter {
 export interface SeriesItem {
   label: string;
   rows: number;
-  stride: number;
   downsampled: boolean;
   min: number | null;
   max: number | null;
@@ -73,7 +72,6 @@ export interface AnalysisBlock {
   equil_index: number | null;
   equil_time: number | null;
   discarded_fraction: number | null;
-  equilibrated: boolean | null;
 }
 
 export interface StatBlock {

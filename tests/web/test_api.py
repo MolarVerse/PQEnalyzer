@@ -70,25 +70,43 @@ def test_series_combines_files_in_input_order(client):
     combined = body["series"][0]
     assert combined["label"] == "All data"
     assert combined["rows"] == 10
-    assert combined["stride"] == 1
+    assert "stride" not in combined
     assert combined["downsampled"] is False
     assert combined["time"] == list(range(1, 11))
     assert len(combined["values"]) == 10
     assert combined["min"] <= combined["max"]
 
 
-def test_series_stride_honours_max_points(client):
+def test_series_sampling_honours_max_points(client):
     """
-    Tight budgets stride the series and say so in the payload.
+    Tight budgets retain the endpoints and report that points were omitted.
     """
     body = client.get("/api/series", params={
         "parameter": "TEMPERATURE", "max_points": "2"}).json()
     combined = body["series"][0]
     assert combined["rows"] == 10
-    assert combined["stride"] == 5
+    assert "stride" not in combined
     assert combined["downsampled"] is True
     assert len(combined["values"]) == 2
     assert combined["time"] == [1.0, 10.0]
+
+
+def test_downsampling_retains_spike_and_gap():
+    """A narrow event and a missing interval remain visible on long charts."""
+    from PQEnalyzer.web.api import _downsample
+
+    time = np.arange(10001, dtype=float)
+    values = np.zeros(time.size)
+    values[1] = 100.0
+    values[4001] = np.nan
+
+    sampled_time, sampled_values = _downsample(time, values, 4000)
+
+    assert sampled_time.size <= 4000
+    assert sampled_time[0] == 0
+    assert sampled_time[-1] == 10000
+    assert 100.0 in sampled_values
+    assert np.isnan(sampled_values).any()
 
 
 def test_unknown_parameter_is_404(client):
@@ -258,10 +276,24 @@ def test_summary_reports_combined_stats(client):
     assert body["combined"]["min"] <= body["combined"]["max"]
     assert isinstance(body["combined"]["drift"], float)
     analysis = body["combined"]["analysis"]
-    assert analysis["equilibrated"] is True
+    assert "equilibrated" not in analysis
     assert analysis["discarded_fraction"] == 0.0
     assert 0 < analysis["n_effective"] <= 10
     assert analysis["sem"] is not None
+
+
+def test_mser_cut_is_not_a_convergence_verdict():
+    """A clear step can yield a 50% cut while the full mean remains biased."""
+    from PQEnalyzer.web.api import _analysis_of, _stats_of_array
+
+    values = np.r_[np.zeros(50), np.full(50, 10.0)]
+    analysis = _analysis_of(values, np.arange(values.size))
+    stats = _stats_of_array(values, label="combined", rows=values.size)
+
+    assert analysis["equil_index"] == 50
+    assert analysis["discarded_fraction"] == 0.5
+    assert "equilibrated" not in analysis
+    assert stats["mean"] == 5.0
 
 
 def test_summaries_cover_every_parameter(client):
@@ -276,7 +308,7 @@ def test_summaries_cover_every_parameter(client):
     assert len(temperature["hist"]["edges"]) == 25
     assert len(temperature["hist"]["counts"]) == 24
     assert sum(temperature["hist"]["counts"]) == 10
-    assert temperature["combined"]["analysis"]["equilibrated"] is True
+    assert "equilibrated" not in temperature["combined"]["analysis"]
 
 
 def test_kde_of_returns_count_scaled_curves():

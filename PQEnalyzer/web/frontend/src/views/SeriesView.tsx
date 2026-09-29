@@ -128,14 +128,14 @@ export function SeriesView({
   const caption = useMemo(() => {
     if (!series) return undefined;
     const item = series.series[0];
-    return `${item.rows.toLocaleString()} samples · ${series.source_count} file${series.source_count === 1 ? "" : "s"}${item.stride > 1 ? ` · stride ${item.stride}` : ""}`;
+    return `${item.rows.toLocaleString()} samples · ${series.source_count} file${series.source_count === 1 ? "" : "s"}${item.downsampled ? ` · ${item.values.length.toLocaleString()} plotted` : ""}`;
   }, [series]);
 
-  /** MSER marker for the series chart (equilibration point). */
+  /** MSER truncation estimate for the series chart. */
   const markers = useMemo(() => {
     const analysis = summary?.combined.analysis;
     const time = analysis?.equil_time;
-    // Diagnostics get no convergence verdicts, hence no marker either.
+    // Diagnostics have no truncation estimate.
     // Index zero means nothing to discard: no marker to draw.
     if (
       summary?.kind === "diagnostic" ||
@@ -146,7 +146,7 @@ export function SeriesView({
       return [];
     }
     const unitNote = series?.time_unit ? ` ${series.time_unit}` : "";
-    return [{ value: time, label: `equil ${formatValue(time)}${unitNote}` }];
+    return [{ value: time, label: `MSER ${formatValue(time)}${unitNote}` }];
   }, [summary, series]);
 
   /** Overlays currently on (badge on the tools button). */
@@ -257,13 +257,13 @@ export function SeriesView({
               <div className="chart-empty" role="status">Calculating…</div>
             ) : flags.autocorrelation && datasets.length === 0 ? (
               <div className="chart-empty" role="status">
-                {overlayError ? "Autocorrelation unavailable." : "Needs two varying values."}
+                {overlayError ? "Autocorrelation unavailable." : "Requires a complete, varying series."}
               </div>
             ) : (
               <UPlotChart
                 datasets={datasets}
                 hidden={hidden}
-                timeLabel={flags.autocorrelation ? "Lag (steps)" : series?.time_label ?? timeLabel}
+                timeLabel={flags.autocorrelation ? "Lag (steps)" : `${series?.time_label ?? timeLabel}${series?.time_unit ? ` / ${series.time_unit}` : ""}`}
                 integerX={flags.autocorrelation || series?.time_label === "Sample"}
                 ariaLabel={flags.autocorrelation ? "Autocorrelation by lag. Drag to zoom, double-click to reset." : undefined}
                 caption={flags.autocorrelation ? undefined : caption}

@@ -106,7 +106,7 @@
   overflow: hidden;
 }
 
-@media (min-width: 1101px) {
+@media (min-width: 761px) {
   .web-shell.tools-open .web-body {
     padding-right: 392px;
   }
@@ -124,11 +124,6 @@
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   background: var(--surface);
-}
-
-.web-main.focused > .setup-section {
-  flex: none;
-  min-height: auto;
 }
 
 .web-main > .setup-section {
@@ -576,53 +571,13 @@ button.pq-tag:focus-visible {
   border-top: 0;
 }
 
-/* Loud verdict: larger type on a verdict wash so the scientific
-   headline reads before the raw numbers. */
 .analysis-line {
-  font-size: 0.93rem;
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-.analysis-line.verdict-yes {
-  border-color: var(--success);
-  background: var(--success-soft);
-}
-
-.analysis-line.verdict-no {
-  border-color: var(--danger);
-  background: var(--danger-soft);
-}
-
-.analysis-line.verdict-yes > span:first-child,
-.analysis-line.verdict-yes > span:first-child strong {
-  color: var(--success);
-  font-weight: 600;
-}
-
-.analysis-line.verdict-no > span:first-child,
-.analysis-line.verdict-no > span:first-child strong {
-  color: var(--danger);
-  font-weight: 600;
-}
-
-/* Dashboard: unequilibrated cards carry a red edge so triage is instant. */
-.spark-card[data-equil="no"] {
-  box-shadow: inset 2px 0 0 var(--danger);
+  font-size: 0.82rem;
 }
 
 /* Diagnostic cards recede: compute metadata, never convergence evidence. */
 .spark-card.diagnostic {
   background: var(--surface-subtle);
-}
-
-/* Dashboard equilibration glyphs inherit the same verdict hues. */
-.equil-yes {
-  color: var(--success);
-}
-
-.equil-no {
-  color: var(--danger);
 }
 
 .toggle-group {
@@ -648,8 +603,11 @@ button.pq-tag:focus-visible {
 /* ---- dashboard --------------------------------------------------------------------- */
 
 .spark-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(150px, 1fr);
   gap: 1px;
   border: 1px solid var(--border);
   background: var(--surface-subtle);
@@ -657,10 +615,11 @@ button.pq-tag:focus-visible {
 
 .spark-card {
   min-width: 0;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 12px 14px;
   border: 0;
   background: var(--surface);
   cursor: pointer;
@@ -685,11 +644,9 @@ button.pq-tag:focus-visible {
 }
 
 .spark-head strong {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   font-size: 0.86rem;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .spark-head small {
@@ -704,6 +661,13 @@ button.pq-tag:focus-visible {
   gap: 1px;
 }
 
+.spark-card > svg {
+  flex: 1;
+  min-height: 44px;
+  width: 100%;
+  height: 100%;
+}
+
 .spark-foot > span {
   font-size: 0.93rem;
   font-weight: 600;
@@ -711,12 +675,9 @@ button.pq-tag:focus-visible {
 }
 
 .spark-foot small {
-  overflow: hidden;
   color: var(--muted);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .section-note {
@@ -791,9 +752,15 @@ button.pq-tag:focus-visible {
 
 /* ---- responsive ---------------------------------------------------------------------- */
 
-@media (max-width: 1100px) {
-  .web-main > .setup-section {
-    flex: none;
+@media (max-width: 1200px) {
+  .spark-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .spark-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -826,6 +793,11 @@ button.pq-tag:focus-visible {
 
   .web-main {
     border: 0;
+    padding: 12px 12px 16px;
+  }
+
+  .web-body {
+    padding: 0;
   }
 
   .dash-head .section-title {
@@ -855,6 +827,41 @@ button.pq-tag:focus-visible {
   .seg > button,
   .dash-sort select {
     min-height: 40px;
+  }
+}
+
+@media (max-width: 520px) {
+  .spark-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dash-head {
+    flex-wrap: wrap;
+  }
+
+  .dash-head .section-title {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-height: 600px) {
+  .web-main {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .web-main.focused > .setup-section {
+    min-height: 440px;
+  }
+
+  .setup-section {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .web-main.focused > .setup-section {
+    min-height: 560px;
   }
 }
 

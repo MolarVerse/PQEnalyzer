@@ -1,19 +1,6 @@
 import { formatSigma, formatValue } from "../api";
 import type { StatBlock } from "../api";
 
-/** Compact equilibration glyph for dashboard cards (details on click). */
-export function EquilGlyph({ equilibrated }: { equilibrated?: boolean | null }) {
-  if (equilibrated === undefined || equilibrated === null) return null;
-  return (
-    <span
-      className={equilibrated ? "equil-yes" : "equil-no"}
-      title={equilibrated ? "Equilibrated" : "Not equilibrated — inspect"}
-    >
-      {equilibrated ? "●" : "○"}
-    </span>
-  );
-}
-
 export function DriftBadge({ drift }: { drift: number | null }) {  if (drift === null || !Number.isFinite(drift)) {
     return (
       <span className="drift drift-flat" title="Too few points or no spread">
@@ -34,24 +21,14 @@ export function DriftBadge({ drift }: { drift: number | null }) {  if (drift ===
   );
 }
 /**
- * The scientific headline under the chart: equilibration verdict plus the
- * correlated error diagnostics. Details live in the tools panel.
+ * Compact MSER truncation and correlated error estimates under the chart.
  */
 export function AnalysisLine({ stats }: { stats: StatBlock }) {
   const analysis = stats.analysis;
   if (!analysis) return null;
   const items: [string, string][] = [];
-  let verdictClass = "";
-  if (analysis.equilibrated !== null && analysis.equilibrated !== undefined) {
-    const cut =
-      analysis.discarded_fraction != null
-        ? ` · ${Math.round(analysis.discarded_fraction * 100)}% cut`
-        : "";
-    verdictClass = analysis.equilibrated ? "verdict-yes" : "verdict-no";
-    items.push([
-      analysis.equilibrated ? "EQUILIBRATED" : "NOT EQUILIBRATED",
-      `${analysis.equilibrated ? "●" : "○"}${cut}`,
-    ]);
+  if (analysis.discarded_fraction != null) {
+    items.push(["MSER cut", `${Math.round(analysis.discarded_fraction * 100)}%`]);
   }
   if (analysis.correlation_time != null) {
     items.push(["τ", `${Math.round(analysis.correlation_time)} steps`]);
@@ -61,7 +38,7 @@ export function AnalysisLine({ stats }: { stats: StatBlock }) {
   }
   if (!items.length) return null;
   return (
-    <p className={`stat-line analysis-line ${verdictClass}`} aria-label="Equilibration analysis">
+    <p className="stat-line analysis-line" aria-label="Truncation and correlation estimates" title="MSER estimates an initial cut; the statistics above use all samples. This is not a convergence verdict.">
       {items.map(([label, value], index) => (
         <span key={label}>
           {index > 0 && <i aria-hidden="true">·</i>}
@@ -83,7 +60,7 @@ export function StatLine({ stats, unit }: { stats: StatBlock; unit: string }) { 
       : formatValue(stats.mean);
   const items: [string, string][] = [
     ["Latest", formatValue(stats.latest)],
-    ["Mean", meanValue],
+    ["Mean (all)", meanValue],
     ["Median", formatValue(stats.median)],
     ["σ", formatValue(stats.std)],
     ["Min", formatValue(stats.min)],

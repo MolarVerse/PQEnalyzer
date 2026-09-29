@@ -21,7 +21,7 @@ import "uplot/dist/uPlot.min.css";
 import { formatTick, formatValue } from "../api";
 import { pinchRange, type TimeRange } from "../scale";
 import { alignSeries } from "../tables";
-import type { LineDataset } from "../charts";
+import { niceTicks, type LineDataset } from "../charts";
 
 const MONO_FONT = '11px "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace';
 const GRID = "#e0e0e0";
@@ -50,9 +50,9 @@ export interface UPlotChartProps {
   /** Reset zoom when the focused parameter changes, not on overlay changes. */
   resetKey?: string;
   height?: number;
-  /** Provenance line for the footer, e.g. "5,000 pts · stride 2". */
+  /** Provenance line for the footer, including the plotted point count. */
   caption?: string;
-  /** Vertical event markers (e.g. the MSER equilibration point). */
+  /** Vertical event markers (e.g. the MSER truncation estimate). */
   markers?: { value: number; label: string }[];
   /** Hide time-range presets for lag views. */
   hideFooter?: boolean;
@@ -110,7 +110,7 @@ export function UPlotChart({
     const measure = () => {
       setSize({
         w: Math.max(280, Math.round(wrapEl.clientWidth)),
-        h: Math.max(220, Math.round(wrapEl.clientHeight)),
+        h: Math.max(160, Math.round(wrapEl.clientHeight)),
       });
     };
     const observer = new ResizeObserver(() => measure());
@@ -241,7 +241,9 @@ export function UPlotChart({
               ticks.push(value);
             }
             return ticks;
-          } : undefined,
+          } : (_u, _axis, min, max) => niceTicks(
+            min, max, Math.max(2, Math.min(9, Math.floor(size.w / 100))),
+          ),
           values: (_u, vals) => vals.map((v) => formatTick(v)),
           label: timeLabel,
           labelSize: 14,
@@ -264,7 +266,7 @@ export function UPlotChart({
             label: dataset.label,
             stroke:
               dimmed && !isOverlay
-                ? withAlpha(dataset.color, 0.35)
+                ? withAlpha(dataset.color, 0.75)
                 : dataset.color,
             width: dataset.width,
             dash: dataset.dash

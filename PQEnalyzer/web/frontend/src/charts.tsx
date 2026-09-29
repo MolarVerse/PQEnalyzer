@@ -176,7 +176,7 @@ export function MiniHist({
   }
   if (!bars.length) return null;
   return (
-    <svg width={width} height={height} aria-hidden="true">
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
       {bars}
       {guides.map((guide, index) => (
         <line
@@ -187,6 +187,7 @@ export function MiniHist({
           y2={height - 1}
           stroke={guide.color}
           strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
           strokeDasharray={guide.dashed ? "2 2" : undefined}
         />
       ))}
@@ -204,28 +205,33 @@ export function Sparkline({  values,
   width?: number;
   height?: number;
 }) {
-  const points = useMemo(() => {
+  const paths = useMemo(() => {
     const finite = values.filter(
-      (value): value is number => typeof value === "number",
+      (value): value is number => typeof value === "number" && Number.isFinite(value),
     );
     if (finite.length < 2) return null;
     const min = Math.min(...finite);
     const max = Math.max(...finite);
     const span = max - min || 1;
-    return values
-      .map((value, index) => {
-        if (typeof value !== "number") return null;
+    const segments: string[] = [];
+    let current: string[] = [];
+    values.forEach((value, index) => {
+        if (value === null || !Number.isFinite(value)) {
+          if (current.length > 1) segments.push(current.join(" "));
+          current = [];
+          return;
+        }
         const px = (index / (values.length - 1)) * (width - 4) + 2;
         const py = height - 3 - ((value - min) / span) * (height - 6);
-        return `${px.toFixed(1)},${py.toFixed(1)}`;
-      })
-      .filter((point): point is string => point !== null)
-      .join(" ");
+        current.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+      });
+    if (current.length > 1) segments.push(current.join(" "));
+    return segments;
   }, [values, width, height]);
 
-  if (!points) {
+  if (!paths) {
     return (
-      <svg width={width} height={height} aria-hidden="true">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
         <line
           x1="2"
           y1={height / 2}
@@ -233,16 +239,17 @@ export function Sparkline({  values,
           y2={height / 2}
           stroke="#8d8d8d"
           strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
           strokeDasharray="3 4"
         />
       </svg>
     );
   }
-  const last = points.split(" ").at(-1)!.split(",");
   return (
-    <svg width={width} height={height} aria-hidden="true">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
-      <circle cx={Number(last[0])} cy={Number(last[1])} r="2.5" fill={color} />
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      {paths.map((points, index) => (
+        <polyline key={index} points={points} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      ))}
     </svg>
   );
 }
@@ -270,7 +277,7 @@ export function HistogramChart({
     const measure = () => {
       setSize({
         w: Math.max(280, Math.round(wrapEl.clientWidth)),
-        h: Math.max(220, Math.round(wrapEl.clientHeight)),
+        h: Math.max(160, Math.round(wrapEl.clientHeight)),
       });
     };
     const observer = new ResizeObserver(() => measure());
@@ -296,12 +303,20 @@ export function HistogramChart({
     MARGIN.top + (1 - count / (maxCount * 1.08)) * plotH;
   const binW = plotW / Math.max(bins, 1);
   const yTicks = niceTicks(0, maxCount, 4);
-  const xTicks = niceTicks(edges[0], edges[bins], 6).filter(
-    (tick) =>
-      MARGIN.left +
-        ((tick - edges[0]) / (edges[bins] - edges[0] || 1)) * plotW <
-      MARGIN.left + plotW - 20,
+  const tickCandidates = niceTicks(edges[0], edges[bins], 6);
+  const tickGap = Math.max(
+    64,
+    ...tickCandidates.map((tick) => formatTick(tick).length * 7 + 12),
   );
+  let lastTickX = -Infinity;
+  const xTicks = tickCandidates.filter((tick) => {
+    const tickX = x(tick);
+    if (tickX > MARGIN.left + plotW - tickGap / 2 || tickX - lastTickX < tickGap) {
+      return false;
+    }
+    lastTickX = tickX;
+    return true;
+  });
 
   return (
     <div className="chart-wrap" ref={setWrapEl}>
@@ -323,7 +338,7 @@ export function HistogramChart({
         {xTicks.map((tick) => (
           <text
             key={tick}
-            x={MARGIN.left + ((tick - edges[0]) / (edges[bins] - edges[0] || 1)) * plotW}
+            x={x(tick)}
             y={MARGIN.top + plotH + 20}
             className="chart-tick"
             textAnchor="middle"

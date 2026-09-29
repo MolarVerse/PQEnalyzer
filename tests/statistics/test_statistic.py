@@ -74,6 +74,24 @@ class TestStatistic:
         assert np.all(old_time == new_time)
         assert np.all(old_average == new_average)
 
+    def test_missing_values_do_not_poison_later_averages(self):
+        time = np.arange(1, 7)
+        values = np.array([1.0, 2.0, np.nan, 4.0, 5.0, 6.0])
+
+        _, mean = Statistic.mean_values(time, values)
+        _, median = Statistic.median_values(time, values)
+        _, cumulative = Statistic.cumulative_average_values(time, values)
+        running_time, running = Statistic.running_average_values(
+            time, values, 2)
+
+        assert np.allclose(mean, [3.6, 3.6])
+        assert np.allclose(median, [4.0, 4.0])
+        assert np.allclose(cumulative, [1.0, 1.5, np.nan, 7 / 3, 3.0, 3.6],
+                           equal_nan=True)
+        assert np.allclose(running_time, [1.5, 2.5, 3.5, 4.5, 5.5])
+        assert np.allclose(running, [1.5, np.nan, np.nan, 4.5, 5.5],
+                           equal_nan=True)
+
     def test_self_correlation_mean(self):
         time, self_correlation_mean = (
             Statistic.self_correlation_mean_values(

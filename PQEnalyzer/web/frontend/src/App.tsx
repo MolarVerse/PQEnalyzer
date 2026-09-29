@@ -49,8 +49,8 @@ function useMediaQuery(query: string): boolean {
 }
 
 /**
- * The scientific headline under the chart: equilibration verdict plus the
- * correlated error diagnostics. Details live in the tools panel.
+ * The scientific line under the chart shows truncation and correlation
+ * estimates without making a convergence claim.
  */
 
 
