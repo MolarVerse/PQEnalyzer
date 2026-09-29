@@ -15,8 +15,8 @@ import { useLiveStatus } from "./useLiveStatus";
  * Session-level data: files, parameters, and dashboard summaries, kept
  * fresh by live staleness pushes (status poll only where SSE is
  * unavailable). Parameter-level data lives in useParameterData; the
- * generation counter tells callers when an auto-refresh reloaded the
- * session so they can reload the focused parameter too.
+ * generation counter tells parameter charts when a refresh reloaded the
+ * session so they can fetch their current data too.
  */
 export function useSession() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -43,6 +43,7 @@ export function useSession() {
       setParameters(loadedParams);
       setSummaries(loadedSummaries);
       setUpdatedAt(new Date().toLocaleTimeString());
+      setGeneration((value) => value + 1);
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -72,7 +73,6 @@ export function useSession() {
       );
       if (status.stale && autoRefreshRef.current) {
         await refreshNow();
-        setGeneration((value) => value + 1);
       }
     } catch {
       /* transient failure: keep showing last good data */

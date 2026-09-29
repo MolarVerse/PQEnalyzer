@@ -252,11 +252,16 @@ button.pq-tag:focus-visible {
 
 .chart-card.chart-fill {
   flex: 1;
+  min-height: 170px;
 }
 
 .chart-card .chart-wrap {
   flex: 1;
-  min-height: 0;
+  min-height: 168px;
+}
+
+.chart-card.series-card {
+  min-height: 240px;
 }
 
 .chart-legend {
@@ -824,10 +829,7 @@ button.pq-tag:focus-visible {
     gap: 4px 8px;
   }
 
-  .title-actions {
-    flex: 0 0 100%;
-    flex-wrap: wrap;
-  }
+  .title-actions { margin-left: auto; }
 
   .title-actions .ghost-action,
   .title-row > .ghost-action,
@@ -840,6 +842,21 @@ button.pq-tag:focus-visible {
 @media (max-width: 520px) {
   .spark-card {
     flex-basis: 100%;
+  }
+
+  .series-title .title-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+
+  .chart-card.series-card {
+    min-height: 300px;
+  }
+
+  .chart-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .dash-head {
@@ -857,18 +874,8 @@ button.pq-tag:focus-visible {
     padding-bottom: 10px;
   }
 
-  .web-main.focused > .setup-section {
-    min-height: 440px;
-  }
-
   .setup-section {
     gap: 10px;
-  }
-}
-
-@media (max-width: 520px) {
-  .web-main.focused > .setup-section {
-    min-height: 560px;
   }
 }
 

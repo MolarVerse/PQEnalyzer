@@ -5,7 +5,7 @@ import {
   Modal,
   type Command,
 } from "@molarverse/pq-design";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import {
   formatUnit,
@@ -60,16 +60,7 @@ export default function App() {
 
   const session = useSession();
   const { focus, mode, selectMode, focusParameter } = useFocus(session.parameters, !session.loading);
-  const paramData = useParameterData(focus, flags, windowSize, bins, mode);
-
-  const reloadFocus = useCallback(() => {
-    if (focus) void paramData.loadParameter(focus);
-  }, [focus, paramData.loadParameter]);
-
-  // Session auto-refresh bumps the generation: reload the focused parameter.
-  useEffect(() => {
-    if (session.generation > 0) reloadFocus();
-  }, [session.generation, reloadFocus]);
+  const paramData = useParameterData(focus, flags, windowSize, bins, mode, session.generation);
 
   // Persist analysis choices and dashboard sort.
   useEffect(() => {
@@ -79,11 +70,6 @@ export default function App() {
       sortMode,
     });
   }, [flags, sortMode]);
-
-  const refreshNow = useCallback(async () => {
-    await session.refreshNow();
-    reloadFocus();
-  }, [session.refreshNow, reloadFocus]);
 
   const error = session.error ?? paramData.error;
   const activeParam = session.parameters.find((param) => param.name === focus) ?? null;
@@ -249,7 +235,7 @@ export default function App() {
           {error && (
             <p className="notice error" role="alert">
               <span>{error}</span>
-              <button type="button" onClick={() => { void session.loadSession(); reloadFocus(); }}>
+              <button type="button" onClick={() => void session.loadSession()}>
                 Retry
               </button>
             </p>
@@ -261,7 +247,7 @@ export default function App() {
               unit={activeParam?.unit ?? ""}
               stale={session.meta?.stale ?? false}
               autoRefresh={session.autoRefresh}
-              onRefresh={() => void refreshNow()}
+              onRefresh={() => void session.refreshNow()}
               onBack={() => focusParameter(null)}
               seriesLoading={paramData.seriesLoading}
               series={paramData.series}
@@ -288,6 +274,12 @@ export default function App() {
               flags={flags}
               summary={paramData.summary}
             />
+          )}
+
+          {!session.loading && !error && focus && paramData.summaryError && (
+            <p className="notice error" role="alert">
+              <span>Summary unavailable: {paramData.summaryError}</span>
+            </p>
           )}
 
           {!session.loading && !error && focus === null && (

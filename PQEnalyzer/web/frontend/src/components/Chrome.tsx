@@ -24,13 +24,15 @@ export function TitleRow({
   title,
   actions,
   onBack,
+  className,
 }: {
   title: ReactNode;
   actions: ReactNode;
   onBack: () => void;
+  className?: string;
 }) {
   return (
-    <div className="title-row">
+    <div className={`title-row${className ? ` ${className}` : ""}`}>
       <button
         type="button"
         className="ghost-action"

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -164,6 +165,12 @@ def test_web_analysis_flow_in_browser(tmp_path):
             histogram.press("End")
             assert "samples" in histogram.locator("[aria-live]").inner_text()
 
+            page.set_viewport_size({"width": 844, "height": 390})
+            chart_bounds = histogram.bounding_box()
+            assert chart_bounds is not None
+            assert chart_bounds["y"] + chart_bounds["height"] <= 390
+            page.set_viewport_size({"width": 1280, "height": 800})
+
             page.get_by_role("button", name="Pause auto-refresh").click()
             stat = inputs[0].stat()
             os.utime(inputs[0], ns=(stat.st_mtime_ns + 2_000_000_000,) * 2)
@@ -172,6 +179,42 @@ def test_web_analysis_flow_in_browser(tmp_path):
             page.get_by_role("button", name="Resume auto-refresh").click()
             page.get_by_role("button", name="Pause auto-refresh").locator(
                 ".pq-tag-value").get_by_text("watching").wait_for(timeout=10000)
+            browser.close()
+    finally:
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
+def test_histogram_loads_without_series_endpoint():
+    port = _free_port()
+    process = subprocess.Popen(
+        [sys.executable, "-m", "PQEnalyzer", "web", "--no-open",
+         "--port", str(port), str(EXAMPLE_FILE)],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        _wait_for_status(port)
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.route(
+                "**/api/series?*",
+                lambda route: route.fulfill(
+                    status=503,
+                    content_type="application/json",
+                    body='{"detail":"Series unavailable"}',
+                ),
+            )
+            page.goto(f"http://127.0.0.1:{port}/#p=TEMPERATURE&m=histogram")
+            histogram = page.get_by_role(
+                "group", name=re.compile(r"Histogram, .* samples"),
+            )
+            histogram.wait_for(timeout=10000)
+            assert histogram.is_visible()
             browser.close()
     finally:
         _terminate_process(process)
