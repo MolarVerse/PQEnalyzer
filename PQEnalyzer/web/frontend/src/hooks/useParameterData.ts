@@ -32,7 +32,6 @@ export function useParameterData(
   const [overlaysLoading, setOverlaysLoading] = useState(false);
   const [seriesError, setSeriesError] = useState<string | null>(null);
   const [histogramError, setHistogramError] = useState<string | null>(null);
-  const [seriesLoading, setSeriesLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -53,16 +52,13 @@ export function useParameterData(
     setSeries(null);
     setSeriesError(null);
     if (!focus || mode !== "series") {
-      setSeriesLoading(false);
       return () => { active = false; };
     }
-    setSeriesLoading(true);
     fetchSeries(focus)
       .then((loaded) => { if (active) setSeries(loaded); })
       .catch((error: unknown) => {
         if (active) setSeriesError(error instanceof Error ? error.message : String(error));
-      })
-      .finally(() => { if (active) setSeriesLoading(false); });
+      });
     return () => { active = false; };
   }, [focus, mode, generation]);
 
@@ -108,8 +104,9 @@ export function useParameterData(
     return () => { active = false; };
   }, [focus, mode, bins, generation]);
 
+  const focusedSeries = series?.parameter === focus ? series : null;
   return {
-    series: series?.parameter === focus ? series : null,
+    series: focusedSeries,
     overlays,
     overlaysLoading,
     histogram: histogram?.parameter === focus ? histogram : null,
@@ -117,6 +114,7 @@ export function useParameterData(
     summaryError,
     overlayError,
     error: focus ? (mode === "series" ? seriesError : histogramError) : null,
-    seriesLoading,
+    // Show the skeleton on the first render, before the fetch effect runs.
+    seriesLoading: Boolean(focus && mode === "series" && !focusedSeries && !seriesError),
   };
 }
