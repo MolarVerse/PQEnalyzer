@@ -171,6 +171,16 @@ def test_web_analysis_flow_in_browser(tmp_path):
             assert chart_bounds["y"] + chart_bounds["height"] <= 390
             page.set_viewport_size({"width": 1280, "height": 800})
 
+            page.get_by_role("button", name="Options", exact=True).click()
+            page.get_by_role("tab", name="Series").click()
+            page.get_by_role("button", name="Analysis 1").click()
+            page.get_by_role("button", name="Clear analysis").click()
+            page.set_viewport_size({"width": 600, "height": 800})
+            page.get_by_role("tab", name="Histogram").click(timeout=2000)
+            page.get_by_role("group", name="Histogram,", exact=False).wait_for()
+            page.get_by_role("dialog", name="Histogram options").wait_for(state="hidden")
+            page.set_viewport_size({"width": 1280, "height": 800})
+
             page.get_by_role("button", name="Pause auto-refresh").click()
             stat = inputs[0].stat()
             os.utime(inputs[0], ns=(stat.st_mtime_ns + 2_000_000_000,) * 2)

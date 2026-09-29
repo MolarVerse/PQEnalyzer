@@ -62,6 +62,10 @@ export default function App() {
   const { focus, mode, selectMode, focusParameter } = useFocus(session.parameters, !session.loading);
   const paramData = useParameterData(focus, flags, windowSize, bins, mode, session.generation);
 
+  useEffect(() => {
+    setToolsOpen(false);
+  }, [focus, mode]);
+
   // Persist analysis choices and dashboard sort.
   useEffect(() => {
     saveSettings(browserStorage(), {
