@@ -1,5 +1,5 @@
 """
-SSE event tests for the PQEnalyzer web front end (LOCAL-ONLY preview).
+SSE event tests for the PQEnalyzer web front end.
 
 The watcher thread plus per-client queues replace the old status poll:
 a `hello` carries the current status on connect, one `stale` push fires
@@ -15,7 +15,7 @@ import pytest
 
 from PQEnalyzer.web.api import WebState
 
-pytest.importorskip("fastapi", reason="web preview dependency not installed")
+pytest.importorskip("fastapi", reason="web dependency not installed")
 
 DATA = __import__("pathlib").Path(__file__).resolve().parents[1] / "data"
 MD_01 = str(DATA / "md-01.en")

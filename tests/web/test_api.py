@@ -1,5 +1,5 @@
 """
-API tests for the PQEnalyzer web front end (LOCAL-ONLY preview).
+API tests for the PQEnalyzer web front end.
 
 The web layer must stay a thin shaping pass over the shared readers and
 plot math: every endpoint is exercised here so refactors cannot silently
@@ -15,7 +15,7 @@ DATA = Path(__file__).resolve().parents[1] / "data"
 MD_01 = str(DATA / "md-01.en")
 MD_02 = str(DATA / "md-02.en")
 
-pytest.importorskip("fastapi", reason="web preview dependency not installed")
+pytest.importorskip("fastapi", reason="web dependency not installed")
 
 from PQEnalyzer.web.app import create_app  # noqa: E402
 
@@ -230,18 +230,6 @@ def test_restarted_time_uses_sample_axis_for_every_curve(tmp_path):
         histogram = overlap.get("/api/histogram", params={
             "parameter": "TEMPERATURE"}).json()
         assert sum(histogram["series"][0]["counts"]) == 10
-
-
-def test_difference_without_shared_steps_is_422(client):
-    """
-    Old clients cannot request run comparison in combined-data mode.
-    """
-    response = client.get("/api/overlays", params={
-        "parameter": "TEMPERATURE",
-        "difference": "true",
-    })
-    assert response.status_code == 422
-    assert "combined-data" in response.json()["detail"]
 
 
 def test_histogram_bins_one_combined_distribution(client):

@@ -112,10 +112,10 @@ def main():
         help="Open the terminal dashboard.",
     )
     _add_input_arguments(tui_parser)
-    # LOCAL-ONLY preview: browser front end sharing the desktop math.
+    # Local browser front end sharing the desktop math.
     web_parser = subparsers.add_parser(
         "web",
-        help="Open the browser front end (local preview).",
+        help="Open the local browser front end.",
     )
     _add_input_arguments(web_parser)
     web_parser.add_argument(
@@ -155,7 +155,7 @@ def main():
 
         TuiApp(reader).run()
     elif args.mode == "web":
-        # Local preview only: reader already validated above.
+        # The reader was validated above.
         from .web import serve
 
         if not 1 <= args.port <= 65535:

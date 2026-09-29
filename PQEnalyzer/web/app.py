@@ -1,5 +1,5 @@
 """
-Local HTTP server for the PQEnalyzer web front end (LOCAL-ONLY preview).
+Local HTTP server for the PQEnalyzer web front end.
 
 Run with ``pqenalyzer web FILE [FILE ...]``. Binds to loopback only, like
 PQViewer: no authentication, do not expose to untrusted networks.
@@ -28,7 +28,7 @@ def create_app(filenames, input_format="auto", reader=None):
     state = WebState(
         reader if reader is not None
         else create_reader(filenames, input_format))
-    application = FastAPI(title="PQEnalyzer Web (local preview)")
+    application = FastAPI(title="PQEnalyzer Web")
 
     @application.middleware("http")
     async def no_store_api_responses(request, call_next):
@@ -88,7 +88,6 @@ def create_app(filenames, input_format="auto", reader=None):
         median: bool = False,
         cummulative_average: bool = False,
         autocorrelation: bool = False,
-        difference: bool = False,
         running_average: bool = False,
         window_size: str = "",
     ):
@@ -98,7 +97,6 @@ def create_app(filenames, input_format="auto", reader=None):
                 "median": median,
                 "cummulative_average": cummulative_average,
                 "autocorrelation": autocorrelation,
-                "difference": difference,
                 "running_average": running_average,
             }, window_size=window_size)
         except ValueError as error:

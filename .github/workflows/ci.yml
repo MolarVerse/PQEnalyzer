@@ -38,6 +38,7 @@ jobs:
 
     - name: Run GUI and terminal smoke tests
       run: |
+        python -m playwright install --with-deps chromium
         xvfb-run -a python -m pytest -m e2e
 
     - name: Upload coverage to Codecov
@@ -68,3 +69,8 @@ jobs:
         npm ci
         npm test
         npm run build
+    - name: Check bundled web assets match the source
+      working-directory: PQEnalyzer
+      run: |
+        git diff --exit-code -- PQEnalyzer/web/static
+        test -z "$(git ls-files --others --exclude-standard -- PQEnalyzer/web/static)"

@@ -1,11 +1,12 @@
 /*
- * Flat-mono SVG charts for PQEnalyzer Web (LOCAL-ONLY preview).
+ * Flat-mono SVG charts for PQEnalyzer Web.
  * Square corners, hairline grid, mono ticks, tabular numerals.
  * Null values break paths into honest gaps instead of bridging them.
  */
 
 import { useMemo, useState } from "react";
 import { formatTick, formatValue } from "./api";
+import { inspectIndex } from "./chartNavigation";
 import { useChartSize } from "./hooks/useChartSize";
 
 /**
@@ -305,13 +306,25 @@ export function HistogramChart({
   });
 
   return (
-    <div className="chart-wrap" ref={setWrapEl}>
+    <div
+      className="chart-wrap"
+      ref={setWrapEl}
+      tabIndex={0}
+      role="group"
+      aria-label={`Histogram, ${counts.reduce((total, count) => total + count, 0)} samples in ${bins} bins. Use left and right arrow keys to inspect bins.`}
+      onKeyDown={(event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        setHoveredBin(inspectIndex(edges.slice(0, -1).map((_, index) => index), hoveredBin, event.key));
+      }}
+    >
       <svg
         width={size.w}
         height={size.h}
-        role="img"
-        aria-label={`Histogram, ${counts.reduce((total, count) => total + count, 0)} samples in ${bins} bins`}
-        onMouseLeave={() => setHoveredBin(null)}
+        aria-hidden="true"
+        onMouseLeave={(event) => {
+          if (document.activeElement !== event.currentTarget.parentElement) setHoveredBin(null);
+        }}
       >
         {yTicks.map((tick) => (
           <g key={tick}>
@@ -392,12 +405,14 @@ export function HistogramChart({
             fill="transparent"
             aria-hidden="true"
             onMouseEnter={() => setHoveredBin(bin)}
+            onClick={() => setHoveredBin(bin)}
           />
         ))}
       </svg>
       {hoveredBin !== null && (
         <div
           className="chart-tooltip"
+          aria-hidden="true"
           style={{
             left: Math.min(Math.max(x(edges[hoveredBin]), 8), Math.max(8, size.w - 190)),
             top: 8,
@@ -407,6 +422,9 @@ export function HistogramChart({
           <span>{counts[hoveredBin].toLocaleString()} samples</span>
         </div>
       )}
+      <span className="visually-hidden" aria-live="polite">
+        {hoveredBin === null ? "" : `Bin ${hoveredBin + 1} of ${bins}: ${formatValue(edges[hoveredBin])} to ${formatValue(edges[hoveredBin + 1])}, ${counts[hoveredBin]} samples`}
+      </span>
     </div>
   );
 }

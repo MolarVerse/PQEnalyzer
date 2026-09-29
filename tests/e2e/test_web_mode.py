@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from playwright.sync_api import sync_playwright
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -99,5 +100,78 @@ def test_web_mode_serves_status_and_events():
         assert status["stale"] is False
         assert sum(item["rows"] for item in status["files"]) > 0
         assert _wait_for_hello(port)
+    finally:
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
+def test_web_analysis_flow_in_browser(tmp_path):
+    """Dashboard, analysis modes, keyboard values and stale refresh work together."""
+    import shutil
+
+    inputs = []
+    for name in ("md-01", "md-02"):
+        source = PROJECT_ROOT / "tests" / "data" / f"{name}.en"
+        destination = tmp_path / source.name
+        shutil.copyfile(source, destination)
+        shutil.copyfile(source.with_suffix(".info"),
+                        destination.with_suffix(".info"))
+        inputs.append(destination)
+
+    port = _free_port()
+    process = subprocess.Popen(
+        [sys.executable, "-m", "PQEnalyzer", "web", "--no-open",
+         "--port", str(port), *(str(path) for path in inputs)],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        _wait_for_status(port)
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+            page.goto(f"http://127.0.0.1:{port}/")
+            page.get_by_role("button", name="TEMPERATURE K", exact=False).click()
+            chart = page.get_by_role("group", name="Time series chart.", exact=False)
+            chart.focus()
+            chart.press("Home")
+            assert "All data" in chart.locator("[aria-live]").inner_text()
+
+            with page.expect_download() as download_info:
+                page.get_by_role("button", name="Download time chart as PNG").click()
+            download = download_info.value
+            png = tmp_path / download.suggested_filename
+            download.save_as(png)
+            from PIL import Image
+            with Image.open(png) as image:
+                assert image.format == "PNG"
+                assert image.height > chart.locator("canvas").evaluate(
+                    "canvas => canvas.height")
+
+            page.get_by_role("button", name="Analysis 1").click()
+            page.get_by_role("button", name="Autocorrelation").click()
+            correlation = page.get_by_role("group", name="Autocorrelation by lag.", exact=False)
+            correlation.focus()
+            correlation.press("Home")
+            assert "Lag (steps) 0" in correlation.locator("[aria-live]").inner_text()
+
+            page.get_by_role("tab", name="Histogram").click()
+            histogram = page.get_by_role("group", name="Histogram,", exact=False)
+            histogram.focus()
+            histogram.press("End")
+            assert "samples" in histogram.locator("[aria-live]").inner_text()
+
+            page.get_by_role("button", name="Pause auto-refresh").click()
+            stat = inputs[0].stat()
+            os.utime(inputs[0], ns=(stat.st_mtime_ns + 2_000_000_000,) * 2)
+            page.get_by_role("button", name="Resume auto-refresh").locator(
+                ".pq-tag-value").get_by_text("stale").wait_for(timeout=10000)
+            page.get_by_role("button", name="Resume auto-refresh").click()
+            page.get_by_role("button", name="Pause auto-refresh").locator(
+                ".pq-tag-value").get_by_text("watching").wait_for(timeout=10000)
+            browser.close()
     finally:
         _terminate_process(process)

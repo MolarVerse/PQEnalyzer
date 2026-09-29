@@ -1,5 +1,5 @@
 /*
- * uPlot time chart for PQEnalyzer Web (LOCAL-ONLY preview).
+ * uPlot time chart for PQEnalyzer Web.
  * uPlot draws lines, axes, grid, and the brush selection on canvas; React
  * owns everything annotation-like (legend, tooltip, dots, MSER marker,
  * presets) so the flat-mono language stays in one place. Nulls stay gaps
@@ -21,8 +21,10 @@ import "uplot/dist/uPlot.min.css";
 import { formatTick, formatValue } from "../api";
 import { pinchRange, type TimeRange } from "../scale";
 import { alignSeries } from "../chartData";
+import { inspectIndex } from "../chartNavigation";
 import { niceTicks, type LineDataset } from "../charts";
 import { useChartSize } from "../hooks/useChartSize";
+import { chartPNG } from "./chartExport";
 
 const MONO_FONT = '11px "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace';
 const GRID = "#e0e0e0";
@@ -37,7 +39,7 @@ function withAlpha(hex: string, alpha: number): string {
 }
 
 export interface UPlotChartHandle {
-  /** PNG data URL of the plot canvas (axes included, HTML overlays not). */
+  /** PNG data URL with plotted annotations and legend. */
   exportPNG: () => string | null;
 }
 
@@ -168,20 +170,36 @@ export function UPlotChart({
     [aligned],
   );
 
+  const inspectableIndices = useMemo(
+    () => aligned.x.flatMap((time, index) =>
+      Number.isFinite(time) && datasets.some((dataset, datasetIndex) =>
+        !hidden.has(dataset.key) && typeof aligned.columns[datasetIndex]?.[index] === "number"
+      ) ? [index] : []),
+    [aligned, datasets, hidden],
+  );
+
   useImperativeHandle(
     ref,
     () => ({
       exportPNG: () => {
         const canvas = mountEl?.querySelector("canvas");
         if (!canvas) return null;
-        try {
-          return canvas.toDataURL("image/png");
-        } catch {
-          return null;
-        }
+        if (!plot) return null;
+        const endpoints = visible
+          .filter((dataset) => dataset.endpoint)
+          .map((dataset) => {
+            for (let i = Math.min(dataset.time.length, dataset.values.length) - 1; i >= 0; i -= 1) {
+              const t = dataset.time[i];
+              const v = dataset.values[i];
+              if (typeof t === "number" && typeof v === "number") return { t, v, color: dataset.color };
+            }
+            return null;
+          })
+          .filter((point) => point !== null);
+        return chartPNG({ source: canvas, plot, visible, markers, endpoints, caption });
       },
     }),
-    [mountEl],
+    [mountEl, plot, visible, markers, caption],
   );
 
   useEffect(() => {
@@ -376,10 +394,7 @@ export function UPlotChart({
     hoverRows.length && bbox && plot
       ? bbox.left + plot.valToPos(hoverRows[0].time, "x")
       : 0;
-  const tooltipLeft = Math.min(
-    Math.max(hoverX + 12, bbox?.left ?? 0),
-    size.w - 230,
-  );
+  const tooltipLeft = Math.max(8, Math.min(hoverX + 12, size.w - 230));
 
   const endpoints = visible
     .filter((dataset) => dataset.endpoint)
@@ -442,15 +457,21 @@ export function UPlotChart({
         className="chart-wrap uplot-wrap"
         ref={setWrapEl}
         data-zoom={zoom ? `${zoom.t0.toFixed(0)}-${zoom.t1.toFixed(0)}` : "all"}
-        role="img"
-        aria-label={ariaLabel}
+        role="group"
+        tabIndex={0}
+        aria-label={`${ariaLabel} Use left and right arrow keys to inspect values; Home and End jump to the first and last point.`}
+        onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          setCursorIdx(inspectIndex(inspectableIndices, cursorIdx, event.key));
+        }}
         onMouseDown={(event) => {
           if (event.button === 0) setSelecting(true);
         }}
         onMouseUp={() => setSelecting(false)}
-        onMouseLeave={() => {
+        onMouseLeave={(event) => {
           setSelecting(false);
-          setCursorIdx(null);
+          if (document.activeElement !== event.currentTarget) setCursorIdx(null);
         }}
         onDoubleClick={() => setZoom(null)}
         onTouchStart={onTouchStart}
@@ -527,7 +548,7 @@ export function UPlotChart({
           </div>
         )}
         {hoverRows.length > 0 && (
-          <div className="chart-tooltip" style={{ left: tooltipLeft, top: 8 }}>
+          <div className="chart-tooltip" aria-hidden="true" style={{ left: tooltipLeft, top: 8 }}>
             <strong>{formatTick(hoverRows[0].time)}</strong>
             <table>
               <tbody>
@@ -546,6 +567,11 @@ export function UPlotChart({
             </table>
           </div>
         )}
+        <span className="visually-hidden" aria-live="polite">
+          {hoverRows.length > 0
+            ? `${timeLabel} ${formatTick(hoverRows[0].time)}. ${hoverRows.map((row) => `${row.label} ${formatValue(row.value)}`).join(". ")}`
+            : ""}
+        </span>
       </div>
       {!hideFooter && (
         <div className="chart-foot">

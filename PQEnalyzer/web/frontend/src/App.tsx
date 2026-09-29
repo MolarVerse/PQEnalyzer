@@ -1,4 +1,4 @@
-/* PQEnalyzer Web shell (local preview). */
+/* PQEnalyzer Web shell. */
 
 import {
   CommandPalette,

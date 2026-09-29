@@ -125,14 +125,17 @@ What you see:
   value. Click a card (or press
   `Ctrl+K` and type a name) to inspect it.
 - **Series / Histogram** — press `1` / `2` to switch the chart language.
-  Drag to zoom, double-click to reset, hover for values. Files are read in
-  input order as one dataset, with one series and one distribution.
+  Drag to zoom, double-click to reset, hover or tap for values. Focus a chart
+  and use arrow keys to inspect values; `Home` / `End` jump to the edges.
+  Files are read in input order as one dataset, with one series and one
+  distribution.
 - **Analysis** — open `Analysis` above the chart to choose a reference,
   a trend, or autocorrelation. The mean is shown initially. Cumulative and
   running averages continue across file boundaries; the running window
   defaults to about 5% of all samples. Autocorrelation correlates this same
   sequence with itself and switches the chart to lag in steps. Analysis
-  choices and dashboard sort persist per browser.
+  choices and dashboard sort persist per browser. Correlation pairs can cross
+  file boundaries; use continuous segments of the same run for this analysis.
 - **Axis** — physical time is used when it increases throughout the combined
   sequence. If it restarts or overlaps between files, charts use a one-based
   sample index so every observation remains visible.
@@ -150,16 +153,17 @@ What you see:
 | `?` | This shortcut list |
 | `Esc` | Close panel, then back to the dashboard |
 
-Hover over the series or histogram to inspect values and bin counts. The source
+Hover or focus the series or histogram to inspect values and bin counts. The source
 files stay in their original format; the chart can be saved as a PNG. An MSER
 marker shows an estimated initial cut on eligible time series. The mean,
-uncertainty, and other summary statistics still use all samples. The cut is
-not a verdict that the simulation has converged.
+uncertainty, and other summary statistics still use all samples. The `±`
+value is the standard error of the mean (SEM), adjusted for autocorrelation.
+The cut is not a verdict that the simulation has converged.
 
 Parameters split into **observables** (energy, temperature, pressure,
 density, …) and **diagnostics** (`LOOPTIME`, atom counts, and any other
 zero-variance series). Diagnostics stay fully viewable, but they get no
-drift badges or MSER cuts, and sort after observables:
+drift measurements or MSER cuts, and sort after observables:
 loop time tracks compute cost per step, not the simulated system, so a
 step change there vetoes the segment — it never proves equilibration.
 
@@ -225,5 +229,13 @@ layout in PQEnalyzer.
 Run the end-to-end suite separately:
 
 ```bash
+python -m playwright install chromium
 python -m pytest -m e2e
 ```
+
+The browser test checks parameter selection, keyboard chart inspection,
+autocorrelation, histogram bins, PNG download, and stale-file refresh.
+CI rebuilds the frontend and checks that `PQEnalyzer/web/static` matches the
+source. A release tag must point to the current `main` commit; the tag job
+repeats the tests, builds the distribution, and installs the wheel before
+publishing it.

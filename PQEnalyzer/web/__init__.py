@@ -1,5 +1,5 @@
 """
-Web front end for PQEnalyzer (LOCAL-ONLY preview).
+Web front end for PQEnalyzer.
 
 ``python -m PQEnalyzer web`` / ``pqenalyzer web`` serves a browser version of
 the desktop GUI: parameter list, time-series chart with the shared overlay

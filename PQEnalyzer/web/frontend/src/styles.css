@@ -1,5 +1,5 @@
 /*
- * PQEnalyzer Web layout on top of @molarverse/pq-design (LOCAL-ONLY preview).
+ * PQEnalyzer Web layout on top of @molarverse/pq-design.
  * Tokens, reset, and primitives come from the design package; only the web
  * app's composition lives here. Flat-mono rules apply: mono type, square
  * corners, hairline dividers, no shadows, 11px minimum microcopy.
@@ -311,6 +311,23 @@ button.pq-tag:focus-visible {
 .chart-wrap {
   position: relative;
   padding: 8px 8px 0;
+}
+
+.chart-wrap:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: -2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .chart-wrap svg {
@@ -729,22 +746,11 @@ button.pq-tag:focus-visible {
   outline-offset: -2px;
 }
 
-/* Drift signal: steady ok, mild muted, strong accent, flat dimmed. */
+/* Drift is descriptive, never a convergence verdict. */
 .drift {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.drift-steady {
-  color: var(--success);
-}
-
-.drift-mild {
-  color: var(--muted);
-}
-
-.drift-strong {
-  color: var(--accent-dark);
+  color: var(--ink-soft);
 }
 
 .drift-flat {

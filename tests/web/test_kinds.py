@@ -12,7 +12,7 @@ import pytest
 
 from PQEnalyzer.energy_access import parameter_kind
 
-pytest.importorskip("fastapi", reason="web preview dependency not installed")
+pytest.importorskip("fastapi", reason="web dependency not installed")
 
 from PQEnalyzer.web.app import create_app  # noqa: E402
 

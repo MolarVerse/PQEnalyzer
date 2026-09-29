@@ -1,5 +1,5 @@
 /*
- * Typed client for the PQEnalyzer web API (LOCAL-ONLY preview).
+ * Typed client for the PQEnalyzer web API.
  * All math stays server-side; the browser only renders.
  */
 

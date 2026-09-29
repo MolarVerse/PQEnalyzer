@@ -1,5 +1,5 @@
 /*
- * URL hash state for PQEnalyzer Web (LOCAL-ONLY preview).
+ * URL hash state for PQEnalyzer Web.
  * The shareable link carries chart type (m) and focused parameter (p).
  */
 

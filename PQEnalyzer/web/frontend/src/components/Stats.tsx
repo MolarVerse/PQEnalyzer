@@ -1,21 +1,18 @@
 import { formatSigma, formatValue } from "../api";
 import type { StatBlock } from "../api";
+import { Info } from "@molarverse/pq-design";
 
-export function DriftBadge({ drift }: { drift: number | null }) {  if (drift === null || !Number.isFinite(drift)) {
+export function DriftBadge({ drift }: { drift: number | null }) {
+  if (drift === null || !Number.isFinite(drift)) {
     return (
       <span className="drift drift-flat" title="Too few points or no spread">
         —
       </span>
     );
   }
-  const magnitude = Math.abs(drift);
-  const tone =
-    magnitude < 0.5 ? "drift-steady"
-    : magnitude < 2 ? "drift-mild"
-    : "drift-strong";
   const arrow = drift > 0.05 ? "▲" : drift < -0.05 ? "▼" : "●";
   return (
-    <span className={`drift ${tone}`} title={`Half-vs-half shift: ${formatSigma(drift)}`}>
+    <span className="drift" title="Second-half mean minus first-half mean, in standard deviations. Descriptive only; not a convergence verdict.">
       {arrow} {formatSigma(drift)}
     </span>
   );
@@ -49,7 +46,8 @@ export function AnalysisLine({ stats }: { stats: StatBlock }) {
   );
 }
 
-export function StatLine({ stats, unit }: { stats: StatBlock; unit: string }) {  const latestVsMean =
+export function StatLine({ stats, unit }: { stats: StatBlock; unit: string }) {
+  const latestVsMean =
     stats.latest !== null && stats.mean !== null && stats.std
       ? (stats.latest - stats.mean) / stats.std
       : null;
@@ -73,6 +71,9 @@ export function StatLine({ stats, unit }: { stats: StatBlock; unit: string }) { 
         <span key={label}>
           {index > 0 && <i aria-hidden="true">·</i>}
           {label} <strong>{value}</strong>
+          {label === "Mean (all)" && (
+            <Info text="Mean uses every sample. ± is the standard error of the mean (SEM), adjusted for autocorrelation. Files are treated as one continuous sequence." />
+          )}
         </span>
       ))}
     </p>

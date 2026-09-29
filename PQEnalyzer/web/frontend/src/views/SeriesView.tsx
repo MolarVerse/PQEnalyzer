@@ -221,7 +221,7 @@ export function SeriesView({
             {flags.autocorrelation && (
               <div className="chart-mode">
                 <strong>Autocorrelation</strong>
-                <Info text="Files combined in order. Mean-centered and normalized to 1 at lag 0. Up to half the dataset, capped at 1,000 lag steps." />
+                <Info text="Files form one continuous sequence in input order, including pairs across file boundaries. Mean-centered and normalized to 1 at lag 0. Up to half the dataset, capped at 1,000 lag steps." />
               </div>
             )}
             {!flags.autocorrelation && legendItems.length > 1 && (
