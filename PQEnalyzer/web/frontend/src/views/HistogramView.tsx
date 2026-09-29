@@ -108,7 +108,7 @@ export function HistogramView({
       {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
       <Modal
         open={dataOpen}
-        size="full"
+        size={table && table.bins.length > 24 ? "full" : "lg"}
         title={`${focus} — binned counts`}
         subtitle={
           table ? (

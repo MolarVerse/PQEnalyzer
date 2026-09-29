@@ -296,7 +296,7 @@ export function SeriesView({
       )}
       <Modal
         open={dataOpen}
-        size="full"
+        size={table && table.shown > 24 ? "full" : "lg"}
         title={`${focus} — data`}
         subtitle={
           table ? (
