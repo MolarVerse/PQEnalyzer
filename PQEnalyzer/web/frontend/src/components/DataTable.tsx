@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import { formatValue } from "../api";
 import type { HistogramTableData, SeriesTableData } from "../tables";
 
@@ -11,8 +10,7 @@ function cell(value: number | null) {
 }
 
 /**
- * Transported series points (the values the chart draws), one row per
- * index with a time+value pair per file. Full resolution via CSV export.
+ * Transported points drawn by the combined series. Full resolution via CSV.
  */
 export function SeriesDataTable({ data }: { data: SeriesTableData }) {
   return (
@@ -20,37 +18,17 @@ export function SeriesDataTable({ data }: { data: SeriesTableData }) {
       <table className="data-table">
         <thead>
           <tr>
-            <th scope="col">#</th>
-            {data.files.map((file) => (
-              <th scope="col" key={file.label} colSpan={2}>
-                {file.label}
-              </th>
-            ))}
-          </tr>
-          <tr>
-            <th scope="col" />
-            {data.files.map((file) => (
-              <Fragment key={file.label}>
-                <th scope="col">
-                  time{data.timeUnit ? ` (${data.timeUnit})` : ""}
-                </th>
-                <th scope="col">
-                  value
-                </th>
-              </Fragment>
-            ))}
+            <th scope="col">
+              {data.axisLabel}{data.timeUnit ? ` (${data.timeUnit})` : ""}
+            </th>
+            <th scope="col">value</th>
           </tr>
         </thead>
         <tbody>
-          {data.body.map((pairs, index) => (
+          {data.body.map(([time, value], index) => (
             <tr key={index}>
-              <th scope="row">{index + 1}</th>
-              {pairs.map(([time, value], fileIndex) => (
-                <Fragment key={fileIndex}>
-                  <td>{cell(time)}</td>
-                  <td>{cell(value)}</td>
-                </Fragment>
-              ))}
+              <th scope="row">{cell(time)}</th>
+              <td>{cell(value)}</td>
             </tr>
           ))}
         </tbody>

@@ -87,11 +87,9 @@ export default function App() {
 
   // Persist analysis choices and dashboard sort.
   useEffect(() => {
-    const { difference: _dropped, ...overlays } = flags;
-    void _dropped;
     saveSettings(browserStorage(), {
       version: 1,
-      overlays,
+      overlays: flags,
       sortMode,
     });
   }, [flags, sortMode]);
@@ -153,7 +151,6 @@ export default function App() {
         (def) => def.shortcut === event.key.toLowerCase(),
       )?.key;
       if (overlayKey) {
-        if (overlayKey === "difference" && !paramData.series?.difference_available) return;
         setFlags((current) => toggleOverlay(current, overlayKey));
         return;
       }
@@ -162,9 +159,9 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [paramData.series?.difference_available, focus, focusParameter, helpOpen, paletteOpen, selectMode, toolsOpen]);
+  }, [focus, focusParameter, helpOpen, paletteOpen, selectMode, toolsOpen]);
 
-  /** Largest valid manual window among the loaded files. */
+  /** Largest valid manual window in the combined sequence. */
   const maxWindow = useMemo(
     () =>
       paramData.series?.series.reduce(
@@ -361,8 +358,6 @@ export default function App() {
             <AnalysisPicker
               flags={flags}
               setFlags={setFlags}
-              fileCount={session.fileCount}
-              canDifference={paramData.series?.difference_available ?? false}
               windowSize={windowSize}
               setWindowSize={setWindowSize}
               maxWindow={maxWindow}

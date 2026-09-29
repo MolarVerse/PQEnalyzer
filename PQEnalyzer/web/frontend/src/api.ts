@@ -43,15 +43,15 @@ export interface SeriesResponse {
   parameter: string;
   unit: string;
   label: string;
+  time_label: string;
   time_unit: string;
+  source_count: number;
   series: SeriesItem[];
-  difference_available: boolean;
 }
 
 export interface OverlayItem {
   key: string;
   label: string;
-  source_index: number | null;
   axis: "time" | "lag";
   time: (number | null)[];
   values: (number | null)[];
@@ -62,7 +62,6 @@ export interface OverlayFlags {
   median: boolean;
   cummulative_average: boolean;
   autocorrelation: boolean;
-  difference: boolean;
   running_average: boolean;
 }
 
@@ -96,7 +95,6 @@ export interface SummaryResponse {
   parameter: string;
   unit: string;
   label: string;
-  files: StatBlock[];
   combined: StatBlock;
   kind: ParameterKind;
 }
@@ -105,7 +103,6 @@ export interface SummaryEntry {
   name: string;
   unit: string;
   label: string;
-  files: StatBlock[];
   combined: StatBlock;
   spark: (number | null)[];
   hist: { edges: number[]; counts: number[] } | null;

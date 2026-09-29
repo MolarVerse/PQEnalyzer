@@ -8,8 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatTick, formatValue } from "./api";
 
 /**
- * File hues: vivid, mutually distant, legible on white. Order matters —
- * the first slots cover the common one- and two-file sessions.
+ * Line hues for combined data and distribution guides.
  */
 export const SERIES_COLORS = [
   "#0f62fe",
@@ -31,14 +30,13 @@ export interface OverlayStyle {
 /**
  * Derived overlays read as instruments, not data: near-ink strokes wide
  * enough to survive under vivid files. Dash patterns (never hue alone)
- * tell them apart; file hues never reuse these near-blacks.
+ * tell them apart; the data hue stays distinct from these near-blacks.
  */
 export const OVERLAY_STYLES: Record<string, OverlayStyle> = {
   mean: { color: "#161616", dash: "6 4", width: 2 },
   median: { color: "#6929c4", dash: "2 3", width: 2 },
   cummulative_average: { color: "#0043ce", dash: "8 4", width: 2 },
   running_average: { color: "#161616", width: 2 },
-  difference: { color: "#da1e28", width: 2 },
 };
 
 export interface LineDataset {
@@ -49,7 +47,6 @@ export interface LineDataset {
   color: string;
   dash?: string;
   width: number;
-  sourceIndex?: number | null;
   /** Mark the latest finite point (raw series, not derived overlays). */
   endpoint?: boolean;
 }
@@ -87,7 +84,7 @@ export function Legend({
   onToggle: (key: string) => void;
 }) {
   if (!items.length) return null;
-  // Files first, derived overlays after a divider (datasets arrive ordered).
+  // Data first, derived overlays after a divider (datasets arrive ordered).
   const splitAt = items.findIndex((item) => item.key.startsWith("overlay-"));
   return (
     <div className="chart-legend" role="group" aria-label="Series visibility">

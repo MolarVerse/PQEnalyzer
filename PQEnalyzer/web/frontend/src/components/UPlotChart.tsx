@@ -54,11 +54,8 @@ export interface UPlotChartProps {
   caption?: string;
   /** Vertical event markers (e.g. the MSER equilibration point). */
   markers?: { value: number; label: string }[];
-  /** Hide the preset footer (split panels share one instead). */
+  /** Hide time-range presets for lag views. */
   hideFooter?: boolean;
-  /** Controlled zoom (split compare keeps panels in lockstep). */
-  zoom?: TimeRange | null;
-  onZoomChange?: (zoom: TimeRange | null) => void;
   ref?: Ref<UPlotChartHandle>;
 }
 
@@ -93,15 +90,13 @@ export function UPlotChart({
   caption,
   markers = [],
   hideFooter = false,
-  zoom: controlledZoom,
-  onZoomChange,
   ref,
 }: UPlotChartProps) {
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
   const [mountEl, setMountEl] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 760, h: height });
   const [plot, setPlot] = useState<uPlot | null>(null);
-  const [innerZoom, setInnerZoom] = useState<TimeRange | null>(null);
+  const [zoom, setZoom] = useState<TimeRange | null>(null);
   const [cursorIdx, setCursorIdx] = useState<number | null>(null);
   const [selecting, setSelecting] = useState(false);
   const pinchRef = useRef<{
@@ -109,13 +104,6 @@ export function UPlotChart({
     center: number;
     range: TimeRange;
   } | null>(null);
-
-  const controlled = controlledZoom !== undefined;
-  const zoom = controlled ? controlledZoom : innerZoom;
-  const setZoom = (next: TimeRange | null) => {
-    if (controlled) onZoomChange?.(next);
-    else setInnerZoom(next);
-  };
 
   useEffect(() => {
     if (!wrapEl) return;
@@ -575,7 +563,7 @@ export function UPlotChart({
       {!hideFooter && (
         <div className="chart-foot">
           {datasets.some((dataset) => dataset.time.length > 1000) && (
-            <span className="chart-presets" role="group" aria-label="Time range">
+            <span className="chart-presets" role="group" aria-label="Range">
             {PRESETS.filter((preset) => preset.points === null || datasets.some((dataset) => dataset.time.length > preset.points!)).map((preset) => {
               const active = isPresetActive(preset.points);
               return (

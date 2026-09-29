@@ -2,13 +2,15 @@
 JSON data layer for the PQEnalyzer web front end (LOCAL-ONLY preview).
 
 Inputs and shared calculations use ``readers`` for parsing,
-``energy_access`` for series/units, ``plots.features`` for time overlays, and
-``plots.labels`` for file labels. The web layer shapes results into JSON:
-downsampling for transport, NaN sanitising (``null`` denotes missing values),
-per-run autocorrelation, and per-file histogram binning on shared edges.
+``energy_access`` for series/units, ``plots.features`` and ``statistics`` for
+analysis, and ``plots.labels`` for file labels. The web layer shapes the
+combined data into JSON and downsamples it for transport. Non-finite values
+become ``null``.
 """
 
 import math
+import csv
+import io
 import json
 import os
 import queue
@@ -22,7 +24,6 @@ from ..energy_access import (
     available_parameters,
     axis_label,
     concatenate_series,
-    difference_series,
     parameter_kind,
     parameter_unit_for_energies,
     series,
@@ -30,7 +31,7 @@ from ..energy_access import (
 )
 from ..plots.features import (
     iter_histogram_guides,
-    iter_time_series_overlays,
+    running_average_window,
 )
 from ..plots.labels import parameter_label, unique_path_labels
 from ..plots.options import PlotOptions
@@ -231,7 +232,7 @@ class WebState:
 
     def series(self, parameter, max_points=MAX_POINTS):
         """
-        Return downsampled raw series for every file exposing a parameter.
+        Return one downsampled series across files in input order.
         """
         with self.lock:
             energies = list(self.reader.energies)
@@ -240,16 +241,22 @@ class WebState:
             raise ValueError(
                 f"Parameter {parameter} is not present in any input file.")
         unit = parameter_unit_for_energies(energies, parameter)
-        items = []
-        for index in matching:
-            energy = energies[index]
-            raw_time = np.asarray(simulation_time(energy), dtype=float)
-            raw_values = np.asarray(
-                series(energy, parameter).values, dtype=float)
-            time, values, stride = _downsample(
-                raw_time, raw_values, max_points)
-            items.append({
-                "label": self.labels[index],
+        combined = concatenate_series(energies, parameter)
+        raw_values = np.asarray(combined.values, dtype=float)
+        raw_time, time_label, time_unit = _chart_axis(
+            combined.time, axis_label(energies[matching[0]]),
+            _time_unit([energies[index] for index in matching]))
+        time, values, stride = _downsample(
+            raw_time, raw_values, max_points)
+        return {
+            "parameter": parameter,
+            "unit": unit,
+            "label": parameter_label(parameter, unit),
+            "time_label": time_label,
+            "time_unit": time_unit,
+            "source_count": len(matching),
+            "series": [{
+                "label": "All data",
                 "rows": int(raw_values.size),
                 "stride": stride,
                 "downsampled": stride > 1,
@@ -257,31 +264,12 @@ class WebState:
                 "max": _finite_max(raw_values),
                 "time": _json_list(time),
                 "values": _json_list(values),
-            })
-        time_unit = _time_unit(energies)
-        difference_available = False
-        if len(energies) == 2 and len(matching) == 2:
-            try:
-                difference_series(energies, parameter)
-                difference_available = True
-            except ValueError:
-                pass
-        return {
-            "parameter": parameter,
-            "unit": unit,
-            "label": parameter_label(parameter, unit),
-            "time_unit": time_unit,
-            "series": items,
-            "difference_available": difference_available,
+            }],
         }
 
     def overlays(self, parameter, flags, window_size=""):
         """
-        Return references and per-file curves without joining run boundaries.
-
-        Mean and median describe the combined sample. Difference compares two
-        files on shared steps. All other curves belong to one file; a restart
-        or an independent run must not feed another run's moving statistics.
+        Return analysis curves for one sequence across all input files.
         """
         with self.lock:
             energies = list(self.reader.energies)
@@ -292,79 +280,60 @@ class WebState:
         if not matching:
             raise ValueError(
                 f"Parameter {parameter} is not present in any input file.")
+        combined = concatenate_series(energies, parameter)
+        values = np.asarray(combined.values, dtype=float)
+        plot_time, _, _ = _chart_axis(
+            combined.time, axis_label(matching[0][1]),
+            _time_unit([energy for _, energy in matching]))
         guides = []
 
-        def add(key, label, source_time, source_values,
-                source_index=None, axis="time"):
+        def add(key, label, source_time, source_values, axis="time"):
             time, values, _ = _downsample(
                 np.asarray(source_time, dtype=float),
                 np.asarray(source_values, dtype=float),
                 MAX_POINTS,
             )
-            if key in {"mean", "median"}:
-                all_times = np.concatenate([
-                    np.asarray(simulation_time(energy), dtype=float)
-                    for _, energy in matching
-                ])
-                finite_times = all_times[np.isfinite(all_times)]
-                if finite_times.size:
-                    time = np.array([finite_times.min(), finite_times.max()])
             guides.append({
                 "key": key,
-                "label": (f"{self.labels[matching[source_index][0]]} · {label}"
-                          if source_index is not None and len(matching) > 1
-                          else label),
-                "source_index": source_index,
+                "label": label,
                 "axis": axis,
                 "time": _json_list(time),
                 "values": _json_list(values),
             })
 
         if flags.get("difference"):
-            options = PlotOptions(difference=True)
-            for overlay in iter_time_series_overlays(
-                    energies, parameter, options):
-                add(overlay.feature.key, overlay.label,
-                    overlay.time, overlay.values)
-            return {"parameter": parameter, "overlays": guides}
+            raise ValueError("Run comparison is unavailable in combined-data mode.")
 
-        references = PlotOptions(mean=bool(flags.get("mean")),
-                                 median=bool(flags.get("median")))
-        if references.mean or references.median:
-            for overlay in iter_time_series_overlays(
-                    energies, parameter, references):
-                add(overlay.feature.key, overlay.label,
-                    overlay.time, overlay.values)
-
-        for source_index, (_, energy) in enumerate(matching):
-            values = np.asarray(series(energy, parameter).values, dtype=float)
-            if flags.get("cummulative_average") or flags.get("running_average"):
-                requested = str(window_size).strip()
-                if not requested:
-                    # Auto defaults to roughly 5% of this run, with at least
-                    # two plotted points when it has more than one sample.
-                    requested = str(min(1000, max(1, values.size - 1),
-                                        max(2, math.ceil(values.size * 0.05))))
-                options = PlotOptions(
-                    cummulative_average=bool(flags.get("cummulative_average")),
-                    running_average=bool(flags.get("running_average")),
-                    window_size=requested,
-                )
-                for overlay in iter_time_series_overlays(
-                        [energy], parameter, options, window_policy="clamp"):
-                    add(overlay.feature.key, overlay.label,
-                        overlay.time, overlay.values, source_index)
-            if flags.get("autocorrelation"):
-                lag, correlation = Statistic.autocorrelation_values(
-                    values, max_lag=min(values.size // 2, 1000))
-                if lag.size:
-                    add("autocorrelation", "Autocorrelation", lag,
-                        correlation, source_index, "lag")
+        if flags.get("mean"):
+            time, curve = Statistic.mean_values(plot_time, values)
+            add("mean", "Mean", time, curve)
+        if flags.get("median"):
+            time, curve = Statistic.median_values(plot_time, values)
+            add("median", "Median", time, curve)
+        if flags.get("cummulative_average"):
+            time, curve = Statistic.cumulative_average_values(plot_time, values)
+            add("cummulative_average", "Cumulative Average", time, curve)
+        if flags.get("running_average"):
+            requested = str(window_size).strip()
+            if not requested:
+                requested = str(min(1000, max(1, values.size - 1),
+                                    max(2, math.ceil(values.size * 0.05))))
+            window = running_average_window(
+                values, requested, policy="clamp")
+            time, curve = Statistic.running_average_values(
+                plot_time, values, window)
+            add("running_average", f"Running Average ({window})", time, curve)
+        if flags.get("autocorrelation"):
+            lag, correlation = Statistic.autocorrelation_values(
+                values, max_lag=min(values.size // 2, 1000))
+            if lag.size:
+                add("autocorrelation", "Autocorrelation", lag,
+                    correlation, axis="lag")
         return {"parameter": parameter, "overlays": guides}
 
     def histogram(self, parameter, bins=HISTOGRAM_BINS_DEFAULT):
         """
-        Return per-file counts on shared edges plus mean/median guides.
+        Return one histogram and KDE for all files combined.
         """
         bins = max(8, min(200, int(bins)))
         with self.lock:
@@ -390,28 +359,22 @@ class WebState:
             {"label": guide.label, "value": float(guide.value)}
             for guide in iter_histogram_guides(energies, parameter, options)
         ]
-        items = []
+        counts, _ = np.histogram(finite, bins=edges)
         kde = []
-        for index in matching:
-            values = np.asarray(
-                series(energies[index], parameter).values, dtype=float)
-            values = values[np.isfinite(values)]
-            counts, _ = np.histogram(values, bins=edges)
-            items.append({
-                "label": self.labels[index],
-                "rows": int(values.size),
-                "counts": [int(count) for count in counts],
-            })
-            curve = _kde_of(values, edges)
-            if curve is not None:
-                curve["label"] = self.labels[index]
-                kde.append(curve)
+        curve = _kde_of(finite, edges)
+        if curve is not None:
+            curve["label"] = "All data"
+            kde.append(curve)
         return {
             "parameter": parameter,
             "unit": unit,
             "label": parameter_label(parameter, unit),
             "edges": [float(edge) for edge in edges],
-            "series": items,
+            "series": [{
+                "label": "All data",
+                "rows": int(finite.size),
+                "counts": [int(count) for count in counts],
+            }],
             "guides": guides,
             "kde": kde,
         }
@@ -458,14 +421,12 @@ class WebState:
             unit = parameter_unit_for_energies(energies, name)
         except ValueError:
             unit = ""
-        stats = [
-            _stats_for(energies[index], name, self.labels[index])
-            for index in matching
-        ]
         try:
             combined = concatenate_series(energies, name)
             values = np.asarray(combined.values, dtype=float)
-            time = np.asarray(combined.time, dtype=float)
+            time, _, _ = _chart_axis(
+                combined.time, axis_label(energies[matching[0]]),
+                _time_unit([energies[index] for index in matching]))
             finite = values[np.isfinite(values)]
             _, spark, _ = _downsample(time, values, SPARK_POINTS)
             spark = [v for v in _json_list(spark) if v is not None]
@@ -484,7 +445,6 @@ class WebState:
             "name": name,
             "unit": unit,
             "label": parameter_label(name, unit),
-            "files": stats,
             "combined": combined_stats,
             "spark": spark,
             "hist": hist,
@@ -493,7 +453,7 @@ class WebState:
 
     def summary(self, parameter):
         """
-        Return per-file and combined stats for one parameter.
+        Return statistics for all matching files as one dataset.
         """
         with self.lock:
             energies = list(self.reader.energies)
@@ -502,13 +462,11 @@ class WebState:
             raise ValueError(
                 f"Parameter {parameter} is not present in any input file.")
         unit = parameter_unit_for_energies(energies, parameter)
-        files = [
-            _stats_for(energies[index], parameter, self.labels[index])
-            for index in matching
-        ]
         combined_series = concatenate_series(energies, parameter)
         values = np.asarray(combined_series.values, dtype=float)
-        time = np.asarray(combined_series.time, dtype=float)
+        time, _, _ = _chart_axis(
+            combined_series.time, axis_label(energies[matching[0]]),
+            _time_unit([energies[index] for index in matching]))
         combined = _stats_of_array(
             values[np.isfinite(values)],
             label="combined",
@@ -521,14 +479,13 @@ class WebState:
             "parameter": parameter,
             "unit": unit,
             "label": parameter_label(parameter, unit),
-            "files": files,
             "combined": combined,
             "kind": kind,
         }
 
     def export_csv(self, parameter):
         """
-        Return long-form CSV (file,time,value) with a commented header.
+        Return one ordered sequence with original time and file provenance.
         """
         with self.lock:
             energies = list(self.reader.energies)
@@ -537,13 +494,21 @@ class WebState:
             raise ValueError(
                 f"Parameter {parameter} is not present in any input file.")
         unit = parameter_unit_for_energies(energies, parameter)
-        time_label = axis_label(energies[0]) if energies else "time"
-        lines = [
+        time_label = axis_label(energies[matching[0]])
+        combined = concatenate_series(energies, parameter)
+        _, chart_label, _ = _chart_axis(
+            combined.time, time_label,
+            _time_unit([energies[index] for index in matching]))
+        output = io.StringIO()
+        output.write("\n".join([
             f"# parameter: {parameter}",
             f"# unit: {unit or 'n/a'}",
             f"# time: {time_label}",
-            "file,time,value",
-        ]
+            f"# chart_axis: {chart_label}",
+        ]) + "\n")
+        writer = csv.writer(output, lineterminator="\n")
+        writer.writerow(["sample", "file", "time", "value"])
+        sample = 0
         for index in matching:
             energy = energies[index]
             time = np.asarray(simulation_time(energy), dtype=float)
@@ -551,9 +516,11 @@ class WebState:
                 series(energy, parameter).values, dtype=float)
             label = self.labels[index]
             for stamp, value in zip(time, values):
+                sample += 1
                 if math.isfinite(stamp) and math.isfinite(value):
-                    lines.append(f"{label},{stamp:.10g},{value:.10g}")
-        return "\n".join(lines) + "\n"
+                    writer.writerow([
+                        sample, label, f"{stamp:.10g}", f"{value:.10g}"])
+        return output.getvalue()
 
 
 def _time_unit(energies):
@@ -568,6 +535,19 @@ def _time_unit(energies):
         if unit:
             return unit
     return ""
+
+
+def _chart_axis(time, label, unit):
+    """Keep ordered physical time; use sample position after a restart.
+
+    A charting library cannot put two different observations at the same x
+    value. A sample axis retains every point when input files overlap or
+    reset their simulation-time counter.
+    """
+    ordered = np.asarray(time, dtype=float)
+    if np.all(np.isfinite(ordered)) and np.all(np.diff(ordered) > 0):
+        return ordered, label, unit
+    return np.arange(1, ordered.size + 1, dtype=float), "Sample", ""
 
 
 def _analysis_of(values, time):
@@ -761,15 +741,6 @@ def _finite_max(values):
     finite = np.asarray(values, dtype=float)
     finite = finite[np.isfinite(finite)]
     return float(finite.max()) if finite.size else None
-
-
-def _stats_for(energy, parameter, label):
-    """
-    Return display stats for one file's parameter series.
-    """
-    values = np.asarray(series(energy, parameter).values, dtype=float)
-    return _stats_of_array(
-        values[np.isfinite(values)], label=label, rows=int(values.size))
 
 
 def _stats_of_array(finite, label, rows):

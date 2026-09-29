@@ -1001,78 +1001,6 @@ button.pq-tag:focus-visible {
   white-space: nowrap;
 }
 
-/* ---- split compare: one panel per file, shared zoom --------------------------- */
-
-.split-panels {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.split-panel {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.split-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.8rem;
-}
-
-.split-head > i {
-  align-self: center;
-  width: 18px;
-  height: 2px;
-}
-
-.split-head > span {
-  margin-left: auto;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ghost-action.active {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.ghost-action:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* ---- runs table: sortable headers, pinned combined row ------------------------ */
-
-.runs-sort {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  white-space: nowrap;
-}
-
-.runs-sort:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.runs-combined td {
-  border-top: 1px solid var(--border-strong);
-  border-bottom: 0;
-}
-
 /* ---- analysis controls ---------------------------------------------------- */
 
 .analysis-trigger {
@@ -1088,13 +1016,6 @@ button.pq-tag:focus-visible {
 .analysis-picker {
   display: flex;
   flex-direction: column;
-}
-
-.analysis-help {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
 }
 
 .analysis-window button {
@@ -1144,12 +1065,6 @@ button.pq-tag:focus-visible {
   background: var(--surface-subtle);
 }
 
-.analysis-option:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
 .analysis-check {
   width: 18px;
   height: 18px;
@@ -1166,7 +1081,6 @@ button.pq-tag:focus-visible {
 }
 
 .analysis-option-label { font-size: 0.83rem; font-weight: 600; }
-.analysis-help { padding-top: 7px; }
 
 .analysis-window {
   display: flex;
@@ -1195,11 +1109,4 @@ button.pq-tag:focus-visible {
 
 .chart-mode strong {
   font-size: 0.82rem;
-}
-
-.chart-note {
-  margin: 0;
-  padding: 8px 16px 0;
-  color: var(--muted);
-  font-size: 0.78rem;
 }

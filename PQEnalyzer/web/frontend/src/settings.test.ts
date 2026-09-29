@@ -45,7 +45,7 @@ describe("loadSettings", () => {
     expect(loaded.sortMode).toBe("drift");
   });
 
-  it("drops difference and rejects unknown overlay keys", () => {
+  it("drops retired run comparisons and unknown overlay keys", () => {
     const loaded = loadSettings(
       memoryStorage({
         [SETTINGS_KEY]: JSON.stringify({

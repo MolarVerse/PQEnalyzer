@@ -125,17 +125,18 @@ What you see:
   value, and drift/equilibration glyphs. Click a card (or press
   `Ctrl+K` and type a name) to inspect it.
 - **Series / Histogram** — press `1` / `2` to switch the chart language.
-  Drag to zoom, double-click to reset, hover for values. `Split` shows
-  one panel per file with a shared zoom.
+  Drag to zoom, double-click to reset, hover for values. Files are read in
+  input order as one dataset, with one series and one distribution.
 - **Analysis** — open `Analysis` above the chart to choose a reference,
-  a trend per run, autocorrelation, or a difference between two runs.
-  The combined mean is shown initially. Cumulative and running averages
-  restart for each file; the running window defaults to about 5% of
-  each run. Autocorrelation switches the chart to lag in steps.
-  Difference is available only when exactly two files share
-  time or step values. Chart legend entries identify each result's
-  source. Analysis choices and dashboard sort persist
-  per browser, except difference, which must be selected each time.
+  a trend, or autocorrelation. The mean is shown initially. Cumulative and
+  running averages continue across file boundaries; the running window
+  defaults to about 5% of all samples. Autocorrelation correlates this same
+  sequence with itself and switches the chart to lag in steps. Analysis
+  choices and dashboard sort persist per browser.
+- **Axis** — physical time is used when it increases throughout the combined
+  sequence. If it restarts or overlaps between files, charts use a one-based
+  sample index so every observation remains visible. The CSV includes that
+  sample index, original time, and source file.
 - **Live updates** — the header badge reads `watching` while files are
   watched, `stale` when they changed on disk (refresh or resume watching
   to reload), `paused` when watching is off, and `offline` if the
@@ -146,14 +147,12 @@ What you see:
 | `Ctrl+K` | Search parameters and modes |
 | `1` / `2` | Series / histogram mode |
 | `m`, `n`, `c`, `s`, `a` | Mean, median, cumulative average, autocorrelation, running average |
-| `x` | Difference of two files |
 | `o` | Analysis or histogram options |
 | `?` | This shortcut list |
 | `Esc` | Close panel, then back to the dashboard |
 
-`Data` shows the transported points as a table, `Runs` the sortable
-per-file stats, and `PNG` / `CSV` download the chart and the
-full-resolution data. PNG exports the chart currently shown. The
+`Data` shows the transported points as a table, and `PNG` / `CSV` download
+the chart and the full-resolution data. PNG exports the chart currently shown. The
 equilibration marker appears on eligible time series.
 
 Parameters split into **observables** (energy, temperature, pressure,
@@ -165,9 +164,9 @@ step change there vetoes the segment — it never proves equilibration.
 
 ## Plot Features
 
-The GUI and TUI offer these plot features. Web uses the same shortcuts and
-shared series/plot math for its time overlays, and switches the chart to
-normalized autocorrelation by lag instead of Self-Correlation Mean:
+The GUI and TUI offer these plot features. Web uses the shared series and
+plot math for its time overlays. Its `s` shortcut shows normalized
+autocorrelation by lag instead of Self-Correlation Mean:
 
 | Feature | Time series | Histogram | TUI key |
 | --- | --- | --- | --- |
@@ -180,7 +179,7 @@ normalized autocorrelation by lag instead of Self-Correlation Mean:
 
 Self-Correlation Mean in the GUI/TUI stays on the data's original scale; it
 is not normalized. The web autocorrelation is mean-centered and normalized
-to 1 at lag zero, calculated separately for each run.
+to 1 at lag zero, calculated on all selected files as one sequence.
 
 ## Multiple Files
 
@@ -188,10 +187,11 @@ to 1 at lag zero, calculated separately for each run.
 pqenalyzer md-01.en md-02.en md-03.en
 ```
 
-Common parameters are plotted together. A parameter found in only some files
-is plotted from those files. Shared parameters must use the same unit.
+In the web view, common parameters from the files form one ordered dataset. A
+parameter found in only some files uses those files in input order. Shared
+parameters must use the same unit.
 
-Difference plotting requires exactly two files and calculates
+In the GUI and TUI, Difference plotting requires exactly two files and calculates
 `file 1 - file 2`. Points are matched by simulation time, simulation step, or
 optimization step. PQEnalyzer does not interpolate, extrapolate, or concatenate
 difference data. Raw series are hidden when Difference is enabled.

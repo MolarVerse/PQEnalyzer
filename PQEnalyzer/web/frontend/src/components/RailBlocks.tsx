@@ -5,8 +5,6 @@ import type { OverlayFlags } from "../api";
 export interface SharedControls {
   flags: OverlayFlags;
   setFlags: Dispatch<SetStateAction<OverlayFlags>>;
-  fileCount: number;
-  canDifference: boolean;
 }
 
 export const OVERLAY_DEFS: {
@@ -15,12 +13,11 @@ export const OVERLAY_DEFS: {
   shortcut: string;
   description: string;
 }[] = [
-  { key: "mean", label: "Mean", shortcut: "m", description: "One guide across all runs" },
-  { key: "median", label: "Median", shortcut: "n", description: "One guide across all runs" },
-  { key: "cummulative_average", label: "Cumulative average", shortcut: "c", description: "Restarts at each run" },
-  { key: "running_average", label: "Running average", shortcut: "a", description: "Smooths each run separately" },
+  { key: "mean", label: "Mean", shortcut: "m", description: "One guide for all data" },
+  { key: "median", label: "Median", shortcut: "n", description: "One guide for all data" },
+  { key: "cummulative_average", label: "Cumulative average", shortcut: "c", description: "Continues across files" },
+  { key: "running_average", label: "Running average", shortcut: "a", description: "Smooths the combined sequence" },
   { key: "autocorrelation", label: "Autocorrelation", shortcut: "s", description: "Switch chart to lag correlation" },
-  { key: "difference", label: "Difference (1 − 2)", shortcut: "x", description: "Subtracts run 2 on shared steps" },
 ];
 
 export const NO_OVERLAYS: OverlayFlags = {
@@ -29,28 +26,24 @@ export const NO_OVERLAYS: OverlayFlags = {
   cummulative_average: false,
   running_average: false,
   autocorrelation: false,
-  difference: false,
 };
 
 export function toggleOverlay(current: OverlayFlags, key: keyof OverlayFlags): OverlayFlags {
-  if (key === "difference" || key === "autocorrelation") {
+  if (key === "autocorrelation") {
     return { ...NO_OVERLAYS, [key]: !current[key] };
   }
-  return { ...current, difference: false, autocorrelation: false, [key]: !current[key] };
+  return { ...current, autocorrelation: false, [key]: !current[key] };
 }
 
 const ANALYSIS_GROUPS = [
   { title: "Reference", keys: ["mean", "median"] },
-  { title: "Trend per run", keys: ["cummulative_average", "running_average"] },
+  { title: "Trend", keys: ["cummulative_average", "running_average"] },
   { title: "Correlation", keys: ["autocorrelation"] },
-  { title: "Compare runs", keys: ["difference"] },
 ] as const;
 
 export function AnalysisPicker({
   flags,
   setFlags,
-  fileCount,
-  canDifference,
   windowSize,
   setWindowSize,
   maxWindow,
@@ -66,7 +59,6 @@ export function AnalysisPicker({
           <h2>{group.title}</h2>
           {group.keys.map((key) => {
             const def = OVERLAY_DEFS.find((item) => item.key === key)!;
-            const unavailable = key === "difference" && (!canDifference || fileCount !== 2);
             return (
               <button
                 key={key}
@@ -74,7 +66,6 @@ export function AnalysisPicker({
                 className="analysis-option"
                 aria-pressed={flags[key]}
                 title={def.description}
-                disabled={unavailable}
                 onClick={() => setFlags((current) => toggleOverlay(current, key))}
               >
                 <span className="analysis-check" aria-hidden="true">{flags[key] ? "✓" : ""}</span>
@@ -82,12 +73,12 @@ export function AnalysisPicker({
               </button>
             );
           })}
-          {group.title === "Trend per run" && flags.running_average && (
+          {group.title === "Trend" && flags.running_average && (
             <div className="analysis-window">
               <Field
                 label="Window"
                 unit="steps"
-                info="Auto uses about 5% of each run and keeps at least two plotted points."
+                info="Auto uses about 5% of the combined sequence and keeps at least two plotted points."
               >
                 <input
                   type="number"
@@ -102,9 +93,6 @@ export function AnalysisPicker({
                 <button type="button" onClick={() => setWindowSize("")}>Use auto</button>
               )}
             </div>
-          )}
-          {group.title === "Compare runs" && !canDifference && (
-            <p className="analysis-help">Needs 2 runs with shared steps.</p>
           )}
         </div>
       ))}

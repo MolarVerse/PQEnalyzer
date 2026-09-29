@@ -12,55 +12,36 @@ function seriesResponse(): SeriesResponse {
     parameter: "TEMPERATURE",
     unit: "K",
     label: "x",
-    time_unit: "ps",
-    difference_available: true,
+    time_label: "Sample",
+    time_unit: "",
+    source_count: 2,
     series: [
       {
-        label: "md-01.en",
-        rows: 5000,
+        label: "All data",
+        rows: 10000,
         stride: 2,
         downsampled: true,
         min: 240,
         max: 360,
-        time: [0, 2, 4],
+        time: [1, 2, 3],
         values: [300, 310, null],
-      },
-      {
-        label: "md-02.en",
-        rows: 5000,
-        stride: 2,
-        downsampled: true,
-        min: 250,
-        max: 350,
-        // Shorter file: missing tail aligns as nulls.
-        time: [0, 2],
-        values: [295, 305],
       },
     ],
   };
 }
 
 describe("seriesTable", () => {
-  it("aligns per-file [time, value] pairs with nulls for short files", () => {
+  it("shows combined chart points and the sample axis", () => {
     const table = seriesTable(seriesResponse());
     expect(table.totalPoints).toBe(3);
     expect(table.truncated).toBe(false);
     expect(table.body).toEqual([
-      [
-        [0, 300],
-        [0, 295],
-      ],
-      [
-        [2, 310],
-        [2, 305],
-      ],
-      [
-        [4, null],
-        [null, null],
-      ],
+      [1, 300],
+      [2, 310],
+      [3, null],
     ]);
-    expect(table.files).toHaveLength(2);
-    expect(table.timeUnit).toBe("ps");
+    expect(table.axisLabel).toBe("Sample");
+    expect(table.timeUnit).toBe("");
   });
 
   it("caps long transports and reports truncation", () => {
@@ -135,25 +116,23 @@ describe("alignSeries", () => {
 });
 
 describe("histogramTable", () => {
-  it("maps edges to bins with per-file counts", () => {
+  it("maps edges to bins with combined counts", () => {
     const histogram: HistogramResponse = {
       parameter: "TEMPERATURE",
       unit: "K",
       label: "x",
       edges: [0, 1, 2, 3],
       series: [
-        { label: "md-01.en", rows: 100, counts: [10, 70, 20] },
-        { label: "md-02.en", rows: 80, counts: [5, 60] },
+        { label: "All data", rows: 180, counts: [15, 130, 35] },
       ],
       guides: [],
       kde: [],
     };
     const table = histogramTable(histogram);
     expect(table.bins).toEqual([
-      { lower: 0, upper: 1, counts: [10, 5] },
-      { lower: 1, upper: 2, counts: [70, 60] },
-      // Short counts arrays default to zero, never undefined.
-      { lower: 2, upper: 3, counts: [20, 0] },
+      { lower: 0, upper: 1, counts: [15] },
+      { lower: 1, upper: 2, counts: [130] },
+      { lower: 2, upper: 3, counts: [35] },
     ]);
   });
 });

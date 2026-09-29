@@ -22,7 +22,7 @@ export function ShortcutHelp() {
             <kbd>{def.shortcut}</kbd>
           </span>
           <span>
-            {def.label}{def.key === "difference" ? " (2 files with shared steps)" : ""}
+            {def.label}
           </span>
         </div>
       ))}

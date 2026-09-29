@@ -8,39 +8,26 @@ import type { HistogramResponse, SeriesResponse } from "./api";
 export const DATA_TABLE_ROW_CAP = 2000;
 
 export interface SeriesTableData {
+  axisLabel: string;
   timeUnit: string;
-  files: { label: string; rows: number; stride: number; downsampled: boolean }[];
-  /** Transported points (longest file); shown rows are capped. */
+  /** Transported points; shown rows are capped. */
   totalPoints: number;
   shown: number;
   truncated: boolean;
-  /**
-   * One row per transported index; per file a [time, value] pair (null when
-   * the file has no point there — strides may differ between files).
-   */
-  body: (number | null)[][][];
+  body: [number | null, number | null][];
 }
 
 export function seriesTable(series: SeriesResponse): SeriesTableData {
-  const totalPoints = series.series.reduce(
-    (longest, item) => Math.max(longest, item.time.length),
-    0,
-  );
+  const combined = series.series[0];
+  const totalPoints = combined?.time.length ?? 0;
   const shown = Math.min(totalPoints, DATA_TABLE_ROW_CAP);
-  const body: (number | null)[][][] = [];
+  const body: [number | null, number | null][] = [];
   for (let i = 0; i < shown; i += 1) {
-    body.push(
-      series.series.map((item) => [item.time[i] ?? null, item.values[i] ?? null]),
-    );
+    body.push([combined.time[i] ?? null, combined.values[i] ?? null]);
   }
   return {
+    axisLabel: series.time_label,
     timeUnit: series.time_unit,
-    files: series.series.map((item) => ({
-      label: item.label,
-      rows: item.rows,
-      stride: item.stride,
-      downsampled: item.downsampled,
-    })),
     totalPoints,
     shown,
     truncated: totalPoints > shown,

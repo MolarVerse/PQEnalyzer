@@ -118,7 +118,7 @@ export function HistogramView({
                 href={`/api/export.csv?parameter=${encodeURIComponent(focus)}`}
                 download
               >
-                full-resolution CSV
+                CSV
               </a>
             </>
           ) : undefined

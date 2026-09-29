@@ -4,8 +4,7 @@ import type { OverlayFlags } from "./api";
  * Persisted UI choices (analysis and dashboard sort).
  * Browser localStorage: survives server restarts and reloads, needs no
  * backend, stays per-user. Shape is versioned; anything unknown or
- * malformed falls back to built-in defaults. `difference` is never
- * restored — it hides raw data, so it stays an explicit per-session act.
+ * malformed falls back to built-in defaults.
  */
 export interface WebSettings {
   version: 1;
@@ -33,7 +32,6 @@ const KNOWN_OVERLAYS: (keyof OverlayFlags)[] = [
   "median",
   "cummulative_average",
   "autocorrelation",
-  "difference",
   "running_average",
 ];
 
@@ -72,8 +70,7 @@ export function loadSettings(storage?: StorageLike | null): WebSettings {
   if (record.version !== 1) return fallback;
   const settings = defaultSettings();
   {
-    const { difference: _dropped, ...rest } = cleanOverlays(record.overlays);
-    void _dropped;
+    const rest = cleanOverlays(record.overlays);
     settings.overlays = { ...settings.overlays, ...rest };
     const old = (record.overlays as Record<string, unknown> | undefined)
       ?.self_correlation_mean;
