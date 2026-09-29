@@ -19,7 +19,7 @@ def create_app(filenames, input_format="auto", reader=None):
     Build the FastAPI application for already-validated input files.
     """
     from fastapi import FastAPI, HTTPException
-    from fastapi.responses import PlainTextResponse, StreamingResponse
+    from fastapi.responses import StreamingResponse
     from fastapi.staticfiles import StaticFiles
 
     from ..readers import create_reader
@@ -105,7 +105,7 @@ def create_app(filenames, input_format="auto", reader=None):
             raise HTTPException(status_code=422, detail=str(error))
 
     @application.get("/api/histogram")
-    def get_histogram(parameter: str, bins: int = 48):
+    def get_histogram(parameter: str, bins: str = "auto"):
         try:
             return state.histogram(parameter, bins=bins)
         except ValueError as error:
@@ -121,21 +121,6 @@ def create_app(filenames, input_format="auto", reader=None):
     @application.get("/api/summaries")
     def get_summaries():
         return state.summaries()
-
-    @application.get("/api/export.csv")
-    def get_export_csv(parameter: str):
-        try:
-            content = state.export_csv(parameter)
-        except ValueError as error:
-            raise HTTPException(status_code=404, detail=str(error))
-        return PlainTextResponse(
-            content,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition":
-                    f"attachment; filename=\"pqenalyzer-{parameter}.csv\"",
-            },
-        )
 
     if STATIC_DIR.is_dir():
         application.mount(

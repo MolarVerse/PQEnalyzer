@@ -9,8 +9,6 @@ become ``null``.
 """
 
 import math
-import csv
-import io
 import json
 import os
 import queue
@@ -26,7 +24,6 @@ from ..energy_access import (
     concatenate_series,
     parameter_kind,
     parameter_unit_for_energies,
-    series,
     simulation_time,
 )
 from ..plots.features import (
@@ -39,7 +36,7 @@ from ..statistics import Statistic
 
 MAX_POINTS = 4000
 SPARK_POINTS = 120
-HISTOGRAM_BINS_DEFAULT = 48
+HISTOGRAM_BINS_DEFAULT = "auto"
 #: Seconds between file-watcher mtime scans.
 WATCH_INTERVAL = 0.5
 #: SSE reconnect hint (ms) so a restarted server resumes live updates.
@@ -334,7 +331,6 @@ class WebState:
         """
         Return one histogram and KDE for all files combined.
         """
-        bins = max(8, min(200, int(bins)))
         with self.lock:
             energies = list(self.reader.energies)
         matching = _matching_indices(energies, parameter)
@@ -348,6 +344,8 @@ class WebState:
         if finite.size == 0:
             raise ValueError(
                 f"Parameter {parameter} has no finite values to bin.")
+        bins = (_automatic_bin_count(finite) if bins == "auto"
+                else max(2, min(200, int(bins))))
         if finite.min() == finite.max():
             edges = np.linspace(
                 finite.min() - 0.5, finite.max() + 0.5, bins + 1)
@@ -482,46 +480,6 @@ class WebState:
             "kind": kind,
         }
 
-    def export_csv(self, parameter):
-        """
-        Return one ordered sequence with original time and file provenance.
-        """
-        with self.lock:
-            energies = list(self.reader.energies)
-        matching = _matching_indices(energies, parameter)
-        if not matching:
-            raise ValueError(
-                f"Parameter {parameter} is not present in any input file.")
-        unit = parameter_unit_for_energies(energies, parameter)
-        time_label = axis_label(energies[matching[0]])
-        combined = concatenate_series(energies, parameter)
-        _, chart_label, _ = _chart_axis(
-            combined.time, time_label,
-            _time_unit([energies[index] for index in matching]))
-        output = io.StringIO()
-        output.write("\n".join([
-            f"# parameter: {parameter}",
-            f"# unit: {unit or 'n/a'}",
-            f"# time: {time_label}",
-            f"# chart_axis: {chart_label}",
-        ]) + "\n")
-        writer = csv.writer(output, lineterminator="\n")
-        writer.writerow(["sample", "file", "time", "value"])
-        sample = 0
-        for index in matching:
-            energy = energies[index]
-            time = np.asarray(simulation_time(energy), dtype=float)
-            values = np.asarray(
-                series(energy, parameter).values, dtype=float)
-            label = self.labels[index]
-            for stamp, value in zip(time, values):
-                sample += 1
-                if math.isfinite(stamp) and math.isfinite(value):
-                    writer.writerow([
-                        sample, label, f"{stamp:.10g}", f"{value:.10g}"])
-        return output.getvalue()
-
-
 def _time_unit(energies):
     """
     Return the simulation-time unit, or an empty string when unknown.
@@ -586,6 +544,22 @@ def _analysis_of(values, time):
         "equil_time": equil_time,
         "discarded_fraction": float(fraction),
     }
+
+
+def _automatic_bin_count(values):
+    """Use NumPy's auto estimators while bounding the resulting chart size."""
+    count = values.size
+    span = float(np.ptp(values))
+    if count < 2 or span == 0:
+        return 1
+    sturges = math.log2(count) + 1
+    lower, upper = np.percentile(values, [25, 75])
+    iqr = float(upper - lower)
+    fd_width = 2 * iqr / count ** (1 / 3) if iqr > 0 else 0
+    fd_bins = span / fd_width if fd_width > 0 else 0
+    if not math.isfinite(fd_bins):
+        return 200
+    return max(2, min(200, math.ceil(max(sturges, fd_bins))))
 
 
 def _kde_of(finite, edges):

@@ -1,9 +1,4 @@
-/*
- * PQEnalyzer Web shell (LOCAL-ONLY preview).
- * Chart type (series|histogram) is shared; focus (parameter|null) picks
- * the dashboard overview or one focused chart. A control only ever changes
- * what is below it.
- */
+/* PQEnalyzer Web shell (local preview). */
 
 import {
   CommandPalette,
@@ -31,9 +26,6 @@ import {
   loadSettings,
   saveSettings,
 } from "./settings";
-
-
-
 /** Track a CSS media query so rail blocks render in exactly one place. */
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(
@@ -48,12 +40,6 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-/**
- * The scientific line under the chart shows truncation and correlation
- * estimates without making a convergence claim.
- */
-
-
 export default function App() {
   // Overlay defaults (combined mean) and dashboard sort persist per browser.
   const [stored] = useState(() => loadSettings(browserStorage()));
@@ -62,7 +48,7 @@ export default function App() {
     ...stored.overlays,
   }));
   const [windowSize, setWindowSize] = useState("");
-  const [bins, setBins] = useState("48");
+  const [bins, setBins] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(
     stored.sortMode === "drift" ? "drift" : "name",

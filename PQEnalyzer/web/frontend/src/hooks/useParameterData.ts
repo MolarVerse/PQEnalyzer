@@ -30,7 +30,8 @@ export function useParameterData(
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [overlayError, setOverlayError] = useState<string | null>(null);
   const [overlaysLoading, setOverlaysLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [seriesError, setSeriesError] = useState<string | null>(null);
+  const [histogramError, setHistogramError] = useState<string | null>(null);
   const [seriesLoading, setSeriesLoading] = useState(false);
   const [loadedRevision, setLoadedRevision] = useState(0);
   const seriesRequest = useRef(0);
@@ -38,7 +39,7 @@ export function useParameterData(
   const loadParameter = useCallback(
     async (name: string) => {
       const request = ++seriesRequest.current;
-      setError(null);
+      setSeriesError(null);
       setSeriesLoading(true);
       try {
         const [loadedSeries, loadedSummary] = await Promise.all([
@@ -51,7 +52,7 @@ export function useParameterData(
         setLoadedRevision((current) => current + 1);
       } catch (error) {
         if (request === seriesRequest.current) {
-          setError(error instanceof Error ? error.message : String(error));
+          setSeriesError(error instanceof Error ? error.message : String(error));
         }
       } finally {
         if (request === seriesRequest.current) setSeriesLoading(false);
@@ -62,6 +63,8 @@ export function useParameterData(
 
   useEffect(() => {
     if (focus) {
+      setSeriesError(null);
+      setHistogramError(null);
       setSeries(null);
       setSummary(null);
       setOverlays([]);
@@ -100,16 +103,17 @@ export function useParameterData(
   }, [focus, series?.parameter, flags, windowSize, loadedRevision]);
 
   useEffect(() => {
-    if (!focus || mode !== "histogram") return;
+    if (!focus || mode !== "histogram" || series?.parameter !== focus) return;
     let active = true;
     setHistogram(null);
-    fetchHistogram(focus, Number(bins) || 48)
+    setHistogramError(null);
+    fetchHistogram(focus, bins)
       .then((loaded) => { if (active) setHistogram(loaded); })
       .catch((error: unknown) => {
-        if (active) setError(error instanceof Error ? error.message : String(error));
+        if (active) setHistogramError(error instanceof Error ? error.message : String(error));
       });
     return () => { active = false; };
-  }, [focus, mode, bins, loadedRevision]);
+  }, [focus, mode, bins, loadedRevision, series?.parameter]);
 
   return {
     series,
@@ -118,7 +122,7 @@ export function useParameterData(
     histogram,
     summary,
     overlayError,
-    error,
+    error: focus ? seriesError ?? (mode === "histogram" ? histogramError : null) : null,
     seriesLoading,
     loadParameter,
   };

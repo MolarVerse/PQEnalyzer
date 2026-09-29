@@ -121,8 +121,8 @@ without opening a browser.
 
 What you see:
 
-- **Dashboard** — one card per parameter with a sparkline, the latest
-  value, and drift/equilibration glyphs. Click a card (or press
+- **Dashboard** — one card per parameter with a sparkline and the latest
+  value. Click a card (or press
   `Ctrl+K` and type a name) to inspect it.
 - **Series / Histogram** — press `1` / `2` to switch the chart language.
   Drag to zoom, double-click to reset, hover for values. Files are read in
@@ -135,8 +135,7 @@ What you see:
   choices and dashboard sort persist per browser.
 - **Axis** — physical time is used when it increases throughout the combined
   sequence. If it restarts or overlaps between files, charts use a one-based
-  sample index so every observation remains visible. The CSV includes that
-  sample index, original time, and source file.
+  sample index so every observation remains visible.
 - **Live updates** — the header badge reads `watching` while files are
   watched, `stale` when they changed on disk (refresh or resume watching
   to reload), `paused` when watching is off, and `offline` if the
@@ -151,9 +150,9 @@ What you see:
 | `?` | This shortcut list |
 | `Esc` | Close panel, then back to the dashboard |
 
-`Data` shows the transported points as a table, and `PNG` / `CSV` download
-the chart and the full-resolution data. PNG exports the chart currently shown. An
-MSER marker shows an estimated initial cut on eligible time series. The mean,
+Hover over the series or histogram to inspect values and bin counts. The source
+files stay in their original format; the chart can be saved as a PNG. An MSER
+marker shows an estimated initial cut on eligible time series. The mean,
 uncertainty, and other summary statistics still use all samples. The cut is
 not a verdict that the simulation has converged.
 

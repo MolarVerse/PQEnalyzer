@@ -1,6 +1,6 @@
 import { Field, Toggle } from "@molarverse/pq-design";
 import type { Dispatch, SetStateAction } from "react";
-import type { OverlayFlags } from "../api";
+import { histogramBinSelection, type OverlayFlags } from "../api";
 
 export interface SharedControls {
   flags: OverlayFlags;
@@ -118,15 +118,19 @@ export function HistogramBlock({
   return (
     <section className="setup-section">
       <h2 className="section-title">Histogram</h2>
-      <Field label="Bins" info="Shared edges across files.">
+      <Field label="Bins" info="Auto chooses a bin width from all values. Set a number to override it.">
         <input
           type="number"
-          min={8}
+          min={2}
           max={200}
+          step={1}
           value={bins}
+          placeholder="auto"
           onChange={(event) => setBins(event.target.value)}
+          onBlur={() => setBins(histogramBinSelection(bins) === "auto" ? "" : histogramBinSelection(bins))}
         />
       </Field>
+      {bins && <button type="button" className="use-auto" onClick={() => setBins("")}>Use auto</button>}
       <div className="toggle-group">
         <Toggle
           label="Mean guide"

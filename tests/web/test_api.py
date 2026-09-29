@@ -230,11 +230,6 @@ def test_restarted_time_uses_sample_axis_for_every_curve(tmp_path):
         histogram = overlap.get("/api/histogram", params={
             "parameter": "TEMPERATURE"}).json()
         assert sum(histogram["series"][0]["counts"]) == 10
-        csv_lines = overlap.get("/api/export.csv", params={
-            "parameter": "TEMPERATURE"}).text.splitlines()
-        assert csv_lines[3] == "# chart_axis: Sample"
-        assert csv_lines[4] == "sample,file,time,value"
-        assert csv_lines[10].startswith("6,same-steps.en,6,")
 
 
 def test_difference_without_shared_steps_is_422(client):
@@ -263,6 +258,24 @@ def test_histogram_bins_one_combined_distribution(client):
     assert body["kde"][0]["label"] == "All data"
     assert [guide["label"] for guide in body["guides"]] == [
         "Mean", "Median"]
+
+
+def test_histogram_defaults_to_bounded_auto_bins(client):
+    """The default resolves from all values and avoids empty tiny-sample bins."""
+    from PQEnalyzer.web.api import _automatic_bin_count
+
+    values = np.asarray(client.get("/api/series", params={
+        "parameter": "TEMPERATURE"}).json()["series"][0]["values"])
+    body = client.get("/api/histogram", params={
+        "parameter": "TEMPERATURE"}).json()
+    assert len(body["edges"]) - 1 == len(
+        np.histogram_bin_edges(values, bins="auto")) - 1
+    assert sum(body["series"][0]["counts"]) == values.size
+    assert _automatic_bin_count(np.r_[np.linspace(0, 1, 1000), 1e12]) == 200
+    assert len(client.get("/api/histogram", params={
+        "parameter": "TEMPERATURE", "bins": "2"}).json()["edges"]) == 3
+    assert client.get("/api/histogram", params={
+        "parameter": "TEMPERATURE", "bins": "invalid"}).status_code == 422
 
 
 def test_summary_reports_combined_stats(client):
@@ -338,19 +351,3 @@ def test_status_and_refresh_roundtrip(client):
     """
     assert client.get("/api/status").json()["stale"] is False
     assert client.post("/api/refresh").json()["stale"] is False
-
-
-def test_export_csv_is_long_form_with_header(client):
-    """
-    CSV export carries a single sample index and original file/time provenance.
-    """
-    text = client.get(
-        "/api/export.csv", params={"parameter": "TEMPERATURE"}).text
-    lines = text.splitlines()
-    assert lines[0] == "# parameter: TEMPERATURE"
-    assert lines[1] == "# unit: K"
-    assert lines[3] == "# chart_axis: Simulation Time"
-    assert lines[4] == "sample,file,time,value"
-    assert len(lines) == 5 + 10
-    assert lines[5].startswith("1,md-01.en,1,")
-    assert lines[-1].startswith("10,md-02.en,10,")

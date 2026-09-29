@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { Modal } from "@molarverse/pq-design";
+import { useMemo } from "react";
 import {
   HistogramChart,
   SERIES_COLORS,
@@ -7,8 +6,6 @@ import {
 import { formatUnit, type HistogramResponse, type OverlayFlags, type SummaryResponse } from "../api";
 import { TitleRow } from "../components/Chrome";
 import { StatLine } from "../components/Stats";
-import { HistogramDataTable } from "../components/DataTable";
-import { histogramTable } from "../tables";
 
 export interface HistogramViewProps {
   focus: string;
@@ -44,12 +41,6 @@ export function HistogramView({
     );
   }, [histogram, flags.mean, flags.median]);
 
-  const [dataOpen, setDataOpen] = useState(false);
-  const table = useMemo(
-    () => (histogram ? histogramTable(histogram) : null),
-    [histogram],
-  );
-
   return (
     <section className="setup-section">
       <TitleRow
@@ -61,14 +52,6 @@ export function HistogramView({
         }
         actions={
           <>
-            <button
-              type="button"
-              className="ghost-action"
-              title="Binned counts as a table"
-              onClick={() => setDataOpen(true)}
-            >
-              Data
-            </button>
             <button
               type="button"
               className="ghost-action"
@@ -106,27 +89,6 @@ export function HistogramView({
         </p>
       )}
       {summary && <StatLine stats={summary.combined} unit={summary.unit} />}
-      <Modal
-        open={dataOpen}
-        size={table && table.bins.length > 24 ? "full" : "lg"}
-        title={`${focus} — binned counts`}
-        subtitle={
-          table ? (
-            <>
-              {table.bins.length} bins ·{" "}
-              <a
-                href={`/api/export.csv?parameter=${encodeURIComponent(focus)}`}
-                download
-              >
-                CSV
-              </a>
-            </>
-          ) : undefined
-        }
-        onClose={() => setDataOpen(false)}
-      >
-        {table && <HistogramDataTable data={table} />}
-      </Modal>
     </section>
   );
 }

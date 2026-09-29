@@ -20,8 +20,9 @@ import uPlot, { type AlignedData } from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { formatTick, formatValue } from "../api";
 import { pinchRange, type TimeRange } from "../scale";
-import { alignSeries } from "../tables";
+import { alignSeries } from "../chartData";
 import { niceTicks, type LineDataset } from "../charts";
+import { useChartSize } from "../hooks/useChartSize";
 
 const MONO_FONT = '11px "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace';
 const GRID = "#e0e0e0";
@@ -92,9 +93,8 @@ export function UPlotChart({
   hideFooter = false,
   ref,
 }: UPlotChartProps) {
-  const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
+  const { setElement: setWrapEl, size } = useChartSize(height);
   const [mountEl, setMountEl] = useState<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 760, h: height });
   const [plot, setPlot] = useState<uPlot | null>(null);
   const [zoom, setZoom] = useState<TimeRange | null>(null);
   const [cursorIdx, setCursorIdx] = useState<number | null>(null);
@@ -104,24 +104,6 @@ export function UPlotChart({
     center: number;
     range: TimeRange;
   } | null>(null);
-
-  useEffect(() => {
-    if (!wrapEl) return;
-    const measure = () => {
-      setSize({
-        w: Math.max(280, Math.round(wrapEl.clientWidth)),
-        h: Math.max(160, Math.round(wrapEl.clientHeight)),
-      });
-    };
-    const observer = new ResizeObserver(() => measure());
-    observer.observe(wrapEl);
-    measure();
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [wrapEl]);
 
   const visible = useMemo(
     () => datasets.filter((dataset) => !hidden.has(dataset.key)),
@@ -255,6 +237,9 @@ export function UPlotChart({
           ticks: { show: true, size: 5, width: 1, stroke: "#8d8d8d" },
           font: MONO_FONT,
           size: 58,
+          splits: (_u, _axis, min, max) => niceTicks(
+            min, max, Math.max(3, Math.min(6, Math.floor(size.h / 170))),
+          ),
           values: (_u, vals) => vals.map((v) => formatTick(v)),
         },
       ],

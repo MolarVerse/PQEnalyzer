@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSigma, formatTick, formatUnit, formatValue } from "./api";
+import { formatSigma, formatTick, formatUnit, formatValue, histogramBinSelection } from "./api";
 
 describe("formatValue", () => {
   it("formats compactly without hiding scale", () => {
@@ -35,5 +35,14 @@ describe("formatUnit", () => {
     expect(formatUnit("-")).toBe("");
     expect(formatUnit("")).toBe("");
     expect(formatUnit(null)).toBe("");
+  });
+});
+
+describe("histogramBinSelection", () => {
+  it("uses auto by default and normalizes manual values to the API range", () => {
+    expect(histogramBinSelection("")).toBe("auto");
+    expect(histogramBinSelection("0")).toBe("2");
+    expect(histogramBinSelection("7.8")).toBe("8");
+    expect(histogramBinSelection("500")).toBe("200");
   });
 });

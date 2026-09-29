@@ -152,9 +152,17 @@ export const fetchSummary = (parameter: string) =>
   get<SummaryResponse>(`/api/summary?parameter=${encodeURIComponent(parameter)}`);
 export const fetchSummaries = () =>
   get<{ summaries: SummaryEntry[] }>("/api/summaries").then((r) => r.summaries);
-export const fetchHistogram = (parameter: string, bins: number) =>
+export function histogramBinSelection(raw: string): string {
+  if (!raw.trim()) return "auto";
+  const value = Number(raw);
+  return Number.isFinite(value)
+    ? String(Math.max(2, Math.min(200, Math.round(value))))
+    : "auto";
+}
+
+export const fetchHistogram = (parameter: string, bins: string) =>
   get<HistogramResponse>(
-    `/api/histogram?parameter=${encodeURIComponent(parameter)}&bins=${bins}`,
+    `/api/histogram?parameter=${encodeURIComponent(parameter)}&bins=${histogramBinSelection(bins)}`,
   );
 
 export function fetchOverlays(

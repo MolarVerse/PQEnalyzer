@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Info, Modal } from "@molarverse/pq-design";
+import { Info } from "@molarverse/pq-design";
 import { Download, RefreshCw } from "lucide-react";
 import {
   Legend,
@@ -11,8 +11,6 @@ import { UPlotChart, type UPlotChartHandle } from "../components/UPlotChart";
 import { formatUnit, formatValue, type OverlayFlags, type OverlayItem, type SeriesResponse, type SummaryResponse } from "../api";
 import { TitleRow } from "../components/Chrome";
 import { AnalysisLine, StatLine } from "../components/Stats";
-import { SeriesDataTable } from "../components/DataTable";
-import { seriesTable } from "../tables";
 
 export interface SeriesViewProps {
   focus: string;
@@ -33,6 +31,10 @@ export interface SeriesViewProps {
   onToggleTools: () => void;
 }
 
+function pngName(focus: string, kind: string) {
+  return `pqenalyzer-${focus.replace(/[^\w.-]+/g, "_")}-${kind}.png`;
+}
+
 function downloadDataURL(url: string, filename: string) {
   const link = document.createElement("a");
   link.href = url;
@@ -40,10 +42,6 @@ function downloadDataURL(url: string, filename: string) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-}
-
-function pngName(focus: string, kind: string) {
-  return `pqenalyzer-${focus.replace(/[^\w.-]+/g, "_")}-${kind}.png`;
 }
 
 /** Focused series scope: chart, legend values, stat + analysis lines. */
@@ -66,16 +64,10 @@ export function SeriesView({
   onToggleTools,
 }: SeriesViewProps) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [dataOpen, setDataOpen] = useState(false);
   const mainRef = useRef<UPlotChartHandle | null>(null);
   useEffect(() => {
     setHidden(new Set());
-    setDataOpen(false);
-  }, [focus]);
-
-  useEffect(() => {
-    setHidden(new Set());
-  }, [flags.autocorrelation]);
+  }, [focus, flags.autocorrelation]);
 
   const toggleHidden = (key: string) => {
     setHidden((current) => {
@@ -166,12 +158,6 @@ export function SeriesView({
     [datasets],
   );
 
-  /** Transported-points table (built once per load, not per render). */
-  const table = useMemo(
-    () => (series ? seriesTable(series) : null),
-    [series],
-  );
-
   return (
     <section className="setup-section">
       <TitleRow
@@ -183,14 +169,6 @@ export function SeriesView({
         }
         actions={
           <>
-            <button
-              type="button"
-              className="ghost-action"
-              title="Transported data points as a table"
-              onClick={() => setDataOpen(true)}
-            >
-              Data
-            </button>
             <button
               type="button"
               className="ghost-action"
@@ -294,28 +272,6 @@ export function SeriesView({
           )}
         </>
       )}
-      <Modal
-        open={dataOpen}
-        size={table && table.shown > 24 ? "full" : "lg"}
-        title={`${focus} — data`}
-        subtitle={
-          table ? (
-            <>
-              {table.shown.toLocaleString()}
-              {table.truncated ? ` / ${table.totalPoints.toLocaleString()}` : ""} points ·{" "}
-              <a
-                href={`/api/export.csv?parameter=${encodeURIComponent(focus)}`}
-                download
-              >
-                CSV
-              </a>
-            </>
-          ) : undefined
-        }
-        onClose={() => setDataOpen(false)}
-      >
-        {table && <SeriesDataTable data={table} />}
-      </Modal>
     </section>
   );
 }

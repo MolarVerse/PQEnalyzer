@@ -4,8 +4,9 @@
  * Null values break paths into honest gaps instead of bridging them.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { formatTick, formatValue } from "./api";
+import { useChartSize } from "./hooks/useChartSize";
 
 /**
  * Line hues for combined data and distribution guides.
@@ -269,28 +270,13 @@ export function HistogramChart({
   fileColors: string[];
   height?: number;
 }) {
-  const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 760, h: height });
-
-  useEffect(() => {
-    if (!wrapEl) return;
-    const measure = () => {
-      setSize({
-        w: Math.max(280, Math.round(wrapEl.clientWidth)),
-        h: Math.max(160, Math.round(wrapEl.clientHeight)),
-      });
-    };
-    const observer = new ResizeObserver(() => measure());
-    observer.observe(wrapEl);
-    measure();
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [wrapEl]);
+  const { setElement: setWrapEl, size } = useChartSize(height);
+  const [hoveredBin, setHoveredBin] = useState<number | null>(null);
 
   const bins = edges.length - 1;
+  const counts = edges.slice(0, -1).map((_, bin) =>
+    series.reduce((total, item) => total + (item.counts[bin] ?? 0), 0),
+  );
   const maxCount = Math.max(
     1,
     ...series.flatMap((item) => item.counts),
@@ -320,7 +306,13 @@ export function HistogramChart({
 
   return (
     <div className="chart-wrap" ref={setWrapEl}>
-      <svg width={size.w} height={size.h} role="img" aria-label="Histogram">
+      <svg
+        width={size.w}
+        height={size.h}
+        role="img"
+        aria-label={`Histogram, ${counts.reduce((total, count) => total + count, 0)} samples in ${bins} bins`}
+        onMouseLeave={() => setHoveredBin(null)}
+      >
         {yTicks.map((tick) => (
           <g key={tick}>
             <line
@@ -390,7 +382,31 @@ export function HistogramChart({
             strokeWidth="2"
           />
         ))}
+        {edges.slice(0, -1).map((_, bin) => (
+          <rect
+            key={`hover-${bin}`}
+            x={x(edges[bin])}
+            y={MARGIN.top}
+            width={binW}
+            height={plotH}
+            fill="transparent"
+            aria-hidden="true"
+            onMouseEnter={() => setHoveredBin(bin)}
+          />
+        ))}
       </svg>
+      {hoveredBin !== null && (
+        <div
+          className="chart-tooltip"
+          style={{
+            left: Math.min(Math.max(x(edges[hoveredBin]), 8), Math.max(8, size.w - 190)),
+            top: 8,
+          }}
+        >
+          <strong>{formatValue(edges[hoveredBin])}–{formatValue(edges[hoveredBin + 1])}</strong>
+          <span>{counts[hoveredBin].toLocaleString()} samples</span>
+        </div>
+      )}
     </div>
   );
 }
