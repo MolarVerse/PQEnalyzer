@@ -117,6 +117,43 @@ def test_unknown_parameter_is_404(client):
     assert response.status_code == 404
 
 
+def test_unknown_parameter_fails_each_analysis_endpoint(client):
+    """The UI receives an explicit error instead of an empty scientific plot."""
+    for endpoint, status in (
+        ("/api/overlays", 422),
+        ("/api/histogram", 422),
+        ("/api/summary", 404),
+    ):
+        response = client.get(endpoint, params={"parameter": "NOPE"})
+        assert response.status_code == status
+        assert "NOPE" in response.json()["detail"]
+
+
+def test_refresh_failure_is_reported_without_cached_success(client, monkeypatch):
+    """A failed reread is visible to the user rather than silently accepted."""
+    from PQEnalyzer.web.api import WebState
+
+    def fail_refresh(_state):
+        raise OSError("source disappeared")
+
+    monkeypatch.setattr(WebState, "refresh", fail_refresh)
+    response = client.post("/api/refresh")
+    assert response.status_code == 500
+    assert "source disappeared" in response.json()["detail"]
+
+
+def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
+    """An editable install without built assets explains how to build them."""
+    from fastapi.testclient import TestClient
+    from PQEnalyzer.web import app as web_app
+
+    monkeypatch.setattr(web_app, "STATIC_DIR", tmp_path / "missing")
+    with TestClient(web_app.create_app([MD_01], "auto")) as test_client:
+        response = test_client.get("/")
+    assert response.status_code == 404
+    assert "frontend not built" in response.json()["detail"]
+
+
 def test_overlays_use_shared_feature_math(client):
     """
     References and moving windows use the same combined sequence.
