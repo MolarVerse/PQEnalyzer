@@ -105,40 +105,34 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: setup python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - name: build git-changelog
-      run: |
-        python3 -m pip install git-changelog
-
     - name: Get previous tag
       id: previous_tag
       run: |
-        previous_tag="$(git --no-pager tag --sort=creatordate --merged "$GITHUB_REF_NAME" | grep -Fxv "$GITHUB_REF_NAME" | tail -1 || true)"
+        previous_tag="$(git tag --list 'v*' --sort=-version:refname --merged "$GITHUB_REF_NAME" | grep -Fxv "$GITHUB_REF_NAME" | head -1 || true)"
         echo "previous tag: $previous_tag"
         echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
 
     - name: Generate release notes
-      id: changelog
+      id: notes
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PREVIOUS_TAG: ${{ steps.previous_tag.outputs.previous_tag }}
       run: |
+        args=(-f "tag_name=$GITHUB_REF_NAME" -f "target_commitish=$GITHUB_SHA")
+        if [ -n "$PREVIOUS_TAG" ]; then
+          args+=(-f "previous_tag_name=$PREVIOUS_TAG")
+        fi
         {
-          echo "notes<<EOF"
-          if [ -n "${{ steps.previous_tag.outputs.previous_tag }}" ]; then
-            git-changelog --sections ci,doc,feat,fix,perf,test -F "${{ steps.previous_tag.outputs.previous_tag }}.." -c angular
-          else
-            git-changelog --sections ci,doc,feat,fix,perf,test -c angular
-          fi
-          echo "EOF"
+          echo "notes<<PQENALYZER_RELEASE_NOTES"
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" "${args[@]}" --jq .body
+          echo "PQENALYZER_RELEASE_NOTES"
         } >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        RELEASE_NOTES: ${{ steps.changelog.outputs.notes }}
+        RELEASE_NOTES: ${{ steps.notes.outputs.notes }}
       run: |
         if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
           gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes "$RELEASE_NOTES"
