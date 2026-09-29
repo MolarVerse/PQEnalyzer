@@ -25,8 +25,143 @@ def configure_default_theme(appearance_mode="System"):
     Configure the persisted CustomTkinter theme.
     """
 
+    # LOCAL-ONLY preview: PQ_FLAT_MONO=1 forces the flat-mono light theme.
+    # The language is Gray-10 light-only, square, mono.
+    try:
+        from ..flat_mono import is_flat_mono_enabled
+
+        if is_flat_mono_enabled():
+            ctk.set_appearance_mode("Light")
+            ctk.set_default_color_theme("blue")
+            return
+    except ImportError:
+        pass
+
     ctk.set_appearance_mode(appearance_mode)
     ctk.set_default_color_theme("blue")
+
+
+def _flat_mono_active():
+    """Return True when the local flat-mono preview is requested."""
+    try:
+        from ..flat_mono import is_flat_mono_enabled
+
+        return is_flat_mono_enabled()
+    except ImportError:
+        return False
+
+
+def _flat_mono_font(size=13, weight="normal"):
+    """Return a mono CTkFont for the flat-mono preview, else None."""
+    if not _flat_mono_active():
+        return None
+    try:
+        from ..flat_mono import FLAT_MONO_CTK
+
+        family = FLAT_MONO_CTK["mono_font"][0]
+    except (ImportError, KeyError):
+        family = "IBM Plex Mono"
+    return ctk.CTkFont(family=family, size=size, weight=weight)
+
+
+def _style_flat_mono_widgets(widgets, primary_buttons=(), section_titles=()):
+    """Apply square, hairline, mono styling (local preview only).
+
+    ``primary_buttons`` marks Carbon primary actions (accent fill);
+    other buttons render as secondary outlines. ``section_titles`` are
+    labels restyled as uppercase group headings per the language.
+    """
+    if not _flat_mono_active():
+        return
+    try:
+        from ..flat_mono import FLAT_MONO_CTK
+    except ImportError:
+        return
+    for widget in widgets:
+        if widget is None:
+            continue
+        try:
+            if isinstance(widget, ctk.CTkFrame):
+                widget.configure(
+                    corner_radius=FLAT_MONO_CTK["corner_radius"],
+                    fg_color=FLAT_MONO_CTK["surface"],
+                    border_width=FLAT_MONO_CTK["border_width"],
+                    border_color=FLAT_MONO_CTK["border"],
+                )
+            elif isinstance(widget, ctk.CTkButton):
+                if widget in primary_buttons:
+                    # Carbon primary: accent fill, white label.
+                    widget.configure(
+                        corner_radius=FLAT_MONO_CTK["corner_radius"],
+                        fg_color=FLAT_MONO_CTK["accent"],
+                        hover_color=FLAT_MONO_CTK["accent_dark"],
+                        text_color="#ffffff",
+                        border_width=0,
+                        height=32,
+                        font=_flat_mono_font(size=13, weight="normal"),
+                    )
+                else:
+                    # Carbon secondary: 1px outline, ink label.
+                    widget.configure(
+                        corner_radius=FLAT_MONO_CTK["corner_radius"],
+                        fg_color="transparent",
+                        hover_color=FLAT_MONO_CTK["accent_soft"],
+                        text_color=FLAT_MONO_CTK["ink"],
+                        border_width=FLAT_MONO_CTK["border_width"],
+                        border_color=FLAT_MONO_CTK["border_strong"],
+                        height=32,
+                        font=_flat_mono_font(size=13, weight="normal"),
+                    )
+            elif isinstance(widget, ctk.CTkOptionMenu):
+                widget.configure(
+                    corner_radius=FLAT_MONO_CTK["corner_radius"],
+                    fg_color=FLAT_MONO_CTK["surface_subtle"],
+                    button_color=FLAT_MONO_CTK["surface_subtle"],
+                    button_hover_color=FLAT_MONO_CTK["border"],
+                    text_color=FLAT_MONO_CTK["ink"],
+                    height=32,
+                    font=_flat_mono_font(size=13),
+                )
+            elif isinstance(widget, ctk.CTkCheckBox):
+                widget.configure(
+                    corner_radius=FLAT_MONO_CTK["corner_radius"],
+                    border_width=2,
+                    border_color=FLAT_MONO_CTK["border_strong"],
+                    fg_color=FLAT_MONO_CTK["accent"],
+                    hover_color=FLAT_MONO_CTK["accent"],
+                    checkmark_color="#ffffff",
+                    text_color=FLAT_MONO_CTK["ink"],
+                    checkbox_height=18,
+                    checkbox_width=18,
+                    font=_flat_mono_font(size=12),
+                )
+            elif isinstance(widget, ctk.CTkLabel):
+                if widget in section_titles:
+                    widget.configure(
+                        font=_flat_mono_font(size=12, weight="bold"),
+                        text_color=FLAT_MONO_CTK["muted"],
+                    )
+                    try:
+                        widget.configure(text=str(widget.cget("text")).upper())
+                    except (ValueError, TypeError, AttributeError):
+                        pass
+                else:
+                    widget.configure(
+                        font=_flat_mono_font(size=12),
+                        text_color=FLAT_MONO_CTK["ink_soft"],
+                    )
+            elif isinstance(widget, ctk.CTkEntry):
+                widget.configure(
+                    corner_radius=FLAT_MONO_CTK["corner_radius"],
+                    fg_color=FLAT_MONO_CTK["surface"],
+                    border_width=FLAT_MONO_CTK["border_width"],
+                    border_color=FLAT_MONO_CTK["border_strong"],
+                    text_color=FLAT_MONO_CTK["ink"],
+                    height=32,
+                    font=_flat_mono_font(size=13),
+                )
+        except (ValueError, TypeError, AttributeError):
+            continue
 
 
 def configure_window(app):
@@ -43,6 +178,26 @@ def configure_window(app):
     app.iconphoto(False, ImageTk.PhotoImage(image))
 
     app.resizable(False, False)
+    # LOCAL-ONLY flat-mono preview: nudge the fixed window to its content
+    # size after the toolkit settles. Tiling compositors may otherwise show
+    # a clipped window; this only ever grows toward Tk's requested size.
+    if _flat_mono_active():
+        def _fit_to_content():
+            try:
+                app.update_idletasks()
+                req_w = app.winfo_reqwidth()
+                req_h = app.winfo_reqheight()
+                if req_w > app.winfo_width() or req_h > app.winfo_height():
+                    app.geometry(f"{max(req_w, app.winfo_width())}"
+                                 f"x{max(req_h, app.winfo_height())}")
+            except (ValueError, TypeError, AttributeError):
+                pass
+
+        try:
+            app.after(1000, _fit_to_content)
+            app.after(3000, _fit_to_content)
+        except (ValueError, TypeError, AttributeError):
+            pass
 
 
 class SidebarView:
@@ -71,6 +226,18 @@ class SidebarView:
         self.frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.frame.grid_rowconfigure(4, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
+        # LOCAL-ONLY flat-mono: Gray-10 sidebar, hairline, mono.
+        if _flat_mono_active():
+            try:
+                from ..flat_mono import FLAT_MONO_CTK
+
+                self.frame.configure(
+                    fg_color=FLAT_MONO_CTK["surface"],
+                    border_width=FLAT_MONO_CTK["border_width"],
+                    border_color=FLAT_MONO_CTK["border"],
+                )
+            except ImportError:
+                pass
 
         self.logo = ctk.CTkImage(
             Image.open(ICON_PATH),
@@ -83,9 +250,17 @@ class SidebarView:
         self.logo_label = ctk.CTkLabel(
             self.frame,
             text="PQEnalyzer",
-            font=ctk.CTkFont(size=20, weight="bold"),
+            font=_flat_mono_font(size=20, weight="bold")
+            or ctk.CTkFont(size=20, weight="bold"),
         )
         self.logo_label.grid(row=1, column=0, padx=10, pady=10)
+        if _flat_mono_active():
+            try:
+                from ..flat_mono import FLAT_MONO_CTK
+
+                self.logo_label.configure(text_color=FLAT_MONO_CTK["ink"])
+            except ImportError:
+                pass
 
         self.plot_scale_label = ctk.CTkLabel(
             self.frame,
@@ -140,6 +315,13 @@ class SidebarView:
         app.plot_scale_optionemenu = self.plot_scale_optionemenu
         app.appearance_mode_label = self.appearance_mode_label
         app.appearance_mode_optionemenu = self.appearance_mode_optionemenu
+        # LOCAL-ONLY flat-mono preview styling.
+        _style_flat_mono_widgets([
+            self.plot_scale_label,
+            self.plot_scale_optionemenu,
+            self.appearance_mode_label,
+            self.appearance_mode_optionemenu,
+        ])
 
 
 class PlotControlsView:
@@ -260,6 +442,16 @@ class PlotControlsView:
         app.button_plot = self.plot_button
         app.button_hist = self.histogram_button
         app.button_dashboard = self.dashboard_button
+        # LOCAL-ONLY flat-mono preview styling (Plot is the primary action).
+        _style_flat_mono_widgets([
+            self.frame,
+            self.auto_refresh_checkbox,
+            self.no_data_checkbox,
+            self.auto_refresh_status_label,
+            self.plot_button,
+            self.histogram_button,
+            self.dashboard_button,
+        ], primary_buttons=(self.plot_button,))
 
 
 class ParameterSelectorView:
@@ -302,6 +494,8 @@ class ParameterSelectorView:
         app.info_frame = self.frame
         app.info_label = self.label
         app.info_optionmenu = self.optionmenu
+        # LOCAL-ONLY flat-mono preview styling.
+        _style_flat_mono_widgets([self.frame, self.label, self.optionmenu])
 
 
 class StatisticsControlsView:
@@ -408,6 +602,17 @@ class StatisticsControlsView:
         app.time_series_label = self.time_series_label
         app.running_average_window_size_label = self.window_size_label
         app.window_size = self.window_size
+        # LOCAL-ONLY flat-mono preview styling.
+        _style_flat_mono_widgets([
+            self.frame,
+            self.statistics_frame,
+            self.time_series_frame,
+            self.label,
+            self.time_series_label,
+            self.window_size_label,
+            self.window_size,
+            *self.feature_controls.values(),
+        ], section_titles=(self.label, self.time_series_label))
 
     def __create_feature_control(self, frame, feature, row):
         """

@@ -74,6 +74,24 @@ class TestStatistic:
         assert np.all(old_time == new_time)
         assert np.all(old_average == new_average)
 
+    def test_missing_values_do_not_poison_later_averages(self):
+        time = np.arange(1, 7)
+        values = np.array([1.0, 2.0, np.nan, 4.0, 5.0, 6.0])
+
+        _, mean = Statistic.mean_values(time, values)
+        _, median = Statistic.median_values(time, values)
+        _, cumulative = Statistic.cumulative_average_values(time, values)
+        running_time, running = Statistic.running_average_values(
+            time, values, 2)
+
+        assert np.allclose(mean, [3.6, 3.6])
+        assert np.allclose(median, [4.0, 4.0])
+        assert np.allclose(cumulative, [1.0, 1.5, np.nan, 7 / 3, 3.0, 3.6],
+                           equal_nan=True)
+        assert np.allclose(running_time, [1.5, 2.5, 3.5, 4.5, 5.5])
+        assert np.allclose(running, [1.5, np.nan, np.nan, 4.5, 5.5],
+                           equal_nan=True)
+
     def test_self_correlation_mean(self):
         time, self_correlation_mean = (
             Statistic.self_correlation_mean_values(
@@ -118,6 +136,20 @@ class TestStatistic:
         assert np.all(time == [1, 2, 3, 4, 5])
         assert np.all(self_correlation_mean == [0, 0, 0, 0, 0])
 
+    def test_normalized_autocorrelation_is_on_lag_axis(self):
+        lags, correlation = Statistic.autocorrelation_values(
+            [1, 2, 3, 4, 5], max_lag=2)
+        assert np.array_equal(lags, [0, 1, 2])
+        assert np.allclose(correlation, [1, 0.4, -0.1])
+        assert np.allclose(Statistic.autocorrelation_values(
+            [1, 2, 3, 4, 5])[1], [1, 0.4, -0.1, -0.4, -0.4])
+
+    def test_autocorrelation_rejects_undefined_series(self):
+        for values in ([2, 2, 2], [1, np.nan, 3], [1]):
+            lags, correlation = Statistic.autocorrelation_values(values)
+            assert lags.size == 0
+            assert correlation.size == 0
+
     def test_running_average(self):
         time, running_average = Statistic.running_average_values(
             [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], 2)
@@ -158,3 +190,46 @@ class TestStatistic:
 
         with pytest.raises(ValueError):
             Statistic.running_average(energies2, "SIMULATION-TIME", -1)
+
+    def test_block_error_values(self):
+        rng = np.random.default_rng(42)
+
+        white = rng.normal(300.0, 15.0, size=20000)
+        sem, inefficiency, tau, n_effective = Statistic.block_error_values(
+            np.arange(20000), white)
+        assert inefficiency == pytest.approx(1.0, abs=0.1)
+        assert tau == pytest.approx(1.0, abs=0.1)
+        assert n_effective == pytest.approx(20000, rel=0.05)
+        assert sem == pytest.approx(15.0 / np.sqrt(20000), rel=0.05)
+
+        correlated = np.zeros(20000)
+        for index in range(1, 20000):
+            correlated[index] = (
+                0.95 * correlated[index - 1] + rng.normal(0.0, 4.68))
+        _, inefficiency, tau, n_effective = Statistic.block_error_values(
+            np.arange(20000), correlated)
+        assert inefficiency == pytest.approx(39.0, rel=0.25)
+        assert tau == pytest.approx(39.0, rel=0.25)
+        assert n_effective == pytest.approx(20000 / 39.0, rel=0.25)
+
+        assert Statistic.block_error_values(
+            [1, 2, 3], [1.0, 2.0, 3.0]) == (None, None, None, None)
+
+        sem, inefficiency, tau, n_effective = Statistic.block_error_values(
+            [1, 2, 3, 4, 5], [2.0, 2.0, 2.0, 2.0, 2.0])
+        assert (sem, inefficiency, tau, n_effective) == (0.0, 1.0, 1.0, 5.0)
+
+    def test_mser_truncation_index(self):
+        rng = np.random.default_rng(7)
+
+        assert Statistic.mser_truncation_index(
+            rng.normal(300.0, 15.0, size=20000)) <= 400
+
+        drifted = np.concatenate([
+            np.linspace(200.0, 400.0, 2000),
+            rng.normal(300.0, 15.0, size=18000),
+        ])
+        assert Statistic.mser_truncation_index(drifted) == 2000
+
+        assert Statistic.mser_truncation_index(np.full(100, 5.0)) == 0
+        assert Statistic.mser_truncation_index([1.0, 2.0, 3.0]) is None

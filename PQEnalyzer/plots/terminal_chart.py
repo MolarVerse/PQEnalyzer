@@ -15,6 +15,18 @@ from .labels import parameter_label, unique_path_labels
 from .theme import series_rgb
 
 
+def _appearance_for_terminal():
+    """Return the palette key for terminal charts (local preview aware)."""
+    try:
+        from ..flat_mono import is_flat_mono_enabled
+
+        if is_flat_mono_enabled():
+            return "Light"
+    except ImportError:
+        pass
+    return "Dark"
+
+
 def build_terminal_chart(reader, info_parameter, width=88, height=22,
                          options=None):
     """
@@ -23,6 +35,7 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
 
     plt.clear_figure()
     plt.plot_size(max(32, int(width)), max(8, int(height)))
+    appearance = _appearance_for_terminal()
 
     if options is None or not options.plot_main:
         labels = unique_path_labels(reader.filenames)
@@ -35,7 +48,7 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
                 energy_series.time,
                 energy_series.values,
                 label=labels[index],
-                color=series_rgb(index, "Dark"),
+                color=series_rgb(index, appearance),
             )
 
     if options is not None:
@@ -52,7 +65,7 @@ def build_terminal_chart(reader, info_parameter, width=88, height=22,
                 label=overlay.label,
                 color=series_rgb(
                     len(reader.energies) + overlay_index,
-                    "Dark",
+                    appearance,
                 ),
             )
 

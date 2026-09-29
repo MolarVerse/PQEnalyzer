@@ -3,4 +3,12 @@ ignore:
   - "PQEnalyzer/__main__.py"
   - "PQEnalyzer/apps/*"
   - "PQEnalyzer/plots/*"
-  
+
+coverage:
+  status:
+    project:
+      default:
+        target: 94%
+    patch:
+      default:
+        target: 90%

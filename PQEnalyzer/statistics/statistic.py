@@ -6,6 +6,8 @@ sites. The ``*_values`` methods contain the actual numeric implementations and
 operate only on aligned time/value arrays.
 """
 
+import math
+
 import numpy as np
 
 from ..energy_access import concatenate_series
@@ -35,6 +37,8 @@ class Statistic:
         Calculate a self-correlation mean for a Reader energy parameter.
     self_correlation_mean_values(time, values)
         Calculate a self-correlation mean for numeric arrays.
+    autocorrelation_values(values, max_lag)
+        Calculate normalized autocorrelation on lag steps for numeric values.
     running_average(energies, info_parameter, window_size)
         Calculate a centered running average for a Reader energy parameter.
     running_average_values(time, values, window_size)
@@ -90,7 +94,8 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        mean = np.mean(data)
+        finite = data[np.isfinite(data)]
+        mean = np.mean(finite) if finite.size else np.nan
 
         return np.array([time[0], time[-1]]), np.array([mean, mean])
 
@@ -131,7 +136,8 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        median = np.median(data)
+        finite = data[np.isfinite(data)]
+        median = np.median(finite) if finite.size else np.nan
 
         return np.array([time[0], time[-1]]), np.array([median, median])
 
@@ -172,7 +178,12 @@ class Statistic:
         """
 
         time, data = Statistic.__arrays(time, values)
-        cumulative_average = np.cumsum(data) / np.arange(1, len(data) + 1)
+        valid = np.isfinite(data)
+        count = np.cumsum(valid)
+        total = np.cumsum(np.where(valid, data, 0.0))
+        cumulative_average = np.divide(
+            total, count, out=np.full(len(data), np.nan), where=count > 0)
+        cumulative_average[~valid] = np.nan
 
         return time, cumulative_average
 
@@ -237,6 +248,32 @@ class Statistic:
         return time, self_correlation_mean
 
     @staticmethod
+    def autocorrelation_values(values, max_lag=None) -> tuple:
+        """Return a normalized, mean-centered autocorrelation by lag in steps.
+
+        Lag zero is one. A constant series or a series with missing values has
+        no well-defined normalized autocorrelation and returns empty arrays.
+        FFT convolution keeps long trajectories practical to inspect.
+        """
+        data = np.asarray(values, dtype=float)
+        if data.ndim != 1 or data.size < 2 or not np.all(np.isfinite(data)):
+            return np.array([], dtype=float), np.array([], dtype=float)
+        centered = data - np.mean(data)
+        variance_sum = float(np.dot(centered, centered))
+        if variance_sum == 0:
+            return np.array([], dtype=float), np.array([], dtype=float)
+        count = data.size
+        fft_size = 1 << (2 * count - 1).bit_length()
+        spectrum = np.fft.rfft(centered, n=fft_size)
+        covariance = np.fft.irfft(spectrum * np.conj(spectrum),
+                                  n=fft_size)[:count]
+        limit = count if max_lag is None else min(count, max(1, int(max_lag) + 1))
+        lags = np.arange(limit, dtype=float)
+        correlation = covariance[:limit] / variance_sum
+        correlation[0] = 1.0
+        return lags, correlation
+
+    @staticmethod
     def running_average(energies, info_parameter, window_size) -> tuple:
         """
         Calculate a centered running average for an energy parameter.
@@ -277,7 +314,9 @@ class Statistic:
         Calculate the centered running average for a numeric series.
 
         Output time values are centered by averaging the input time values
-        inside each window.
+        inside each window. Linear-time prefix sums replace the naive
+        per-window summation; results match windowed means to float
+        precision while staying interactive on long trajectories.
         """
 
         time, data = Statistic.__arrays(time, values)
@@ -289,17 +328,120 @@ class Statistic:
         if len(data) < window_size:
             raise ValueError("Window size is larger than given data point")
 
-        running_average = np.array([
-            np.sum(data[i:i + window_size]) / window_size
-            for i in range(len(data) - window_size + 1)
-        ])
+        valid = np.isfinite(data)
+        padded_data = np.cumsum(
+            np.concatenate([[0.0], np.where(valid, data, 0.0)]))
+        data_sums = padded_data[window_size:] - padded_data[:-window_size]
+        running_average = data_sums / window_size
+        valid_counts = np.cumsum(np.concatenate([[0], valid.astype(int)]))
+        window_counts = valid_counts[window_size:] - valid_counts[:-window_size]
+        running_average[window_counts != window_size] = np.nan
 
-        time = np.array([
-            np.mean(time[i:i + window_size])
-            for i in range(len(data) - window_size + 1)
-        ])
+        padded_time = np.cumsum(
+            np.concatenate([[0.0], np.asarray(time, dtype=float)]))
+        time_sums = padded_time[window_size:] - padded_time[:-window_size]
+        time = time_sums / window_size
 
         return time, running_average
+
+    @staticmethod
+    def block_error_values(time, values) -> tuple:
+        """
+        Estimate the correlated standard error of the mean.
+
+        Naive ``std / sqrt(n)`` underestimates uncertainty for correlated
+        simulation data. This estimates autocorrelation by FFT and applies
+        Geyer's initial-positive-sequence truncation: the normalized autocorrelation
+        from an FFT is summed over consecutive positive pairs, giving the
+        integrated correlation time ``tau`` (in steps), the statistical
+        inefficiency ``g`` and the effective sample size ``n / g``.
+
+        Returns
+        -------
+        tuple
+            ``(sem, inefficiency, correlation_time, n_effective)`` with
+            ``sem`` the standard error of the mean. All four are ``None``
+            when fewer than four finite values are available.
+        """
+
+        _, data = Statistic.__arrays(time, values)
+        data = np.asarray(data, dtype=float)
+        data = data[np.isfinite(data)]
+        count = data.size
+        if count < 4:
+            return None, None, None, None
+
+        std = float(np.std(data))
+        if std == 0 or not math.isfinite(std):
+            return 0.0, 1.0, 1.0, float(count)
+
+        centered = data - float(np.mean(data))
+        size = 1
+        while size < 2 * count - 1:
+            size *= 2
+        spectrum = np.fft.rfft(centered, n=size)
+        autocovariance = np.fft.irfft(spectrum * np.conj(spectrum))[:count]
+        autocorrelation = autocovariance / autocovariance[0]
+
+        tau = 1.0
+        pair = 1
+        while 2 * pair < count:
+            gamma = (
+                float(autocorrelation[2 * pair - 1])
+                + float(autocorrelation[2 * pair])
+            )
+            if not math.isfinite(gamma) or gamma <= 0:
+                break
+            tau += 2.0 * gamma
+            pair += 1
+
+        inefficiency = max(tau, 1.0)
+        n_effective = count / inefficiency
+        sem = std * math.sqrt(inefficiency / count)
+        return sem, inefficiency, tau, n_effective
+
+    @staticmethod
+    def mser_truncation_index(values, max_batches=500) -> int | None:
+        """
+        Estimate an initial truncation point with the batched MSER rule.
+
+        The series is split into at most ``max_batches`` batches; the
+        truncation point minimizing the standard error of the remaining
+        batch means proposes an initial cut. This does not establish
+        sufficient sampling. A constant series returns ``0``.
+
+        Returns
+        -------
+        int or None
+            Index of the proposed first retained point, or ``None`` when fewer
+            than four finite values are available.
+        """
+
+        data = np.asarray(values, dtype=float)
+        data = data[np.isfinite(data)]
+        count = data.size
+        if count < 4:
+            return None
+        if float(np.std(data)) == 0:
+            return 0
+
+        batches = max(2, min(max_batches, count))
+        batch_size = max(1, count // batches)
+        usable = (count // batch_size) * batch_size
+        means = np.mean(data[:usable].reshape(-1, batch_size), axis=1)
+        batches = means.size
+
+        # A one-batch tail always scores zero error; require a tail of at
+        # least a tenth of the batches so the minimum cannot sit at the end.
+        min_tail = max(2, batches // 10)
+        limit = max(0, batches - min_tail)
+        best, best_error = 0, math.inf
+        for start in range(limit + 1):
+            tail = means[start:]
+            error = float(np.std(tail)) / math.sqrt(tail.size)
+            if error < best_error:
+                best, best_error = start, error
+        return int(best * batch_size)
 
     @staticmethod
     def __arrays(time, values) -> tuple:

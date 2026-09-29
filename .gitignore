@@ -167,3 +167,6 @@ main.py
 
 # Version control
 __version__.py
+
+# Web frontend dependencies (rebuilt with npm ci)
+node_modules/

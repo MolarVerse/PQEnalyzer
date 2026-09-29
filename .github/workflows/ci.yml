@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request: 
-    branches:
-      - '*'
+  pull_request:
 
 permissions:
   contents: read
@@ -38,6 +36,7 @@ jobs:
 
     - name: Run GUI and terminal smoke tests
       run: |
+        python -m playwright install --with-deps chromium
         xvfb-run -a python -m pytest -m e2e
 
     - name: Upload coverage to Codecov
@@ -48,3 +47,28 @@ jobs:
         fail_ci_if_error: true
         flags: unittests
         verbose: true
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: PQEnalyzer
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: PQEnalyzer/PQEnalyzer/web/frontend/package-lock.json
+    - name: Install, typecheck, test and build the web frontend
+      working-directory: PQEnalyzer/PQEnalyzer/web/frontend
+      run: |
+        npm ci
+        npm test
+        npm run build
+    - name: Check bundled web assets match the source
+      working-directory: PQEnalyzer
+      run: |
+        git diff --exit-code -- PQEnalyzer/web/static
+        test -z "$(git ls-files --others --exclude-standard -- PQEnalyzer/web/static)"

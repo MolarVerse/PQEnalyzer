@@ -31,6 +31,8 @@ dependencies = [
     "plotext>=5.2,<6",
     "textual>=0.86,<9",
     "watchdog",
+    "fastapi",
+    "uvicorn",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +41,8 @@ test = [
     "coverage",
     "pytest-cov",
     "pytest-benchmark",
+    "httpx",
+    "playwright>=1.55,<2",
 ]
 
 [tool.setuptools_scm]
@@ -60,3 +64,9 @@ omit = [
 
 [project.scripts]
 pqenalyzer = "PQEnalyzer.__main__:main"
+
+[tool.setuptools.package-data]
+PQEnalyzer = [
+    "icons/*.png",
+    "web/static/**/*",
+]
