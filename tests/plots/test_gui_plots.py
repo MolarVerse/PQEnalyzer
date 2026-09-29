@@ -136,7 +136,6 @@ class FakeApp:
         mean=False,
         median=False,
         cummulative_average=False,
-        self_correlation_mean=False,
         difference=False,
         running_average=False,
         window_size="",
@@ -146,7 +145,6 @@ class FakeApp:
         self.mean = FakeFlag(mean)
         self.median = FakeFlag(median)
         self.cummulative_average = FakeFlag(cummulative_average)
-        self.self_correlation_mean = FakeFlag(self_correlation_mean)
         self.difference = FakeFlag(difference)
         self.running_average = FakeFlag(running_average)
         self.window_size = FakeEntry(window_size)
@@ -529,7 +527,6 @@ def test_time_statistics_draw_expected_overlay_series():
         mean=True,
         median=True,
         cummulative_average=True,
-        self_correlation_mean=True,
         running_average=True,
         window_size="2",
     )
@@ -541,7 +538,6 @@ def test_time_statistics_draw_expected_overlay_series():
         "Mean (2.5 unit)",
         "Median (2.5 unit)",
         "Cumulative Average (2.5 unit)",
-        "Self-Correlation Mean (3 unit)",
         "Running Average (2) (3.5 unit)",
     ]
     assert [line.get_linestyle() for line in plot.ax.lines[:3]] == [
@@ -637,20 +633,6 @@ def test_time_difference_logs_non_overlapping_series(caplog):
 
     assert len(plot.ax.lines) == 0
     assert "shared simulation-time values" in caplog.text
-
-
-def test_time_self_correlation_mean_uses_data_scale():
-    app = FakeApp([FakeEnergy([1, 2, 3, 4, 5])],
-                  self_correlation_mean=True)
-    plot = PlotTime(app)
-
-    plot.statistics("PARAMETER")
-
-    line = plot.ax.lines[0]
-
-    assert line.get_label() == "Self-Correlation Mean (4 unit)"
-    assert np.all(line.get_xdata() == [1, 2, 3, 4, 5])
-    assert np.allclose(line.get_ydata(), [2, 2.5, 3, 3.5, 4])
 
 
 def test_dashboard_plots_all_parameters_as_raw_overview():

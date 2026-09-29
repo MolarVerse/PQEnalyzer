@@ -33,10 +33,6 @@ class Statistic:
         Calculate cumulative average values for numeric arrays.
     cummulative_average(energies, info_parameter)
         Backward-compatible alias for cumulative_average.
-    self_correlation_mean(energies, info_parameter)
-        Calculate a self-correlation mean for a Reader energy parameter.
-    self_correlation_mean_values(time, values)
-        Calculate a self-correlation mean for numeric arrays.
     autocorrelation_values(values, max_lag)
         Calculate normalized autocorrelation on lag steps for numeric values.
     running_average(energies, info_parameter, window_size)
@@ -194,58 +190,6 @@ class Statistic:
         """
 
         return Statistic.cumulative_average(energies, info_parameter)
-
-    @staticmethod
-    def self_correlation_mean(energies, info_parameter) -> tuple:
-        """
-        Calculate the self-correlation mean of the data.
-
-        Parameters
-        ----------
-        energies : list
-            A list of energy objects.
-        info_parameter : str
-            The info parameter to calculate the self-correlation mean of.
-
-        Returns
-        -------
-        tuple
-            A tuple containing the time and self-correlation mean.
-
-        Examples
-        --------
-        >>> Statistic.self_correlation_mean(energies, "ENERGY")
-        ([1, 2, 3, 4, 5], [2, 2.5, 3, 3.5, 4])
-        """
-
-        energy_series = concatenate_series(energies, info_parameter)
-        return Statistic.self_correlation_mean_values(
-            energy_series.time, energy_series.values)
-
-    @staticmethod
-    def self_correlation_mean_values(time, values) -> tuple:
-        """
-        Calculate the self-correlation mean for a numeric series.
-
-        The result stays on the original data scale. Each output point is the
-        mean of the values that overlap that lag, which avoids the squared
-        magnitude returned by an unnormalized product correlation.
-        """
-
-        time, data = Statistic.__arrays(time, values)
-        data = data.astype(float)
-
-        numerator = np.correlate(data, np.ones_like(data), mode="same")
-        overlap = np.correlate(
-            np.ones_like(data), np.ones_like(data), mode="same")
-        self_correlation_mean = np.divide(
-            numerator,
-            overlap,
-            out=np.zeros_like(data),
-            where=overlap != 0,
-        )
-
-        return time, self_correlation_mean
 
     @staticmethod
     def autocorrelation_values(values, max_lag=None) -> tuple:

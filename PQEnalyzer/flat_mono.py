@@ -1,90 +1,75 @@
-"""
-LOCAL-ONLY preview: PQSetup flat-mono design language on PQEnalyzer.
+"""Flat mono desktop and terminal styling from the pinned PQDesign tokens."""
 
-Reversible: delete this file and revert the small
-``PQ_FLAT_MONO`` branches in ``plots/theme.py``, ``apps/app_layout.py`` and
-``apps/tui.py``.
+import json
+from importlib.resources import files
+from string import Template
 
-``tokens.json`` in MolarVerse/PQDesign is the source for the web theme.
-The opt-in desktop and terminal palettes below are local preview values.
+TOKENS = json.loads(
+    files("PQEnalyzer").joinpath("design", "tokens.json").read_text()
+)
+COLORS = TOKENS["color"]
+CODE_COLORS = TOKENS["code"]
 
-Enable the preview with::
-
-    PQ_FLAT_MONO=1 pqenalyzer ...
-
-Default behaviour (env var unset) is unchanged.
-"""
-
-import os
-
-ENV_VAR = "PQ_FLAT_MONO"
-
-
-def is_flat_mono_enabled() -> bool:
-    """Return True when the local flat-mono preview is requested."""
-    return os.environ.get(ENV_VAR, "").strip() in {"1", "true", "yes", "on"}
-
-
-# Matplotlib palette derived from the tokens: Gray-10 surfaces, ink text,
-# accent series. Single-hue + code colours keep plots calm and mono.
 FLAT_MONO_MPL_PALETTE = {
-    "figure.facecolor": "#f4f4f4",
-    "axes.facecolor": "#ffffff",
-    "axes.edgecolor": "#e0e0e0",
-    "axes.labelcolor": "#161616",
-    "text.color": "#161616",
-    "subtle.text": "#6f6f6f",
-    "tick.color": "#393939",
-    "grid.color": "#e0e0e0",
-    "legend.facecolor": "#ffffff",
-    "legend.edgecolor": "#e0e0e0",
-    "annotation.facecolor": "#edf5ff",
-    "annotation.edgecolor": "#e0e0e0",
-    "selected.edgecolor": "#0f62fe",
-    "warning.color": "#8e6a00",
+    "figure.facecolor": COLORS["background"],
+    "axes.facecolor": COLORS["surface"],
+    "axes.edgecolor": COLORS["border"],
+    "axes.labelcolor": COLORS["ink"],
+    "text.color": COLORS["ink"],
+    "subtle.text": COLORS["muted"],
+    "tick.color": COLORS["ink-soft"],
+    "grid.color": COLORS["border"],
+    "legend.facecolor": COLORS["surface"],
+    "legend.edgecolor": COLORS["border"],
+    "annotation.facecolor": COLORS["surface-blue"],
+    "annotation.edgecolor": COLORS["border"],
+    "selected.edgecolor": COLORS["accent"],
+    "warning.color": COLORS["warning"],
     # Data order: accent first, then cool hues; muddy olive and alarm red
     # stay late so ordinary multi-file plots read calm.
     "colors": [
-        "#0f62fe",
-        "#005d5d",
-        "#6929c4",
-        "#198038",
-        "#0043ce",
-        "#393939",
-        "#8e6a00",
-        "#da1e28",
+        COLORS["accent"],
+        CODE_COLORS["file"],
+        CODE_COLORS["number"],
+        CODE_COLORS["switch"],
+        COLORS["accent-dark"],
+        COLORS["ink-soft"],
+        COLORS["warning"],
+        COLORS["danger"],
     ],
 }
 
 # CustomTkinter mapping: square corners, mono type, hairline borders.
-# Applied in apps/app_layout.py only when PQ_FLAT_MONO=1.
 FLAT_MONO_CTK = {
-    "background": "#f4f4f4",
-    "surface": "#ffffff",
-    "surface_subtle": "#f4f4f4",
-    "ink": "#161616",
-    "ink_soft": "#393939",
-    "muted": "#6f6f6f",
-    "border": "#e0e0e0",
-    "border_strong": "#8d8d8d",
-    "accent": "#0f62fe",
-    "accent_dark": "#0043ce",
-    "accent_soft": "#edf5ff",
-    "success": "#198038",
-    "warning": "#8e6a00",
-    "danger": "#da1e28",
-    "corner_radius": 0,
+    "background": COLORS["background"],
+    "surface": COLORS["surface"],
+    "surface_subtle": COLORS["surface-subtle"],
+    "ink": COLORS["ink"],
+    "ink_soft": COLORS["ink-soft"],
+    "muted": COLORS["muted"],
+    "border": COLORS["border"],
+    "border_strong": COLORS["border-strong"],
+    "accent": COLORS["accent"],
+    "accent_dark": COLORS["accent-dark"],
+    "accent_soft": COLORS["accent-soft"],
+    "success": COLORS["success"],
+    "warning": COLORS["warning"],
+    "danger": COLORS["danger"],
+    "corner_radius": int(TOKENS["shape"]["radius"]),
     "border_width": 1,
     # First available family wins; CustomTkinter falls back silently.
-    "mono_font": ("IBM Plex Mono", "JetBrains Mono", "Menlo", "Consolas"),
+    "mono_font": tuple(
+        family.strip().strip('"')
+        for family in TOKENS["font"]["mono"].split(",")
+        if family.strip().strip('"') not in {"ui-monospace", "monospace"}
+    ),
 }
 
 # Textual TUI: light Gray-10, square panels, accent selection.
-# Swapped in apps/tui.py only when PQ_FLAT_MONO=1.
-FLAT_MONO_TUI_CSS = """
+FLAT_MONO_TUI_CSS = Template("""
 Screen {
-    background: #f4f4f4;
-    color: #161616;
+    background: $background;
+    color: $ink;
 }
 
 #status,
@@ -93,81 +78,81 @@ Screen {
 #help,
 #chart-title,
 #chart-controls {
-    border: solid #e0e0e0;
+    border: solid $border;
     padding: 0 1;
 }
 
 #status {
     height: 4;
-    color: #393939;
-    background: #ffffff;
+    color: $ink_soft;
+    background: $surface;
 }
 
 #parameters {
     height: 1fr;
-    border: solid #0f62fe;
-    background: #ffffff;
+    border: solid $accent;
+    background: $surface;
 }
 
 #detail-title {
     height: 3;
-    color: #161616;
-    background: #ffffff;
+    color: $ink;
+    background: $surface;
     text-style: bold;
 }
 
 #trend {
     height: 1fr;
-    border: solid #e0e0e0;
-    background: #ffffff;
+    border: solid $border;
+    background: $surface;
     padding: 1 1;
 }
 
 #detail-stats {
     height: 8;
-    background: #ffffff;
+    background: $surface;
 }
 
 #help {
     height: 7;
-    color: #6f6f6f;
-    background: #ffffff;
+    color: $muted;
+    background: $surface;
 }
 
 #chart-title {
     height: 3;
-    color: #161616;
-    background: #ffffff;
+    color: $ink;
+    background: $surface;
     text-style: bold;
 }
 
 #chart-canvas {
     height: 1fr;
-    border: solid #0f62fe;
-    background: #ffffff;
+    border: solid $accent;
+    background: $surface;
     padding: 0 0;
     overflow: hidden;
 }
 
 #chart-controls {
     height: 6;
-    color: #393939;
-    background: #ffffff;
+    color: $ink_soft;
+    background: $surface;
 }
-"""
+""").substitute(**{key.replace("-", "_"): value for key, value in COLORS.items()})
 
 FLAT_MONO_TUI_STATUS_STYLES = {
-    "label": "#6f6f6f",
-    "value": "bold #161616",
-    "accent": "bold #0f62fe",
-    "ok": "bold #198038",
-    "warning": "bold #8e6a00",
-    "error": "bold #da1e28",
+    "label": COLORS["muted"],
+    "value": f"bold {COLORS['ink']}",
+    "accent": f"bold {COLORS['accent']}",
+    "ok": f"bold {COLORS['success']}",
+    "warning": f"bold {COLORS['warning']}",
+    "error": f"bold {COLORS['danger']}",
 }
 
 
 def apply_flat_mono_matplotlib_theme(plot_scale=1.0):
-    """Apply the flat-mono palette to matplotlib defaults (local preview)."""
+    """Apply the flat-mono palette to matplotlib defaults."""
     import matplotlib
     from cycler import cycler
 
@@ -182,13 +167,7 @@ def apply_flat_mono_matplotlib_theme(plot_scale=1.0):
         {
             # Mono everywhere per the language (base 14px / 1.5 equivalent).
             "font.family": "monospace",
-            "font.monospace": [
-                "IBM Plex Mono",
-                "JetBrains Mono",
-                "Menlo",
-                "Consolas",
-                "DejaVu Sans Mono",
-            ],
+            "font.monospace": [*FLAT_MONO_CTK["mono_font"], "DejaVu Sans Mono"],
             "font.size": font_sizes["base"],
             "figure.facecolor": palette["figure.facecolor"],
             "axes.facecolor": palette["axes.facecolor"],

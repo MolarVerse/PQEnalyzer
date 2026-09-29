@@ -2,17 +2,17 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba
 
+from PQEnalyzer.flat_mono import COLORS, FLAT_MONO_MPL_PALETTE
 from PQEnalyzer.plots import theme
 
 
-def test_system_appearance_mode_resolves_to_current_customtkinter_mode(
-        monkeypatch):
-    monkeypatch.setattr(theme.ctk, "get_appearance_mode", lambda: "Dark")
+def test_desktop_uses_pinned_design_colors_for_every_appearance_mode():
+    assert theme.palette_for_appearance_mode("Light") is FLAT_MONO_MPL_PALETTE
+    assert theme.palette_for_appearance_mode("Dark") is FLAT_MONO_MPL_PALETTE
+    assert FLAT_MONO_MPL_PALETTE["axes.labelcolor"] == COLORS["ink"]
 
-    assert theme.resolve_appearance_mode("System") == "Dark"
 
-
-def test_apply_matplotlib_theme_sets_dark_defaults():
+def test_apply_matplotlib_theme_sets_shared_defaults():
     with mpl.rc_context():
         palette = theme.apply_matplotlib_theme("Dark")
 
@@ -42,9 +42,9 @@ def test_plot_typography_uses_shared_plot_scale():
 
 
 def test_series_colors_are_stable_by_file_index():
-    assert theme.series_color(1, "Light") == theme.LIGHT_PALETTE["colors"][1]
-    assert theme.series_color(9, "Light") == theme.LIGHT_PALETTE["colors"][1]
-    assert theme.series_rgb(1, "Dark") == (251, 113, 133)
+    assert theme.series_color(1, "Light") == FLAT_MONO_MPL_PALETTE["colors"][1]
+    assert theme.series_color(9, "Dark") == FLAT_MONO_MPL_PALETTE["colors"][1]
+    assert theme.series_rgb(1, "Dark") == (0, 93, 93)
 
 
 def test_apply_figure_theme_updates_existing_plot_elements():

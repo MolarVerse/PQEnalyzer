@@ -13,6 +13,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from .._logging import get_logger
+from ..flat_mono import COLORS, FLAT_MONO_TUI_CSS, FLAT_MONO_TUI_STATUS_STYLES
 from ..energy_access import (
     available_parameters,
     concatenate_series,
@@ -30,16 +31,6 @@ from .file_watcher import FileChangeWatcher
 
 
 logger = get_logger(__name__)
-
-
-# LOCAL-ONLY preview: PQ_FLAT_MONO=1 swaps the TUI to the flat-mono tokens.
-def _flat_mono_tui_active() -> bool:
-    try:
-        from ..flat_mono import is_flat_mono_enabled
-
-        return is_flat_mono_enabled()
-    except ImportError:
-        return False
 
 
 TREND_BLOCKS = "▁▂▃▄▅▆▇█"
@@ -151,24 +142,17 @@ def feature_help_text() -> str:
     Return compact feature help generated from the shared feature registry.
     """
 
-    first_row = "  ".join(
-        f"{feature.shortcut} {feature.short_label}"
-        for feature in PLOT_FEATURES[:3]
-    )
-    second_row = "  ".join(
-        f"{feature.shortcut} {feature.short_label}"
-        for feature in PLOT_FEATURES[3:5]
-    )
-    third_row = "  ".join(
-        f"{feature.shortcut} {feature.short_label}"
-        for feature in PLOT_FEATURES[5:]
-    )
+    rows = [
+        "  ".join(
+            f"{feature.shortcut} {feature.short_label}"
+            for feature in PLOT_FEATURES[start:start + 3]
+        )
+        for start in range(0, len(PLOT_FEATURES), 3)
+    ]
     return "\n".join([
         "up/k down/j move  enter focus chart",
         "esc back  q quit  r refresh  w watch",
-        first_row,
-        second_row,
-        third_row,
+        *rows,
     ])
 
 
@@ -189,101 +173,12 @@ class TuiApp(App):
     """
 
     CSS = """
-    Screen {
-        background: #0d1117;
-        color: #e6edf3;
-    }
-
-    #dashboard-view,
-    #chart-view {
-        height: 1fr;
-    }
-
-    #dashboard-main {
-        height: 1fr;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    #analysis-panel {
-        height: 17;
-    }
-
-    #plot-panel {
-        width: 2fr;
-        min-width: 58;
-    }
-
-    #calculation-panel {
-        width: 1fr;
-        min-width: 36;
-    }
-
-    #status,
-    #detail-title,
-    #detail-stats,
-    #help {
-        border: tall #30363d;
-        padding: 0 1;
-    }
-
-    #status {
-        height: 4;
-        color: #c9d1d9;
-    }
-
-    #parameters {
-        height: 1fr;
-        border: tall #1f6feb;
-    }
-
-    #detail-title {
-        height: 3;
-        color: #58a6ff;
-        text-style: bold;
-    }
-
-    #trend {
-        height: 1fr;
-        border: tall #2ea043;
-        padding: 1 1;
-    }
-
-    #detail-stats {
-        height: 8;
-    }
-
-    #help {
-        height: 7;
-        color: #8b949e;
-    }
-
-    #chart-title,
-    #chart-controls {
-        border: tall #30363d;
-        padding: 0 1;
-    }
-
-    #chart-title {
-        height: 3;
-        color: #58a6ff;
-        text-style: bold;
-    }
-
-    #chart-canvas {
-        height: 1fr;
-        border: tall #1f6feb;
-        padding: 0 0;
-        overflow: hidden;
-    }
-
-    #chart-controls {
-        height: 6;
-        color: #8b949e;
-    }
-    """
+    #dashboard-view, #chart-view, #dashboard-main { height: 1fr; }
+    .hidden { display: none; }
+    #analysis-panel { height: 17; }
+    #plot-panel { width: 2fr; min-width: 58; }
+    #calculation-panel { width: 1fr; min-width: 36; }
+    """ + FLAT_MONO_TUI_CSS
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -336,12 +231,9 @@ class TuiApp(App):
                 with Horizontal(id="analysis-panel"):
                     with Vertical(id="plot-panel"):
                         yield Static(id="detail-title")
-                        if _flat_mono_tui_active():
-                            yield Sparkline(id="trend", min_color="#0f62fe",
-                                            max_color="#198038")
-                        else:
-                            yield Sparkline(id="trend", min_color="#238636",
-                                            max_color="#3fb950")
+                        yield Sparkline(
+                            id="trend", min_color=COLORS["accent"],
+                            max_color=COLORS["success"])
                     with Vertical(id="calculation-panel"):
                         yield Static(id="detail-stats")
                         yield Static(feature_help_text(),
@@ -604,34 +496,22 @@ class TuiApp(App):
         ]
 
         status = Text()
-        if _flat_mono_tui_active():
-            # LOCAL-ONLY flat-mono: ink on white, accent watch state.
-            status.append("Files ", style="#6f6f6f")
-            status.append(str(len(self.reader.filenames)), style="bold #161616")
-            status.append("  Reader ", style="#6f6f6f")
-            status.append(type(self.reader).__name__, style="bold #161616")
-            status.append("  Watch ", style="#6f6f6f")
-            status.append(self.watch_label, style="bold #0f62fe")
-            status.append("  Updated ", style="#6f6f6f")
-            status.append(updated, style="bold #161616")
-            status.append("\n")
-            status.append(" | ".join(file_rows), style="#393939")
-        else:
-            status.append("Files ", style="#8b949e")
-            status.append(str(len(self.reader.filenames)), style="bold #e6edf3")
-            status.append("  Reader ", style="#8b949e")
-            status.append(type(self.reader).__name__, style="bold #e6edf3")
-            status.append("  Watch ", style="#8b949e")
-            status.append(self.watch_label, style="bold #3fb950")
-            status.append("  Updated ", style="#8b949e")
-            status.append(updated, style="bold #e6edf3")
-            status.append("\n")
-            status.append(" | ".join(file_rows), style="#c9d1d9")
+        styles = FLAT_MONO_TUI_STATUS_STYLES
+        status.append("Files ", style=styles["label"])
+        status.append(str(len(self.reader.filenames)), style=styles["value"])
+        status.append("  Reader ", style=styles["label"])
+        status.append(type(self.reader).__name__, style=styles["value"])
+        status.append("  Watch ", style=styles["label"])
+        status.append(self.watch_label, style=styles["accent"])
+        status.append("  Updated ", style=styles["label"])
+        status.append(updated, style=styles["value"])
+        status.append("\n")
+        status.append(" | ".join(file_rows), style=COLORS["ink-soft"])
 
         if self.refresh_warning:
             status.append("\n")
             status.append(f"Warning: {self.refresh_warning}",
-                          style="bold #f85149")
+                          style=FLAT_MONO_TUI_STATUS_STYLES["error"])
 
         self.query_one("#status", Static).update(status)
 
@@ -671,23 +551,13 @@ class TuiApp(App):
 
         summary = self.summaries[parameter]
         unit = summary.unit or "n/a"
-        if _flat_mono_tui_active():
-            # LOCAL-ONLY flat-mono: ink title, accent parameter.
-            title = Text.assemble(
-                (parameter, "bold #0f62fe"),
-                ("  Unit ", "#6f6f6f"),
-                (unit, "bold #161616"),
-                ("  Rows ", "#6f6f6f"),
-                (str(summary.rows), "bold #161616"),
-            )
-        else:
-            title = Text.assemble(
-                (parameter, "bold #58a6ff"),
-                ("  Unit ", "#8b949e"),
-                (unit, "bold #c9d1d9"),
-                ("  Rows ", "#8b949e"),
-                (str(summary.rows), "bold #c9d1d9"),
-            )
+        title = Text.assemble(
+            (parameter, FLAT_MONO_TUI_STATUS_STYLES["accent"]),
+            ("  Unit ", COLORS["muted"]),
+            (unit, FLAT_MONO_TUI_STATUS_STYLES["value"]),
+            ("  Rows ", COLORS["muted"]),
+            (str(summary.rows), FLAT_MONO_TUI_STATUS_STYLES["value"]),
+        )
         self.query_one("#detail-title", Static).update(title)
 
         trend = self.query_one("#trend", Sparkline)
@@ -715,19 +585,19 @@ class TuiApp(App):
         controls = Text()
         controls.append(
             "up/k down/j move  esc back  q quit  r refresh\n",
-            style="#8b949e",
+            style=COLORS["muted"],
         )
-        controls.append("Stats: ", style="bold #8b949e")
+        controls.append("Stats: ", style=FLAT_MONO_TUI_STATUS_STYLES["value"])
         for index, feature in enumerate(PLOT_FEATURES):
             if index == len(PLOT_FEATURES) // 2:
                 controls.append("\n")
             elif index > 0:
-                controls.append(" | ", style="#8b949e")
+                controls.append(" | ", style=COLORS["muted"])
 
             enabled = getattr(self.chart_options, feature.option_attribute)
             controls.append(
                 f"{feature.shortcut} {feature.short_label} ",
-                style="#8b949e",
+                style=COLORS["muted"],
             )
             controls.append(
                 self.enabled_label(enabled),
@@ -748,7 +618,8 @@ class TuiApp(App):
         summary = self.summaries[parameter]
         self.query_one("#chart-title", Static).update(
             Text.assemble(
-                (parameter_label(parameter, summary.unit), "bold #58a6ff"),
+                (parameter_label(parameter, summary.unit),
+                 FLAT_MONO_TUI_STATUS_STYLES["accent"]),
                 f"  rows {summary.rows}",
                 f"  latest {format_value(summary.latest)}",
             ))
@@ -767,7 +638,8 @@ class TuiApp(App):
                 options=self.chart_options,
             )
         except ValueError as error:
-            canvas.update(Text(str(error), style="bold #f85149"))
+            canvas.update(Text(str(error),
+                               style=FLAT_MONO_TUI_STATUS_STYLES["error"]))
         else:
             canvas.update(Text.from_ansi(chart))
 
@@ -820,19 +692,5 @@ class TuiApp(App):
         Return the Rich style for an enabled-state label.
         """
 
-        if _flat_mono_tui_active():
-            # LOCAL-ONLY flat-mono: accent on, muted off.
-            return "bold #0f62fe" if enabled else "#6f6f6f"
-        return "bold #3fb950" if enabled else "#8b949e"
-
-
-# LOCAL-ONLY preview: swap the whole TUI stylesheet when requested.
-# Evaluated at import time so `PQ_FLAT_MONO=1 pqenalyzer --tui ...` picks it up.
-try:
-    from ..flat_mono import FLAT_MONO_TUI_CSS as _FLAT_MONO_CSS
-    from ..flat_mono import is_flat_mono_enabled as _tui_flat_check
-
-    if _tui_flat_check():
-        TuiApp.CSS = _FLAT_MONO_CSS
-except ImportError:
-    pass
+        return (FLAT_MONO_TUI_STATUS_STYLES["accent"] if enabled
+                else COLORS["muted"])

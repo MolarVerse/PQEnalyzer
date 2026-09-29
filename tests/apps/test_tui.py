@@ -168,17 +168,14 @@ def test_tui_app_switches_between_dashboard_and_chart():
             assert "- / +" not in str(controls.content)
 
             await pilot.press("c")
-            await pilot.press("s")
             await pilot.press("a")
             await pilot.pause()
 
             chart = app.query_one("#chart-canvas", Static)
             controls = app.query_one("#chart-controls", Static)
             assert app.chart_options.cummulative_average is True
-            assert app.chart_options.self_correlation_mean is True
             assert app.chart_options.running_average is True
             assert "Cumulative Average" in str(chart.content)
-            assert "Self-Correlation Mean" in str(chart.content)
             assert "Running Average (3)" in str(chart.content)
             assert "window" not in str(controls.content)
 

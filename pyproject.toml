@@ -68,5 +68,6 @@ pqenalyzer = "PQEnalyzer.__main__:main"
 [tool.setuptools.package-data]
 PQEnalyzer = [
     "icons/*.png",
+    "design/tokens.json",
     "web/static/**/*",
 ]

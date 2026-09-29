@@ -15,7 +15,6 @@ from ._logging import get_logger
 
 logger = get_logger(__name__)
 
-APPEARANCE_MODES = {"System", "Light", "Dark"}
 PLOT_SCALE_PRESETS = (
     0.75,
     0.85,
@@ -43,7 +42,6 @@ class UserPreferences:
     Last user-selected GUI and plot settings.
     """
 
-    appearance_mode: str = "System"
     plot_scale: float = DEFAULT_PLOT_SCALE
     plot_sizes: dict[str, tuple[float, float]] = field(default_factory=dict)
     selected_parameter: str | None = None
@@ -58,10 +56,6 @@ class UserPreferences:
 
         if not isinstance(values, dict):
             return cls()
-
-        appearance_mode = values.get("appearance_mode")
-        if appearance_mode not in APPEARANCE_MODES:
-            appearance_mode = "System"
 
         selected_parameter = values.get("selected_parameter")
         if not isinstance(selected_parameter, str) or not selected_parameter:
@@ -84,7 +78,6 @@ class UserPreferences:
                     plot_sizes[key] = size
 
         return cls(
-            appearance_mode=appearance_mode,
             plot_scale=normalize_plot_scale(
                 values.get("plot_scale", values.get("display_scale"))),
             plot_sizes=plot_sizes,
@@ -99,7 +92,6 @@ class UserPreferences:
         """
 
         return {
-            "appearance_mode": self.appearance_mode,
             "plot_scale": self.plot_scale,
             "plot_sizes": {
                 key: list(size)
