@@ -7,6 +7,7 @@ from PQEnalyzer.web.calculations import (
     _automatic_bin_count,
     _drift_sigma,
     _json_list,
+    _kde_of,
     _mini_histogram,
     _stats_of_array,
 )
@@ -33,3 +34,14 @@ def test_missing_values_stay_missing_in_transport_and_empty_stats():
 def test_auto_bins_bound_a_long_tailed_distribution():
     values = np.r_[np.zeros(1000), np.arange(1, 1001, dtype=float)]
     assert 2 <= _automatic_bin_count(values) <= 200
+
+
+def test_kde_drops_nonfinite_density(monkeypatch):
+    from scipy import stats
+
+    monkeypatch.setattr(
+        stats, "gaussian_kde",
+        lambda sample: lambda grid: np.full(grid.shape, np.nan),
+    )
+    values = np.linspace(0.0, 1.0, 20)
+    assert _kde_of(values, np.linspace(0.0, 1.0, 5)) is None
