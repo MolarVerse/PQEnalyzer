@@ -161,6 +161,7 @@ export function SeriesView({
   return (
     <section className="setup-section">
       <TitleRow
+        className="series-title"
         title={
           <>
             {focus}
@@ -217,7 +218,7 @@ export function SeriesView({
         </div>
       ) : (
         <>
-          <div className="chart-card chart-fill">
+          <div className="chart-card chart-fill series-card">
             {flags.autocorrelation && (
               <div className="chart-mode">
                 <strong>Autocorrelation</strong>
