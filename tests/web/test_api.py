@@ -154,6 +154,26 @@ def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
     assert "frontend not built" in response.json()["detail"]
 
 
+def test_serve_prints_and_opens_a_browser_safe_ipv6_url(monkeypatch, capsys):
+    """Server startup exposes the bracketed URL needed for IPv6 hosts."""
+    from PQEnalyzer.web import app as web_app
+
+    monkeypatch.setattr(
+        web_app, "create_app", lambda *_args, **_kwargs: object())
+    opened = []
+    monkeypatch.setattr(
+        web_app, "_open_browser_later", opened.append)
+    monkeypatch.setattr(
+        "uvicorn.run", lambda *_args, **_kwargs: None)
+
+    web_app.serve(
+        ["source.en"], host="::1", port=4321, reader=object())
+
+    url = "http://[::1]:4321"
+    assert capsys.readouterr().out == f"PQEnalyzer Web: {url}\n"
+    assert opened == [url]
+
+
 def test_overlays_use_shared_feature_math(client):
     """
     References and moving windows use the same combined sequence.
