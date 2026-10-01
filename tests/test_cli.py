@@ -19,7 +19,7 @@ def test_cli_version_from_source_checkout():
     assert result.stdout.startswith("PQEnalyzer ")
 
 
-def test_cli_help_mentions_gui_and_tui_modes():
+def test_cli_help_mentions_web_and_gui_modes():
     project_root = Path(__file__).resolve().parents[1]
 
     result = subprocess.run(
@@ -33,13 +33,12 @@ def test_cli_help_mentions_gui_and_tui_modes():
     assert result.returncode == 0
     assert "Traceback" not in result.stderr
     assert (
-        "usage: pqenalyzer [-h] [-v] [gui|tui|web] "
+        "usage: pqenalyzer [-h] [-v] [gui|web] "
         "[--pq | -q | --box | --opt] FILE [FILE ...]"
     ) in result.stdout
-    assert "{gui,tui,web}" not in result.stdout
-    assert "[gui|tui|web]" in result.stdout
+    assert "{gui,web}" not in result.stdout
+    assert "[gui|web]" in result.stdout
     assert "gui" in result.stdout
-    assert "tui" in result.stdout
     assert "web" in result.stdout
 
 
@@ -127,29 +126,6 @@ def test_explicit_gui_mode_still_logs_reader_errors():
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
     assert f"File {missing_file} not found." in result.stderr
-
-
-def test_tui_mode_does_not_duplicate_upstream_reader_errors():
-    project_root = Path(__file__).resolve().parents[1]
-    missing_file = "tests/data/does-not-exist.en"
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "PQEnalyzer",
-            "tui",
-            missing_file,
-        ],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 1
-    assert "Traceback" not in result.stderr
-    assert result.stderr.count(f"File {missing_file} not found.") == 1
 
 
 def test_cli_rejects_multiple_forced_input_formats():

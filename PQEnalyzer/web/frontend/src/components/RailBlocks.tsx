@@ -15,7 +15,7 @@ export const OVERLAY_DEFS: {
 }[] = [
   { key: "mean", label: "Mean", shortcut: "m", description: "One guide for all data" },
   { key: "median", label: "Median", shortcut: "n", description: "One guide for all data" },
-  { key: "cummulative_average", label: "Cumulative average", shortcut: "c", description: "Continues across files" },
+  { key: "cumulative_average", label: "Cumulative average", shortcut: "c", description: "Continues across files" },
   { key: "running_average", label: "Running average", shortcut: "a", description: "Smooths the combined sequence" },
   { key: "autocorrelation", label: "Autocorrelation", shortcut: "s", description: "Switch chart to lag correlation" },
 ];
@@ -23,7 +23,7 @@ export const OVERLAY_DEFS: {
 export const NO_OVERLAYS: OverlayFlags = {
   mean: false,
   median: false,
-  cummulative_average: false,
+  cumulative_average: false,
   running_average: false,
   autocorrelation: false,
 };
@@ -37,7 +37,7 @@ export function toggleOverlay(current: OverlayFlags, key: keyof OverlayFlags): O
 
 const ANALYSIS_GROUPS = [
   { title: "Reference", keys: ["mean", "median"] },
-  { title: "Trend", keys: ["cummulative_average", "running_average"] },
+  { title: "Trend", keys: ["cumulative_average", "running_average"] },
   { title: "Correlation", keys: ["autocorrelation"] },
 ] as const;
 

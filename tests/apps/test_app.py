@@ -127,7 +127,7 @@ def make_app(auto_refresh=True):
     return app
 
 
-def test_apps_package_does_not_import_gui_module_for_terminal_app():
+def test_apps_package_lazy_loads_gui_module():
     import importlib
     import sys
 
@@ -136,8 +136,9 @@ def test_apps_package_does_not_import_gui_module_for_terminal_app():
 
     apps = importlib.import_module("PQEnalyzer.apps")
 
-    assert apps.TuiApp.__name__ == "TuiApp"
     assert "PQEnalyzer.apps.app" not in sys.modules
+    assert apps.App.__name__ == "App"
+    assert "PQEnalyzer.apps.app" in sys.modules
 
 
 def test_gui_icon_path_resolves_from_layout_module():

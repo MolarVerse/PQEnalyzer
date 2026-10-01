@@ -101,6 +101,10 @@ def test_web_mode_serves_status_and_events():
         assert status["stale"] is False
         assert sum(item["rows"] for item in status["files"]) > 0
         assert _wait_for_hello(port)
+        assert process.stdout is not None
+        assert process.stdout.readline().strip() == (
+            f"PQEnalyzer Web: http://127.0.0.1:{port}"
+        )
     finally:
         _terminate_process(process)
 

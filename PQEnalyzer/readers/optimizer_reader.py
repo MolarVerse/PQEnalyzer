@@ -2,7 +2,7 @@
 Reader adapter for PQ optimizer output files.
 
 PQAnalysis owns parsing, schema validation, and storage. This adapter keeps the
-multi-file and live-refresh interface shared by PQEnalyzer's GUI and TUI.
+multi-file and live-refresh interface shared by PQEnalyzer's user interfaces.
 """
 
 from PQAnalysis.io import read_optimizer_file
@@ -10,7 +10,7 @@ from PQAnalysis.io import read_optimizer_file
 
 class OptimizerReader:
     """
-    Read PQ ``.opt`` files through PQAnalysis for GUI and TUI plotting.
+    Read PQ ``.opt`` files through PQAnalysis for plotting.
     """
 
     def __init__(self, filenames):

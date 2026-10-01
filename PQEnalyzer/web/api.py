@@ -315,9 +315,9 @@ class WebState:
         if flags.get("median"):
             time, curve = Statistic.median_values(plot_time, values)
             add("median", "Median", time, curve)
-        if flags.get("cummulative_average"):
+        if flags.get("cumulative_average") or flags.get("cummulative_average"):
             time, curve = Statistic.cumulative_average_values(plot_time, values)
-            add("cummulative_average", "Cumulative Average", time, curve)
+            add("cumulative_average", "Cumulative Average", time, curve)
         if flags.get("running_average"):
             requested = str(window_size).strip()
             if not requested:

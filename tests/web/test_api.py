@@ -185,13 +185,13 @@ def test_all_web_overlays_have_distinct_scopes_and_axes(client):
         "parameter": "PRESSURE",
         "mean": "true",
         "median": "true",
-        "cummulative_average": "true",
+        "cumulative_average": "true",
         "autocorrelation": "true",
         "running_average": "true",
     }).json()
     items = body["overlays"]
     assert [item["key"] for item in items] == [
-        "mean", "median", "cummulative_average", "running_average",
+        "mean", "median", "cumulative_average", "running_average",
         "autocorrelation",
     ]
     assert all(len(item["time"]) >= 2 for item in items)
@@ -200,6 +200,11 @@ def test_all_web_overlays_have_distinct_scopes_and_axes(client):
     assert [item["values"][0] for item in items if item["axis"] == "lag"] == [1.0]
     assert [item["time"] for item in items if item["axis"] == "lag"] == [
         [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]]
+    legacy = client.get("/api/overlays", params={
+        "parameter": "PRESSURE", "cummulative_average": "true",
+    }).json()["overlays"]
+    assert [item["key"] for item in legacy] == ["cumulative_average"]
+    assert legacy[0]["values"] == items[2]["values"]
 
 
 def test_autocorrelation_uses_all_files_as_one_sequence(client):
@@ -254,7 +259,7 @@ def test_restarted_time_uses_sample_axis_for_every_curve(tmp_path):
         assert combined["values"][:5] == combined["values"][5:]
         curves = overlap.get("/api/overlays", params={
             "parameter": "TEMPERATURE", "mean": "true",
-            "cummulative_average": "true", "running_average": "true",
+            "cumulative_average": "true", "running_average": "true",
             "window_size": "3"}).json()["overlays"]
         assert curves[0]["time"] == [1.0, 10.0]
         assert curves[1]["time"] == list(range(1, 11))

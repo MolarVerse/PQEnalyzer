@@ -6,8 +6,8 @@
 
 # PQEnalyzer
 
-Plot and monitor PQ energy, box, and optimizer output in a desktop,
-terminal, or browser interface.
+Plot and monitor PQ energy, box, and optimizer output in a browser or
+desktop interface.
 
 ## Install
 
@@ -17,19 +17,13 @@ pip install PQEnalyzer
 
 ## Quick Start
 
-The GUI is the default:
+The desktop GUI remains the default:
 
 ```bash
 pqenalyzer /path/to/simulation.en
 ```
 
-Use the terminal interface with the `tui` subcommand:
-
-```bash
-pqenalyzer tui /path/to/simulation.en
-```
-
-Use the browser interface with the `web` subcommand:
+Use the browser dashboard explicitly:
 
 ```bash
 pqenalyzer web /path/to/simulation.en
@@ -70,46 +64,6 @@ changes, forces, convergence states, and limits. A convergence state of `-1`
 means not converged, `0` means disabled, and `1` means converged. The first row
 is PQ's initialization snapshot. Final completion status remains in the PQ log.
 
-## GUI
-
-| Control | Result |
-| --- | --- |
-| `Plot` | Open a time-series plot for the selected parameter |
-| `Histogram` | Open its distribution |
-| `Live Monitor` | Open one time-series panel per parameter |
-| `Auto-Refresh` | Watch loaded files and update open plots |
-
-Double-click a Live Monitor panel to open its focused plot. Plot settings belong
-to that focused window, so each window can use different overlays.
-
-Auto-refresh starts with the GUI. If native file watching is unavailable,
-PQEnalyzer uses polling and shows `(polling)` in the status line.
-
-Plot windows refit when resized. The Live Monitor also redistributes its grid;
-press `f` to fit it to the current screen. Use `Plot Size` in the sidebar, `+`
-and `-` in a plot window, or `Ctrl+0` / `Command+0` to restore `100%`.
-
-PQEnalyzer remembers the plot size, window dimensions, selected
-parameter, auto-refresh state, and plot settings. Set
-`PQENALYZER_CONFIG_DIR` to override the platform settings directory.
-The desktop plots, GUI controls, and TUI use the same flat mono design
-tokens as the web view.
-
-## TUI
-
-```bash
-pqenalyzer tui FILE [FILE ...]
-```
-
-| Key | Action |
-| --- | --- |
-| `Up` / `k`, `Down` / `j` | Select a parameter |
-| `Enter` | Open the selected chart |
-| `Esc` | Return to the dashboard |
-| `r` | Refresh |
-| `w` | Pause or resume file watching |
-| `q` | Quit |
-
 ## Web
 
 ```bash
@@ -120,6 +74,35 @@ This starts a local-only server (loopback, default `127.0.0.1:8766`) and
 opens the dashboard in your browser. Nothing leaves your machine; use
 `--port` when the default is taken and `--no-open` to print the address
 without opening a browser.
+
+### Cluster access over SSH
+
+Keep the server on the cluster loopback interface and forward it through SSH.
+On a directly reachable login node, start PQEnalyzer there:
+
+```bash
+pqenalyzer web --no-open --port 8766 /path/to/simulation.en
+```
+
+Then open the tunnel from your desktop:
+
+```bash
+ssh -N -L 8766:127.0.0.1:8766 user@login.cluster
+```
+
+Open `http://127.0.0.1:8766` locally. If the analysis runs on an allocated
+compute node behind a login node, start PQEnalyzer on that compute node and
+use the login node as a jump host:
+
+```bash
+ssh -N -J user@login.cluster \
+  -L 8766:127.0.0.1:8766 user@compute-node
+```
+
+Keep the PQEnalyzer process inside the allocation for as long as the tunnel is
+needed. The server intentionally rejects non-loopback hosts; SSH provides the
+authenticated, encrypted path without exposing an unauthenticated HTTP server
+to the cluster network or VPN.
 
 What you see:
 
@@ -169,19 +152,43 @@ drift measurements or MSER cuts, and sort after observables:
 loop time tracks compute cost per step, not the simulated system, so a
 step change there vetoes the segment — it never proves equilibration.
 
+## Desktop GUI
+
+Run `pqenalyzer gui FILE [FILE ...]` to use the desktop interface.
+
+| Control | Result |
+| --- | --- |
+| `Plot` | Open a time-series plot for the selected parameter |
+| `Histogram` | Open its distribution |
+| `Live Monitor` | Open one time-series panel per parameter |
+| `Auto-Refresh` | Watch loaded files and update open plots |
+
+Double-click a Live Monitor panel to open its focused plot. Plot settings belong
+to that focused window, so each window can use different overlays.
+
+Auto-refresh starts with the GUI. If native file watching is unavailable,
+PQEnalyzer uses polling and shows `(polling)` in the status line.
+
+Plot windows refit when resized. The Live Monitor also redistributes its grid;
+press `f` to fit it to the current screen. Use `Plot Size` in the sidebar, `+`
+and `-` in a plot window, or `Ctrl+0` / `Command+0` to restore `100%`.
+
+PQEnalyzer remembers the plot size, window dimensions, selected parameter,
+auto-refresh state, and plot settings. Set `PQENALYZER_CONFIG_DIR` to override
+the platform settings directory. Desktop and web use the same flat mono design
+tokens.
+
 ## Plot Features
 
-The GUI and TUI offer these plot features. Web uses the shared series and
-plot math for its time overlays and adds normalized autocorrelation by lag
-with the `s` shortcut:
+Web uses one ordered dataset for every chart and analysis:
 
-| Feature | Time series | Histogram | TUI key |
+| Feature | Time series | Histogram | Key |
 | --- | --- | --- | --- |
 | Mean | yes | yes | `m` |
 | Median | yes | yes | `n` |
 | Cumulative Average | yes | no | `c` |
-| Difference (1 - 2) | yes | no | `x` |
 | Running Average | yes | no | `a` |
+| Autocorrelation | separate lag view | no | `s` |
 
 Web autocorrelation is mean-centered and normalized to 1 at lag zero,
 calculated on all selected files as one sequence.
@@ -196,7 +203,7 @@ In the web view, common parameters from the files form one ordered dataset. A
 parameter found in only some files uses those files in input order. Shared
 parameters must use the same unit.
 
-In the GUI and TUI, Difference plotting requires exactly two files and calculates
+In the desktop GUI, Difference plotting requires exactly two files and calculates
 `file 1 - file 2`. Points are matched by simulation time, simulation step, or
 optimization step. PQEnalyzer does not interpolate, extrapolate, or concatenate
 difference data. Raw series are hidden when Difference is enabled.
@@ -225,7 +232,7 @@ no adjacent PQSetup checkout is needed. To update the shared design, follow
 the [design package guide](https://github.com/MolarVerse/PQDesign#readme),
 then update the archive URL and lockfile together. Copy that package's
 `tokens.json` to `PQEnalyzer/design/tokens.json`; CI checks they match.
-Desktop and TUI colors derive from this packaged snapshot. Keep chart and
+Desktop colors derive from this packaged snapshot. Keep chart and
 dashboard layout in PQEnalyzer.
 
 Run the end-to-end suite separately:

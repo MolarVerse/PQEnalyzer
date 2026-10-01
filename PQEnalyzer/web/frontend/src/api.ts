@@ -59,7 +59,7 @@ export interface OverlayItem {
 export interface OverlayFlags {
   mean: boolean;
   median: boolean;
-  cummulative_average: boolean;
+  cumulative_average: boolean;
   autocorrelation: boolean;
   running_average: boolean;
 }
@@ -187,7 +187,7 @@ export async function postRefresh(): Promise<StatusResponse> {
   return response.json() as Promise<StatusResponse>;
 }
 
-/** Compact value formatting without hiding scale (mirrors the TUI). */
+/** Compact value formatting without hiding scale. */
 export function formatValue(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "n/a";

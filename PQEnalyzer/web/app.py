@@ -86,6 +86,8 @@ def create_app(filenames, input_format="auto", reader=None):
         parameter: str,
         mean: bool = False,
         median: bool = False,
+        cumulative_average: bool = False,
+        # Compatibility for clients released before the spelling was fixed.
         cummulative_average: bool = False,
         autocorrelation: bool = False,
         running_average: bool = False,
@@ -95,7 +97,9 @@ def create_app(filenames, input_format="auto", reader=None):
             return state.overlays(parameter, {
                 "mean": mean,
                 "median": median,
-                "cummulative_average": cummulative_average,
+                "cumulative_average": (
+                    cumulative_average or cummulative_average
+                ),
                 "autocorrelation": autocorrelation,
                 "running_average": running_average,
             }, window_size=window_size)
@@ -151,8 +155,11 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
             raise ValueError(f"Could not open source: {error}")
 
     application = create_app(filenames, input_format, reader=reader)
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+    print(f"PQEnalyzer Web: {url}", flush=True)
     if open_browser:
-        _open_browser_later(f"http://127.0.0.1:{port}")
+        _open_browser_later(url)
     uvicorn.run(application, host=host, port=port, reload=False)
 
 

@@ -770,6 +770,14 @@ button.pq-tag:focus-visible {
   }
 }
 
+/* Ultrawide workstations can show more parameters without turning each
+   sparkline into a long, low-information strip. */
+@media (min-width: 2000px) and (min-aspect-ratio: 2 / 1) {
+  .spark-card {
+    flex-basis: calc((100% - 5px) / 6);
+  }
+}
+
 @media (max-width: 860px) {
   .spark-card {
     flex-basis: calc((100% - 1px) / 2);

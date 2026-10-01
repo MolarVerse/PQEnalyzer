@@ -14,7 +14,7 @@ from ..statistics import Statistic
 @dataclass(frozen=True)
 class PlotFeature:
     """
-    One plot feature exposed by both GUI and TUI controls.
+    One plot feature exposed by the desktop GUI controls.
     """
 
     key: str
