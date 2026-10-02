@@ -294,7 +294,13 @@ export function UPlotChart({
             u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
           },
         ],
-        setCursor: [(u) => setCursorIdx(u.cursor.idx ?? null)],
+        setCursor: [(u) => {
+          const index = u.cursor.idx ?? null;
+          // Rebuilding the plot must preserve a keyboard-selected point.
+          if (index !== null || document.activeElement !== mountEl.parentElement) {
+            setCursorIdx(index);
+          }
+        }],
       },
     };
     const next = new uPlot(opts, data, mountEl);

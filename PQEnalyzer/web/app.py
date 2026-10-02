@@ -5,7 +5,9 @@ Run with ``pqenalyzer web FILE [FILE ...]``. Binds to loopback only, like
 PQViewer: no authentication, do not expose to untrusted networks.
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path
+from socket import AF_INET, AF_INET6, create_server
 from threading import Timer
 import webbrowser
 
@@ -28,7 +30,16 @@ def create_app(filenames, input_format="auto", reader=None):
     state = WebState(
         reader if reader is not None
         else create_reader(filenames, input_format))
-    application = FastAPI(title="PQEnalyzer Web")
+
+    @asynccontextmanager
+    async def lifespan(_application):
+        try:
+            yield
+        finally:
+            state.close()
+
+    application = FastAPI(title="PQEnalyzer Web", lifespan=lifespan)
+    application.state.web_state = state
 
     @application.middleware("http")
     async def no_store_api_responses(request, call_next):
@@ -86,6 +97,8 @@ def create_app(filenames, input_format="auto", reader=None):
         parameter: str,
         mean: bool = False,
         median: bool = False,
+        cumulative_average: bool = False,
+        # Compatibility for clients released before the spelling was fixed.
         cummulative_average: bool = False,
         autocorrelation: bool = False,
         running_average: bool = False,
@@ -95,7 +108,9 @@ def create_app(filenames, input_format="auto", reader=None):
             return state.overlays(parameter, {
                 "mean": mean,
                 "median": median,
-                "cummulative_average": cummulative_average,
+                "cumulative_average": (
+                    cumulative_average or cummulative_average
+                ),
                 "autocorrelation": autocorrelation,
                 "running_average": running_average,
             }, window_size=window_size)
@@ -150,10 +165,31 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
         except Exception as error:  # pylint: disable=broad-exception-caught
             raise ValueError(f"Could not open source: {error}")
 
-    application = create_app(filenames, input_format, reader=reader)
-    if open_browser:
-        _open_browser_later(f"http://127.0.0.1:{port}")
-    uvicorn.run(application, host=host, port=port, reload=False)
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+    try:
+        listener = create_server(
+            (host, port), family=AF_INET6 if ":" in host else AF_INET)
+    except OSError as error:
+        raise ValueError(
+            f"Could not start Web server at {url}: {error}. "
+            "Choose another --port.") from error
+    with listener:
+        application = create_app(filenames, input_format, reader=reader)
+        print(f"PQEnalyzer Web: {url}", flush=True)
+        if open_browser:
+            _open_browser_later(url)
+
+        class StreamingServer(uvicorn.Server):
+            """Close live streams before Uvicorn waits for connections."""
+
+            async def shutdown(self, sockets=None):
+                application.state.web_state.close()
+                await super().shutdown(sockets=sockets)
+
+        config = uvicorn.Config(
+            application, host=host, port=port, reload=False)
+        StreamingServer(config).run(sockets=[listener])
 
 
 def _open_browser_later(url):

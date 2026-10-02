@@ -2,7 +2,6 @@
 
 import json
 from importlib.resources import files
-from string import Template
 
 TOKENS = json.loads(
     files("PQEnalyzer").joinpath("design", "tokens.json").read_text()
@@ -64,92 +63,6 @@ FLAT_MONO_CTK = {
         if family.strip().strip('"') not in {"ui-monospace", "monospace"}
     ),
 }
-
-# Textual TUI: light Gray-10, square panels, accent selection.
-FLAT_MONO_TUI_CSS = Template("""
-Screen {
-    background: $background;
-    color: $ink;
-}
-
-#status,
-#detail-title,
-#detail-stats,
-#help,
-#chart-title,
-#chart-controls {
-    border: solid $border;
-    padding: 0 1;
-}
-
-#status {
-    height: 4;
-    color: $ink_soft;
-    background: $surface;
-}
-
-#parameters {
-    height: 1fr;
-    border: solid $accent;
-    background: $surface;
-}
-
-#detail-title {
-    height: 3;
-    color: $ink;
-    background: $surface;
-    text-style: bold;
-}
-
-#trend {
-    height: 1fr;
-    border: solid $border;
-    background: $surface;
-    padding: 1 1;
-}
-
-#detail-stats {
-    height: 8;
-    background: $surface;
-}
-
-#help {
-    height: 7;
-    color: $muted;
-    background: $surface;
-}
-
-#chart-title {
-    height: 3;
-    color: $ink;
-    background: $surface;
-    text-style: bold;
-}
-
-#chart-canvas {
-    height: 1fr;
-    border: solid $accent;
-    background: $surface;
-    padding: 0 0;
-    overflow: hidden;
-}
-
-#chart-controls {
-    height: 6;
-    color: $ink_soft;
-    background: $surface;
-}
-""").substitute(**{key.replace("-", "_"): value for key, value in COLORS.items()})
-
-FLAT_MONO_TUI_STATUS_STYLES = {
-    "label": COLORS["muted"],
-    "value": f"bold {COLORS['ink']}",
-    "accent": f"bold {COLORS['accent']}",
-    "ok": f"bold {COLORS['success']}",
-    "warning": f"bold {COLORS['warning']}",
-    "error": f"bold {COLORS['danger']}",
-}
-
 
 def apply_flat_mono_matplotlib_theme(plot_scale=1.0):
     """Apply the flat-mono palette to matplotlib defaults."""

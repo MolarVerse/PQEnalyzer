@@ -1,4 +1,4 @@
-"""Command-line entry point for the GUI and TUI."""
+"""Command-line entry point for the web and desktop interfaces."""
 
 import sys
 import argparse
@@ -8,7 +8,7 @@ from ._logging import configure_logging, get_logger
 
 
 logger = get_logger(__name__)
-APP_MODES = {"gui", "tui", "web"}
+APP_MODES = {"gui", "web"}
 
 
 def _argv_with_default_mode(argv):
@@ -32,7 +32,7 @@ def _argv_with_default_mode(argv):
 
 def _add_input_arguments(parser):
     """
-    Add shared input arguments for GUI and TUI modes.
+    Add shared input arguments for web and GUI modes.
     """
 
     input_group = parser.add_mutually_exclusive_group()
@@ -89,11 +89,14 @@ def main():
     parser = argparse.ArgumentParser(
         prog="pqenalyzer",
         usage=(
-            "%(prog)s [-h] [-v] [gui|tui|web] "
+            "%(prog)s [-h] [-v] [gui|web] "
             "[--pq | -q | --box | --opt] FILE [FILE ...]"
         ),
         description="Plot and monitor PQ simulation output.",
-        epilog="Pass files directly to open the GUI: pqenalyzer FILE [FILE ...]",
+        epilog=(
+            "Pass files directly to open the desktop GUI: "
+            "pqenalyzer FILE [FILE ...]"
+        ),
     )
     parser.add_argument("-v",
                         "--version",
@@ -102,20 +105,17 @@ def main():
 
     subparsers = parser.add_subparsers(
         dest="mode",
-        metavar="[gui|tui|web]",
+        metavar="[gui|web]",
         required=True,
     )
-    gui_parser = subparsers.add_parser("gui", help="Open the GUI (default).")
-    _add_input_arguments(gui_parser)
-    tui_parser = subparsers.add_parser(
-        "tui",
-        help="Open the terminal dashboard.",
+    gui_parser = subparsers.add_parser(
+        "gui",
+        help="Open the desktop GUI (default).",
     )
-    _add_input_arguments(tui_parser)
-    # Local browser front end sharing the desktop math.
+    _add_input_arguments(gui_parser)
     web_parser = subparsers.add_parser(
         "web",
-        help="Open the local browser front end.",
+        help="Open the browser UI.",
     )
     _add_input_arguments(web_parser)
     web_parser.add_argument(
@@ -150,11 +150,7 @@ def main():
             logger.error("%s", e)
         sys.exit(1)
 
-    if args.mode == "tui":
-        from .apps import TuiApp
-
-        TuiApp(reader).run()
-    elif args.mode == "web":
+    if args.mode == "web":
         # The reader was validated above.
         from .web import serve
 

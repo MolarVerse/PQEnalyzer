@@ -193,6 +193,12 @@ def _finite_max(values):
     return float(finite.max()) if finite.size else None
 
 
+def _finite_float_or_none(value):
+    """Return a finite JSON number, or ``None`` for an overflowed result."""
+    number = float(value)
+    return number if math.isfinite(number) else None
+
+
 def _stats_of_array(finite, label, rows):
     """
     Return display stats for finite values with a total row count.
@@ -206,13 +212,17 @@ def _stats_of_array(finite, label, rows):
             "median": None, "std": None, "min": None, "max": None,
             "drift": None,
         }
+    with np.errstate(over="ignore", invalid="ignore"):
+        mean = np.mean(finite)
+        median = np.median(finite)
+        std = np.std(finite)
     return {
         "label": label,
         "rows": rows,
         "latest": float(finite[-1]),
-        "mean": float(np.mean(finite)),
-        "median": float(np.median(finite)),
-        "std": float(np.std(finite)),
+        "mean": _finite_float_or_none(mean),
+        "median": _finite_float_or_none(median),
+        "std": _finite_float_or_none(std),
         "min": float(finite.min()),
         "max": float(finite.max()),
         "drift": _drift_sigma(finite),
@@ -225,11 +235,13 @@ def _drift_sigma(finite):
     """
     if finite.size < 4:
         return None
-    std = float(np.std(finite))
+    with np.errstate(over="ignore", invalid="ignore"):
+        std = float(np.std(finite))
     if std == 0 or not math.isfinite(std):
         return None
     half = finite.size // 2
-    drift = (
-        float(np.mean(finite[half:])) - float(np.mean(finite[:half]))
-    ) / std
+    with np.errstate(over="ignore", invalid="ignore"):
+        drift = (
+            float(np.mean(finite[half:])) - float(np.mean(finite[:half]))
+        ) / std
     return drift if math.isfinite(drift) else None

@@ -10,7 +10,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -101,6 +101,16 @@ def test_web_mode_serves_status_and_events():
         assert status["stale"] is False
         assert sum(item["rows"] for item in status["files"]) > 0
         assert _wait_for_hello(port)
+        assert process.stdout is not None
+        assert process.stdout.readline().strip() == (
+            f"PQEnalyzer Web: http://127.0.0.1:{port}"
+        )
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/api/events", timeout=5
+        ) as stream:
+            assert stream.readline().startswith(b"retry:")
+            process.terminate()
+            process.wait(timeout=5)
     finally:
         _terminate_process(process)
 
@@ -139,7 +149,11 @@ def test_web_analysis_flow_in_browser(tmp_path):
             chart = page.get_by_role("group", name="Time series chart.", exact=False)
             chart.focus()
             chart.press("Home")
-            assert "All data" in chart.locator("[aria-live]").inner_text()
+            expect(chart.locator("[aria-live]")).to_contain_text("All data")
+            chart.press("c")
+            expect(chart.locator("[aria-live]")).to_contain_text("cum avg")
+            chart.press("c")
+            expect(chart.locator("[aria-live]")).to_contain_text("All data")
 
             with page.expect_download() as download_info:
                 page.get_by_role("button", name="Download time chart as PNG").click()
@@ -157,13 +171,13 @@ def test_web_analysis_flow_in_browser(tmp_path):
             correlation = page.get_by_role("group", name="Autocorrelation by lag.", exact=False)
             correlation.focus()
             correlation.press("Home")
-            assert "Lag (steps) 0" in correlation.locator("[aria-live]").inner_text()
+            expect(correlation.locator("[aria-live]")).to_contain_text("Lag (steps) 0")
 
             page.get_by_role("tab", name="Histogram").click()
             histogram = page.get_by_role("group", name="Histogram,", exact=False)
             histogram.focus()
             histogram.press("End")
-            assert "samples" in histogram.locator("[aria-live]").inner_text()
+            expect(histogram.locator("[aria-live]")).to_contain_text("samples")
 
             page.set_viewport_size({"width": 844, "height": 390})
             chart_bounds = histogram.bounding_box()

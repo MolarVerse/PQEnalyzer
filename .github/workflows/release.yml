@@ -60,7 +60,7 @@ jobs:
         /tmp/pqenalyzer-release-smoke/bin/python -m pip install dist/*.whl
         cd /tmp
         /tmp/pqenalyzer-release-smoke/bin/pqenalyzer --help
-        /tmp/pqenalyzer-release-smoke/bin/python -c "from PQEnalyzer.flat_mono import FLAT_MONO_TUI_CSS; assert 'Screen' in FLAT_MONO_TUI_CSS"
+        /tmp/pqenalyzer-release-smoke/bin/python -c 'from importlib.resources import files; import re; root = files("PQEnalyzer").joinpath("web", "static"); html = root.joinpath("index.html").read_text(); assets = re.findall(r"(?:src|href)=\"(/assets/[^\"]+)\"", html); assert assets and all(root.joinpath(asset.removeprefix("/")).is_file() for asset in assets)'
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:

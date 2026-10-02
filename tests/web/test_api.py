@@ -7,6 +7,7 @@ break the JSON contract the React app consumes.
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -154,6 +155,30 @@ def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
     assert "frontend not built" in response.json()["detail"]
 
 
+def test_serve_prints_and_opens_a_browser_safe_ipv6_url(monkeypatch, capsys):
+    """Server startup exposes the bracketed URL needed for IPv6 hosts."""
+    from contextlib import nullcontext
+
+    from PQEnalyzer.web import app as web_app
+
+    monkeypatch.setattr(
+        web_app, "create_app", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        web_app, "create_server", lambda *_args, **_kwargs: nullcontext(object()))
+    opened = []
+    monkeypatch.setattr(
+        web_app, "_open_browser_later", opened.append)
+    monkeypatch.setattr(
+        "uvicorn.Server.run", lambda *_args, **_kwargs: None)
+
+    web_app.serve(
+        ["source.en"], host="::1", port=4321, reader=object())
+
+    url = "http://[::1]:4321"
+    assert capsys.readouterr().out == f"PQEnalyzer Web: {url}\n"
+    assert opened == [url]
+
+
 def test_overlays_use_shared_feature_math(client):
     """
     References and moving windows use the same combined sequence.
@@ -185,13 +210,13 @@ def test_all_web_overlays_have_distinct_scopes_and_axes(client):
         "parameter": "PRESSURE",
         "mean": "true",
         "median": "true",
-        "cummulative_average": "true",
+        "cumulative_average": "true",
         "autocorrelation": "true",
         "running_average": "true",
     }).json()
     items = body["overlays"]
     assert [item["key"] for item in items] == [
-        "mean", "median", "cummulative_average", "running_average",
+        "mean", "median", "cumulative_average", "running_average",
         "autocorrelation",
     ]
     assert all(len(item["time"]) >= 2 for item in items)
@@ -200,6 +225,11 @@ def test_all_web_overlays_have_distinct_scopes_and_axes(client):
     assert [item["values"][0] for item in items if item["axis"] == "lag"] == [1.0]
     assert [item["time"] for item in items if item["axis"] == "lag"] == [
         [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]]
+    legacy = client.get("/api/overlays", params={
+        "parameter": "PRESSURE", "cummulative_average": "true",
+    }).json()["overlays"]
+    assert [item["key"] for item in legacy] == ["cumulative_average"]
+    assert legacy[0]["values"] == items[2]["values"]
 
 
 def test_autocorrelation_uses_all_files_as_one_sequence(client):
@@ -235,6 +265,43 @@ def test_sparse_parameter_still_uses_one_dataset(client):
     assert all("source_index" not in item for item in overlays)
 
 
+@pytest.mark.parametrize("window_size", ["inf", "-inf", "1e309"])
+def test_running_average_clamps_nonfinite_windows(client, window_size):
+    """Unrepresentable window sizes retain the bounded-window API behavior."""
+    response = client.get("/api/overlays", params={
+        "parameter": "TEMPERATURE", "running_average": "true",
+        "window_size": window_size,
+    })
+    assert response.status_code == 200
+    curve = response.json()["overlays"][0]
+    values = client.get("/api/series", params={
+        "parameter": "TEMPERATURE"}).json()["series"][0]["values"]
+    assert curve["time"] == [5.5]
+    assert curve["values"] == pytest.approx([sum(values) / len(values)])
+
+
+def test_empty_parameter_has_no_overlay_curves(tmp_path):
+    """A declared parameter without observations has no statistical curves."""
+    from fastapi.testclient import TestClient
+
+    source = tmp_path / "empty.en"
+    source.touch()
+    energy = SimpleNamespace(
+        simulation_time=np.array([]), simulation_time_unit="step",
+        info={"OBS": "obs"}, data={"obs": np.array([])},
+        units={"OBS": "u", "SIMULATION-TIME": "step"},
+    )
+    reader = SimpleNamespace(filenames=[str(source)], energies=[energy])
+    with TestClient(create_app([str(source)], reader=reader)) as empty:
+        response = empty.get("/api/overlays", params={
+            "parameter": "OBS", "mean": "true", "median": "true",
+            "cumulative_average": "true", "running_average": "true",
+            "autocorrelation": "true",
+        })
+    assert response.status_code == 200
+    assert response.json() == {"parameter": "OBS", "overlays": []}
+
+
 def test_restarted_time_uses_sample_axis_for_every_curve(tmp_path):
     """A repeated time grid retains every observation and aligns analysis."""
     import shutil
@@ -254,7 +321,7 @@ def test_restarted_time_uses_sample_axis_for_every_curve(tmp_path):
         assert combined["values"][:5] == combined["values"][5:]
         curves = overlap.get("/api/overlays", params={
             "parameter": "TEMPERATURE", "mean": "true",
-            "cummulative_average": "true", "running_average": "true",
+            "cumulative_average": "true", "running_average": "true",
             "window_size": "3"}).json()["overlays"]
         assert curves[0]["time"] == [1.0, 10.0]
         assert curves[1]["time"] == list(range(1, 11))

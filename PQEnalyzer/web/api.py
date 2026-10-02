@@ -13,7 +13,6 @@ import json
 import os
 import queue
 import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -94,6 +93,18 @@ class WebState:
         self._subscribers = []
         self._subs_lock = threading.Lock()
         self._watcher_started = False
+        self._closed = threading.Event()
+
+    def close(self):
+        """Stop file watching and wake event streams before server shutdown."""
+        self._closed.set()
+        with self._subs_lock:
+            for subscriber in self._subscribers:
+                try:
+                    subscriber.put_nowait(None)
+                except queue.Full:
+                    pass
+        self.pool.shutdown(wait=False)
 
     def status(self):
         """
@@ -159,8 +170,7 @@ class WebState:
         Poll mtimes and push one `stale` event per fresh→stale transition.
         """
         was_stale = False
-        while True:
-            time.sleep(WATCH_INTERVAL)
+        while not self._closed.wait(WATCH_INTERVAL):
             with self.lock:
                 baseline = self.snapshot
             current = _snapshot_files(self.filenames)
@@ -190,9 +200,12 @@ class WebState:
         try:
             yield f"retry: {SSE_RETRY_MS}\n\n"
             yield format_sse_event("hello", json.dumps(self.status()))
-            while True:
+            while not self._closed.is_set():
                 try:
-                    yield subscriber.get(timeout=heartbeat)
+                    event = subscriber.get(timeout=heartbeat)
+                    if event is None:
+                        break
+                    yield event
                 except queue.Empty:
                     yield ": ping\n\n"
         finally:
@@ -290,6 +303,8 @@ class WebState:
                 f"Parameter {parameter} is not present in any input file.")
         combined = concatenate_series(energies, parameter)
         values = np.asarray(combined.values, dtype=float)
+        if values.size == 0:
+            return {"parameter": parameter, "overlays": []}
         plot_time, _, _ = _chart_axis(
             combined.time, axis_label(matching[0][1]),
             _time_unit([energy for _, energy in matching]))
@@ -315,9 +330,9 @@ class WebState:
         if flags.get("median"):
             time, curve = Statistic.median_values(plot_time, values)
             add("median", "Median", time, curve)
-        if flags.get("cummulative_average"):
+        if flags.get("cumulative_average") or flags.get("cummulative_average"):
             time, curve = Statistic.cumulative_average_values(plot_time, values)
-            add("cummulative_average", "Cumulative Average", time, curve)
+            add("cumulative_average", "Cumulative Average", time, curve)
         if flags.get("running_average"):
             requested = str(window_size).strip()
             if not requested:

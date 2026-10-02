@@ -30,7 +30,7 @@ export function defaultSettings(): WebSettings {
 const KNOWN_OVERLAYS: (keyof OverlayFlags)[] = [
   "mean",
   "median",
-  "cummulative_average",
+  "cumulative_average",
   "autocorrelation",
   "running_average",
 ];
@@ -72,6 +72,14 @@ export function loadSettings(storage?: StorageLike | null): WebSettings {
   {
     const rest = cleanOverlays(record.overlays);
     settings.overlays = { ...settings.overlays, ...rest };
+    const oldCumulative = (record.overlays as Record<string, unknown> | undefined)
+      ?.cummulative_average;
+    if (
+      typeof oldCumulative === "boolean" &&
+      !("cumulative_average" in rest)
+    ) {
+      settings.overlays.cumulative_average = oldCumulative;
+    }
     const old = (record.overlays as Record<string, unknown> | undefined)
       ?.self_correlation_mean;
     if (typeof old === "boolean" && !("autocorrelation" in rest)) {

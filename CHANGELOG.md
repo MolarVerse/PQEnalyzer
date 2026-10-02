@@ -1,6 +1,25 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.10.0](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.0) - 2026-10-02
+
+[Compare with v0.9.2](https://github.com/MolarVerse/PQEnalyzer/compare/v0.9.2...v0.10.0)
+
+### Upgrade
+
+- The TUI command is removed. Use `pqenalyzer web --no-open FILE` and SSH
+  forwarding for remote analysis. Bare `pqenalyzer FILE` still opens the GUI.
+
+### Changes
+
+- Document direct and jump-host SSH access; print the browser URL on startup.
+- Use six dashboard columns on ultrawide desktops.
+- Correct the cumulative-average key and migrate saved browser settings.
+- Handle empty overlays, invalid averaging windows, and overflowed estimates.
+- Report occupied ports clearly and close live streams when the server stops.
+- Preserve keyboard-selected chart values during overlay updates.
+- Remove the TUI code and its `textual` and `plotext` dependencies.
+
 ## [v0.8.6](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.8.6) - 2026-07-30
 
 <small>[Compare with v0.8.5](https://github.com/MolarVerse/PQEnalyzer/compare/v0.8.5...v0.8.6)</small>

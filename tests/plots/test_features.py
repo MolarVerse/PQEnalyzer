@@ -22,7 +22,7 @@ class FakeEnergy:
         self.simulation_time = np.array(time, dtype=float)
 
 
-def test_registry_defines_shared_gui_and_tui_features():
+def test_registry_defines_desktop_gui_features():
     feature_keys = [feature.key for feature in PLOT_FEATURES]
     shortcuts = [feature.shortcut for feature in PLOT_FEATURES]
 

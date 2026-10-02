@@ -50,12 +50,20 @@ describe("loadSettings", () => {
       memoryStorage({
         [SETTINGS_KEY]: JSON.stringify({
           version: 1,
-          overlays: { mean: false, difference: true, frobnicate: true },
+          overlays: {
+            mean: false,
+            cummulative_average: true,
+            difference: true,
+            frobnicate: true,
+          },
           sortMode: "name",
         }),
       }),
     );
-    expect(loaded.overlays).toEqual({ mean: false });
+    expect(loaded.overlays).toEqual({
+      mean: false,
+      cumulative_average: true,
+    });
   });
 
   it("maps the old self-correlation preference to autocorrelation", () => {

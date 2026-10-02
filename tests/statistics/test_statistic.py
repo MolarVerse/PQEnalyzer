@@ -106,6 +106,28 @@ class TestStatistic:
             assert lags.size == 0
             assert correlation.size == 0
 
+    def test_overflowed_variance_is_unavailable(self):
+        values = np.array([-1e200, 1e200, -1e200, 1e200])
+        time = np.arange(values.size)
+
+        assert Statistic.block_error_values(time, values) == (
+            None, None, None, None)
+        assert Statistic.mser_truncation_index(values) is None
+        lags, correlation = Statistic.autocorrelation_values(values)
+        assert lags.size == 0
+        assert correlation.size == 0
+
+    def test_overflowed_fft_does_not_report_uncorrelated_samples(self):
+        values = np.repeat([-1e152, 1e152], 5000)
+        time = np.arange(values.size)
+
+        with np.errstate(all="raise"):
+            assert Statistic.block_error_values(time, values) == (
+                None, None, None, None)
+            lags, correlation = Statistic.autocorrelation_values(values)
+        assert lags.size == 0
+        assert correlation.size == 0
+
     def test_running_average(self):
         time, running_average = Statistic.running_average_values(
             [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], 2)
