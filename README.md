@@ -71,40 +71,47 @@ pqenalyzer web FILE [FILE ...] [--port 8766] [--no-open]
 ```
 
 This starts a local-only server (loopback, default `127.0.0.1:8766`) and
-opens the dashboard in your browser. Nothing leaves your machine; use
+opens the dashboard in your browser. Input files are read on the machine
+running PQEnalyzer; the browser receives the interface and chart data. Use
 `--port` when the default is taken and `--no-open` to print the address
-without opening a browser.
+without opening a browser there.
 
-### Cluster access over SSH
+### Remote access over SSH and VPN
 
-Keep the server on the cluster loopback interface and forward it through SSH.
-On a directly reachable login node, start PQEnalyzer there:
+From home, connect your institution's VPN first if the server requires it.
+Confirm that `ssh user@login.cluster` works, then start PQEnalyzer on that
+server with paths to its existing simulation files:
 
 ```bash
 pqenalyzer web --no-open --port 8766 /path/to/simulation.en
 ```
 
-Then open the tunnel from your desktop:
+In a second terminal on your desktop, open the tunnel:
 
 ```bash
-ssh -N -L 8766:127.0.0.1:8766 user@login.cluster
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8766:127.0.0.1:8766 user@login.cluster
 ```
 
-Open `http://127.0.0.1:8766` locally. If the analysis runs on an allocated
-compute node behind a login node, start PQEnalyzer on that compute node and
-use the login node as a jump host:
+Open `http://127.0.0.1:8766` in your desktop browser. Keep the app and tunnel
+running. The same commands work on the institution's network and over its VPN
+when SSH forwarding is allowed. No CSV conversion or manual file transfer is
+needed.
+
+If your cluster permits SSH to an allocated compute node, start PQEnalyzer
+on that node and use the login node as a jump host:
 
 ```bash
-ssh -N -J user@login.cluster \
-  -L 8766:127.0.0.1:8766 user@compute-node
+ssh -N -o ExitOnForwardFailure=yes -J user@login.cluster \
+  -L 127.0.0.1:8766:127.0.0.1:8766 user@compute-node
 ```
 
-Keep the PQEnalyzer process inside the allocation for as long as the tunnel is
-needed. The server intentionally rejects non-loopback hosts; SSH provides the
-authenticated, encrypted path without exposing an unauthenticated HTTP server
-to the cluster network or VPN.
+Keep the compute allocation active. The server stays on loopback; SSH provides
+the authenticated, encrypted connection. See the
+[remote access guide](docs/remote-access.md) for VPN requirements, port conflicts,
+and reconnection.
 
-What you see:
+### Dashboard and charts
 
 - **Dashboard** — one card per parameter with a sparkline and the latest
   value. Click a card (or press
