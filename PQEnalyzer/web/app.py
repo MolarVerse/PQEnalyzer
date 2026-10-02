@@ -5,7 +5,9 @@ Run with ``pqenalyzer web FILE [FILE ...]``. Binds to loopback only, like
 PQViewer: no authentication, do not expose to untrusted networks.
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path
+from socket import AF_INET, AF_INET6, create_server
 from threading import Timer
 import webbrowser
 
@@ -28,7 +30,16 @@ def create_app(filenames, input_format="auto", reader=None):
     state = WebState(
         reader if reader is not None
         else create_reader(filenames, input_format))
-    application = FastAPI(title="PQEnalyzer Web")
+
+    @asynccontextmanager
+    async def lifespan(_application):
+        try:
+            yield
+        finally:
+            state.close()
+
+    application = FastAPI(title="PQEnalyzer Web", lifespan=lifespan)
+    application.state.web_state = state
 
     @application.middleware("http")
     async def no_store_api_responses(request, call_next):
@@ -154,13 +165,31 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
         except Exception as error:  # pylint: disable=broad-exception-caught
             raise ValueError(f"Could not open source: {error}")
 
-    application = create_app(filenames, input_format, reader=reader)
     url_host = f"[{host}]" if ":" in host else host
     url = f"http://{url_host}:{port}"
-    print(f"PQEnalyzer Web: {url}", flush=True)
-    if open_browser:
-        _open_browser_later(url)
-    uvicorn.run(application, host=host, port=port, reload=False)
+    try:
+        listener = create_server(
+            (host, port), family=AF_INET6 if ":" in host else AF_INET)
+    except OSError as error:
+        raise ValueError(
+            f"Could not start Web server at {url}: {error}. "
+            "Choose another --port.") from error
+    with listener:
+        application = create_app(filenames, input_format, reader=reader)
+        print(f"PQEnalyzer Web: {url}", flush=True)
+        if open_browser:
+            _open_browser_later(url)
+
+        class StreamingServer(uvicorn.Server):
+            """Close live streams before Uvicorn waits for connections."""
+
+            async def shutdown(self, sockets=None):
+                application.state.web_state.close()
+                await super().shutdown(sockets=sockets)
+
+        config = uvicorn.Config(
+            application, host=host, port=port, reload=False)
+        StreamingServer(config).run(sockets=[listener])
 
 
 def _open_browser_later(url):

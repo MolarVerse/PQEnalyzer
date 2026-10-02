@@ -67,6 +67,27 @@ def test_web_mode_rejects_non_loopback_host():
     assert "--host must be a loopback address" in result.stderr
 
 
+def test_web_mode_reports_an_occupied_port_without_announcing_startup():
+    import socket
+
+    project_root = Path(__file__).resolve().parents[1]
+    with socket.socket() as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen(1)
+        port = occupied.getsockname()[1]
+        result = subprocess.run(
+            [sys.executable, "-m", "PQEnalyzer", "web", "--no-open",
+             "--port", str(port), "tests/data/md-01.en"],
+            cwd=project_root, capture_output=True, text=True, timeout=20,
+        )
+
+    assert result.returncode != 0
+    assert "address already in use" in result.stderr.lower()
+    assert "--port" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert "PQEnalyzer Web:" not in result.stdout
+
+
 def test_gui_help_mentions_optimizer_input():
     project_root = Path(__file__).resolve().parents[1]
 

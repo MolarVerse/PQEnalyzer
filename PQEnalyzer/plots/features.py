@@ -301,7 +301,10 @@ def _parse_window_size(requested_window_size):
     if requested in {"", "."}:
         return 1000
 
-    window_size = int(float(requested))
+    try:
+        window_size = int(float(requested))
+    except OverflowError as error:
+        raise ValueError("Window size must be finite") from error
     if window_size < 1:
         raise ValueError("Window size must be positive")
 

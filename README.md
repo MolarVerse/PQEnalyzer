@@ -143,6 +143,7 @@ files stay in their original format; the chart can be saved as a PNG. An MSER
 marker shows an estimated initial cut on eligible time series. The mean,
 uncertainty, and other summary statistics still use all samples. The `±`
 value is the standard error of the mean (SEM), adjusted for autocorrelation.
+Estimates that overflow floating-point arithmetic are shown as unavailable.
 The cut is not a verdict that the simulation has converged.
 
 Parameters split into **observables** (energy, temperature, pressure,

@@ -1,5 +1,7 @@
 """Scientific edge cases for the combined-data web calculations."""
 
+import json
+
 import numpy as np
 
 from PQEnalyzer.web.calculations import (
@@ -29,6 +31,20 @@ def test_missing_values_stay_missing_in_transport_and_empty_stats():
     assert empty["rows"] == 3
     assert empty["mean"] is None
     assert empty["drift"] is None
+
+
+def test_overflowed_estimates_are_unavailable_and_json_safe():
+    values = np.asarray([-1e200, 1e200, -1e200, 1e200])
+    time = np.arange(values.size)
+
+    stats = _stats_of_array(values, "combined", values.size)
+    analysis = _analysis_of(values, time)
+
+    assert stats["mean"] == 0.0
+    assert stats["std"] is None
+    assert analysis["sem"] is None
+    assert analysis["equil_index"] is None
+    json.dumps({"stats": stats, "analysis": analysis}, allow_nan=False)
 
 
 def test_auto_bins_bound_a_long_tailed_distribution():
