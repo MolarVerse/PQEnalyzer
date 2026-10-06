@@ -160,12 +160,56 @@ def test_web_mode_announces_usable_url_after_startup(host, family):
             stdout_tail, stderr = process.communicate(timeout=5)
         assert stdout_tail == ""
         assert process.returncode == 130
-        assert "INFO:" not in stderr
+        assert stderr.count("Server ready.") == 1
+        assert stderr.count("Server stopped.") == 1
         assert "Detected PQ energy input" not in stderr
         assert "Uvicorn running" not in stderr
+        assert "GET /api/" not in stderr
         assert "Traceback" not in stderr
         assert "CancelledError" not in stderr
         assert "KeyboardInterrupt" not in stderr
+    finally:
+        _terminate_process(process)
+
+
+@pytest.mark.e2e
+def test_debug_log_level_enables_http_access_output():
+    """Debug mode exposes request diagnostics without changing server behavior."""
+    port = _free_port()
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "PQEnalyzer",
+            "web",
+            "--no-open",
+            "--log-level",
+            "debug",
+            "--port",
+            str(port),
+            str(EXAMPLE_FILE),
+        ],
+        cwd=PROJECT_ROOT,
+        env=_subprocess_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        status = _wait_for_status(port)
+        assert status["stale"] is False
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=5)
+
+        assert "PQEnalyzer  Web" in stdout
+        assert process.returncode == 130
+        diagnostics = stdout + stderr
+        assert "GET /api/status" in diagnostics
+        assert "200 OK" in diagnostics
+        assert "Detected PQ energy input" not in diagnostics
+        assert "Traceback" not in diagnostics
+        assert "KeyboardInterrupt" not in diagnostics
     finally:
         _terminate_process(process)
 
@@ -259,6 +303,14 @@ def test_web_analysis_flow_in_browser(tmp_path):
             page.get_by_role("button", name="Pause auto-refresh").locator(
                 ".pq-tag-value").get_by_text("watching").wait_for(timeout=10000)
             browser.close()
+        process.send_signal(signal.SIGINT)
+        _, stderr = process.communicate(timeout=5)
+        assert process.returncode == 130
+        assert stderr.count("Input data changed on disk.") == 1
+        assert stderr.count("Refreshed 10 rows / 2 files.") == 1
+        assert stderr.count("Server stopped.") == 1
+        assert "GET /api/" not in stderr
+        assert "Traceback" not in stderr
     finally:
         _terminate_process(process)
 

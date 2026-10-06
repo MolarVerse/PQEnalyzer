@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
+from .._terminal import data_summary, event_logger
 from ..energy_access import (
     available_parameters,
     axis_label,
@@ -137,7 +138,13 @@ class WebState:
         self._summaries_cache = {
             _snapshot_key(self.snapshot): self._compute_summaries(energies),
         }
-        return self.status()
+        status = self.status()
+        files = status["files"]
+        event_logger.info(
+            "Refreshed %s.",
+            data_summary(sum(item["rows"] for item in files), len(files)),
+        )
+        return status
 
     def subscribe(self):
         """
@@ -179,6 +186,7 @@ class WebState:
                 for filename in self.filenames
             )
             if stale and not was_stale:
+                event_logger.info("Input data changed on disk.")
                 payload = format_sse_event(
                     "stale", json.dumps({"stale": True}))
                 with self._subs_lock:

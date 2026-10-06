@@ -13,6 +13,18 @@ pqenalyzer simulation.en
 
 `pqenalyzer gui simulation.en` is equivalent. A local graphical display is required.
 
+After the window is built, the terminal shows the loaded dataset and how to
+stop it:
+
+```text
+PQEnalyzer  Desktop
+Data   5,000 rows / 1 file
+Stop   Close window / Ctrl+C
+```
+
+The default `--log-level info` reports when the desktop is ready and closed.
+Use `--log-level warning` or `--log-level error` for less output.
+
 ```{figure} assets/screenshots/desktop.png
 :width: 360px
 :alt: Tkinter temperature selector, statistics, time-series overlays and plot buttons
@@ -98,7 +110,9 @@ No file conversion is needed.
 pqenalyzer web --no-open simulation.en
 ```
 
-Once the server is ready:
+Once the server is ready, an interactive terminal shows the PQEnalyzer
+wordmark, version, browser address, dataset size and stop key. Redirected
+standard output keeps the same facts in a compact four-line form:
 
 ```text
 PQEnalyzer  Web
@@ -109,7 +123,21 @@ Stop   Ctrl+C
 
 Open the printed URL; `--no-open` skips opening a browser automatically.
 Keep the terminal running. Press `Ctrl+C` to stop the server.
-The heading and URL use the PQ accent in a terminal. `NO_COLOR=1` disables
-color; redirected output and `TERM=dumb` are plain.
+The heading and URL use the PQ accent in a capable terminal. `NO_COLOR=1`
+disables color; redirected output and `TERM=dumb` are plain.
+
+At the default `--log-level info`, the terminal reports only useful server
+and data transitions:
+
+```text
+15:22:03 INFO    Server ready.
+15:24:10 INFO    Input data changed on disk.
+15:24:10 INFO    Refreshed 5,020 rows / 1 file.
+15:30:00 INFO    Server stopped.
+```
+
+Routine status checks and browser requests stay quiet. Use `--log-level
+warning` or `--log-level error` for less output. `--log-level debug` adds
+Uvicorn diagnostics and HTTP access records when troubleshooting.
 Use `--port 8767` for a different port. On a cluster or home VPN, use the
 [SSH / VPN guide](remote-access.md).

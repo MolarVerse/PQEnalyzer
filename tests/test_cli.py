@@ -2,6 +2,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def test_cli_version_from_source_checkout():
     project_root = Path(__file__).resolve().parents[1]
@@ -32,14 +34,47 @@ def test_cli_help_mentions_web_and_gui_modes():
 
     assert result.returncode == 0
     assert "Traceback" not in result.stderr
-    assert (
-        "usage: pqenalyzer [-h] [-v] [gui|web] "
-        "[--pq | -q | --box | --opt] FILE [FILE ...]"
-    ) in result.stdout
+    assert "usage: pqenalyzer [-h] [-v] [gui|web] ..." in (
+        " ".join(result.stdout.lower().split())
+    )
     assert "{gui,web}" not in result.stdout
     assert "[gui|web]" in result.stdout
     assert "gui" in result.stdout
     assert "web" in result.stdout
+    assert "\033[" not in result.stdout
+
+
+def test_web_help_in_a_terminal_is_branded_and_shows_defaults(monkeypatch):
+    """Interactive help identifies the app and its usable server defaults."""
+    import io
+    import re
+
+    from PQEnalyzer.__main__ import main
+
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    stream = Terminal()
+    monkeypatch.setattr(sys, "stdout", stream)
+    monkeypatch.setattr(sys, "argv", ["pqenalyzer", "web", "--help"])
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setenv("COLUMNS", "48")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    with pytest.raises(SystemExit) as exited:
+        main()
+
+    assert exited.value.code == 0
+    output = stream.getvalue()
+    plain = re.sub(r"\033\[[0-9;]*m", "", output)
+    assert "PQEnalyzer" in plain
+    assert "--no-open" in plain
+    assert "--log-level" in plain
+    assert "127.0.0.1" in plain
+    assert "8766" in plain
+    assert "info" in plain
+    assert "\033[" in output
 
 
 def test_web_mode_rejects_non_loopback_host():
@@ -103,6 +138,8 @@ def test_gui_help_mentions_optimizer_input():
     assert result.returncode == 0
     assert "--opt" in result.stdout
     assert "optimizer output" in result.stdout
+    assert "--log-level" in result.stdout
+    assert "info" in result.stdout
 
 
 def test_default_gui_mode_logs_reader_errors():

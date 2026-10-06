@@ -1,6 +1,19 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.10.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.2) - 2026-10-06
+
+[Compare with v0.10.1](https://github.com/MolarVerse/PQEnalyzer/compare/v0.10.1...v0.10.2)
+
+### Changes
+
+- Give terminal help plus desktop and browser startup the shared PQ wordmark
+  and layout.
+- Report desktop and server readiness, input changes, successful refreshes,
+  refresh errors and clean shutdowns without routine HTTP noise.
+- Add `--log-level` controls; debug mode includes Uvicorn and HTTP access
+  diagnostics.
+
 ## [v0.10.1](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.1) - 2026-10-06
 
 [Compare with v0.10.0](https://github.com/MolarVerse/PQEnalyzer/compare/v0.10.0...v0.10.1)

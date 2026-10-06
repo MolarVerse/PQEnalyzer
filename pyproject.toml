@@ -31,6 +31,8 @@ dependencies = [
     "watchdog",
     "fastapi",
     "uvicorn",
+    "rich>=13",
+    "rich-argparse>=1.7",
 ]
 
 [project.urls]
