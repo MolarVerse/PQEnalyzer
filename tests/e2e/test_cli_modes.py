@@ -1,7 +1,9 @@
 import os
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -39,13 +41,36 @@ def _terminate_process(process):
         process.wait(timeout=5)
 
 
+def _read_lines(stream, count, timeout=8.0):
+    """Read a fixed startup block without hanging a failed GUI test."""
+    lines = []
+
+    def read():
+        for _ in range(count):
+            lines.append(stream.readline().rstrip("\n"))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    reader.join(timeout)
+    if reader.is_alive():
+        pytest.fail("Timed out waiting for desktop startup output.")
+    return lines
+
+
 @pytest.mark.e2e
-def test_gui_mode_starts_and_can_be_terminated():
+@pytest.mark.parametrize(
+    "mode",
+    [
+        pytest.param(["gui"], id="explicit-gui"),
+        pytest.param([], id="default-gui"),
+    ],
+)
+def test_gui_mode_announces_ready_dataset_and_closes_cleanly(mode):
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         pytest.skip("GUI e2e test requires a display; run with xvfb-run.")
 
     process = subprocess.Popen(
-        [sys.executable, "-m", "PQEnalyzer", "gui", str(EXAMPLE_FILE)],
+        [sys.executable, "-m", "PQEnalyzer", *mode, str(EXAMPLE_FILE)],
         cwd=PROJECT_ROOT,
         env=_subprocess_environment(),
         stdout=subprocess.PIPE,
@@ -54,44 +79,24 @@ def test_gui_mode_starts_and_can_be_terminated():
     )
 
     try:
-        time.sleep(2)
+        assert process.stdout is not None
+        output = _read_lines(process.stdout, 3)
+        assert output == [
+            "PQEnalyzer  Desktop",
+            "Data   5,000 rows / 1 file",
+            "Stop   Close window / Ctrl+C",
+        ]
+        assert process.poll() is None
 
-        if process.poll() is not None:
-            stdout, stderr = process.communicate(timeout=5)
-            pytest.fail(
-                "GUI mode exited before the startup smoke window elapsed.\n"
-                f"returncode={process.returncode}\n"
-                f"stdout={stdout}\n"
-                f"stderr={stderr}")
-    finally:
-        _terminate_process(process)
-
-
-@pytest.mark.e2e
-def test_default_gui_mode_starts_and_can_be_terminated():
-    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
-        pytest.skip("GUI e2e test requires a display; run with xvfb-run.")
-
-    process = subprocess.Popen(
-        [sys.executable, "-m", "PQEnalyzer", str(EXAMPLE_FILE)],
-        cwd=PROJECT_ROOT,
-        env=_subprocess_environment(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-
-    try:
-        time.sleep(2)
-
-        if process.poll() is not None:
-            stdout, stderr = process.communicate(timeout=5)
-            pytest.fail(
-                "Default GUI mode exited before the startup smoke window "
-                "elapsed.\n"
-                f"returncode={process.returncode}\n"
-                f"stdout={stdout}\n"
-                f"stderr={stderr}")
+        process.send_signal(signal.SIGINT)
+        stdout_tail, stderr = process.communicate(timeout=8)
+        assert stdout_tail == ""
+        assert process.returncode == 0
+        assert stderr.count("Desktop ready.") == 1
+        assert stderr.count("Desktop closed.") == 1
+        assert "Detected PQ energy input" not in stderr
+        assert "Traceback" not in stderr
+        assert "TclError" not in stderr
     finally:
         _terminate_process(process)
 

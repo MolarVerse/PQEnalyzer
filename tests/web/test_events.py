@@ -108,7 +108,7 @@ def test_heartbeat_when_idle(state):
         events.close()
 
 
-def test_only_one_push_per_transition(state):
+def test_only_one_push_per_transition(state, terminal_log):
     """
     Repeated scans while stale do not spam subscribers.
     """
@@ -116,6 +116,7 @@ def test_only_one_push_per_transition(state):
     events = web_state.events(heartbeat=0.2)
     try:
         _drain_hello(events)
+        terminal_log.clear()
         _touch(watched)
         pushed = _next_stale(events)
         assert pushed.startswith("event: stale\n")
@@ -123,3 +124,8 @@ def test_only_one_push_per_transition(state):
         assert next(events) == ": ping\n\n"
     finally:
         events.close()
+    assert [
+        record.getMessage()
+        for record in terminal_log.records
+        if record.name == "PQEnalyzer"
+    ] == ["Input data changed on disk."]

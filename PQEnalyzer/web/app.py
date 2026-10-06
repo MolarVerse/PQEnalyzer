@@ -9,49 +9,19 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from socket import AF_INET, AF_INET6, create_server
 from threading import Timer
-import sys
 import webbrowser
 
-from .._logging import RESET_COLOR, _should_use_color
-from ..flat_mono import COLORS
+from .._terminal import event_logger, print_web_startup
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8766
 
 
-def _terminal_foreground(hex_color):
-    """Return a true-color ANSI foreground sequence for a design token."""
-    red, green, blue = (
-        int(hex_color[index:index + 2], 16) for index in (1, 3, 5)
-    )
-    return f"\033[38;2;{red};{green};{blue}m"
-
-
 def _write_startup_banner(url, state):
-    """Write the compact server summary after the application is ready."""
+    """Present the server URL and dataset after successful startup."""
     files = state.status()["files"]
-    row_count = sum(item["rows"] for item in files)
-    file_count = len(files)
-    rows_label = "row" if row_count == 1 else "rows"
-    files_label = "file" if file_count == 1 else "files"
-
-    accent = ""
-    reset = ""
-    if _should_use_color(sys.stdout):
-        accent = _terminal_foreground(COLORS["accent"])
-        reset = RESET_COLOR
-
-    print(
-        "\n".join((
-            f"{accent}PQEnalyzer  Web{reset}",
-            f"Data   {row_count:,} {rows_label} / {file_count} {files_label}",
-            f"Open   {accent}{url}{reset}",
-            "Stop   Ctrl+C",
-        )),
-        file=sys.stdout,
-        flush=True,
-    )
+    print_web_startup(url, sum(item["rows"] for item in files), len(files))
 
 
 def create_app(filenames, input_format="auto", reader=None):
@@ -102,6 +72,7 @@ def create_app(filenames, input_format="auto", reader=None):
         try:
             return state.refresh()
         except Exception as error:  # pylint: disable=broad-exception-caught
+            event_logger.error("Refresh failed: %s", error)
             raise HTTPException(status_code=500, detail=str(error))
 
     @application.get("/api/events")
@@ -189,7 +160,7 @@ def create_app(filenames, input_format="auto", reader=None):
 
 
 def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
-          open_browser=True, reader=None):
+          open_browser=True, reader=None, log_level="info"):
     """
     Validate inputs, then serve the web front end on loopback.
     """
@@ -227,20 +198,30 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
                     url,
                     application.state.web_state,
                 )
+                event_logger.info("Server ready.")
                 if open_browser:
                     _open_browser_later(url)
 
             async def shutdown(self, sockets=None):
+                was_started = self.started
                 application.state.web_state.close()
                 await super().shutdown(sockets=sockets)
+                if was_started:
+                    event_logger.info("Server stopped.")
+
+        uvicorn_log_level = {
+            "debug": "debug",
+            "warning": "warning",
+            "error": "error",
+        }.get(str(log_level).lower(), "warning")
 
         config = uvicorn.Config(
             application,
             host=host,
             port=port,
             reload=False,
-            log_level="warning",
-            access_log=False,
+            log_level=uvicorn_log_level,
+            access_log=uvicorn_log_level == "debug",
         )
         StreamingServer(config).run(sockets=[listener])
 

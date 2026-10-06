@@ -6,7 +6,6 @@ plot math: every endpoint is exercised here so refactors cannot silently
 break the JSON contract the React app consumes.
 """
 
-import io
 import json
 import queue
 import socket
@@ -136,7 +135,8 @@ def test_unknown_parameter_fails_each_analysis_endpoint(client):
         assert "NOPE" in response.json()["detail"]
 
 
-def test_refresh_failure_is_reported_without_cached_success(client, monkeypatch):
+def test_refresh_failure_is_reported_without_cached_success(
+        client, monkeypatch, terminal_log):
     """A failed reread is visible to the user rather than silently accepted."""
     from PQEnalyzer.web.api import WebState
 
@@ -147,6 +147,11 @@ def test_refresh_failure_is_reported_without_cached_success(client, monkeypatch)
     response = client.post("/api/refresh")
     assert response.status_code == 500
     assert "source disappeared" in response.json()["detail"]
+    assert [
+        (record.levelname, record.getMessage())
+        for record in terminal_log.records
+        if record.name == "PQEnalyzer"
+    ] == [("ERROR", "Refresh failed: source disappeared")]
 
 
 def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
@@ -162,7 +167,7 @@ def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
 
 
 def test_failed_app_startup_never_announces_success_or_opens_browser(
-        monkeypatch, capsys):
+        monkeypatch, capsys, terminal_log):
     """A bound socket is not a successful, browser-ready application."""
     from contextlib import asynccontextmanager
 
@@ -190,6 +195,10 @@ def test_failed_app_startup_never_announces_success_or_opens_browser(
     assert captured.out == ""
     assert "startup failed" in captured.err
     assert opened == []
+    assert not [
+        record for record in terminal_log.records
+        if record.name == "PQEnalyzer"
+    ]
 
 
 def test_serve_opens_a_reachable_browser_url_after_startup(monkeypatch):
@@ -254,64 +263,6 @@ def test_serve_opens_a_reachable_browser_url_after_startup(monkeypatch):
     assert not thread.is_alive()
     if not errors.empty():
         raise errors.get()
-
-
-class TerminalBuffer(io.StringIO):
-
-    def isatty(self):
-        return True
-
-
-def test_startup_banner_uses_pqdesign_accent_for_heading_and_url(
-        monkeypatch):
-    """A capable terminal receives the shared accent on the useful anchors."""
-    from PQEnalyzer.web import app as web_app
-
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setenv("TERM", "xterm-256color")
-    stream = TerminalBuffer()
-    monkeypatch.setattr(web_app.sys, "stdout", stream)
-    state = SimpleNamespace(status=lambda: {
-        "files": [{"rows": 5000}],
-    })
-
-    web_app._write_startup_banner("http://127.0.0.1:8766", state)
-
-    accent = "\033[38;2;15;98;254m"
-    reset = "\033[0m"
-    lines = stream.getvalue().splitlines()
-    assert lines[0] == f"{accent}PQEnalyzer  Web{reset}"
-    assert lines[2] == f"Open   {accent}http://127.0.0.1:8766{reset}"
-    assert "\033[" not in lines[1]
-    assert "\033[" not in lines[3]
-
-
-@pytest.mark.parametrize(
-    ("variable", "value"),
-    [
-        pytest.param("NO_COLOR", "1", id="no-color"),
-        pytest.param("TERM", "dumb", id="dumb-terminal"),
-    ],
-)
-def test_startup_banner_respects_disabled_color(monkeypatch, variable, value):
-    """Explicit and capability-based color opt-outs keep output plain."""
-    from PQEnalyzer.web import app as web_app
-
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setenv("TERM", "xterm-256color")
-    monkeypatch.setenv(variable, value)
-    stream = TerminalBuffer()
-    monkeypatch.setattr(web_app.sys, "stdout", stream)
-    state = SimpleNamespace(status=lambda: {
-        "files": [{"rows": 1}, {"rows": 1}],
-    })
-
-    web_app._write_startup_banner("http://127.0.0.1:8766", state)
-
-    output = stream.getvalue()
-    assert "PQEnalyzer  Web" in output
-    assert "http://127.0.0.1:8766" in output
-    assert "\033[" not in output
 
 
 def test_overlays_use_shared_feature_math(client):
@@ -572,9 +523,14 @@ def test_kde_of_returns_count_scaled_curves():
     assert _kde_of(np.array([1.0, 2.0]), edges) is None
 
 
-def test_status_and_refresh_roundtrip(client):
+def test_status_and_refresh_roundtrip(client, terminal_log):
     """
     Status reports staleness; refresh re-reads and clears it.
     """
     assert client.get("/api/status").json()["stale"] is False
     assert client.post("/api/refresh").json()["stale"] is False
+    assert [
+        record.getMessage()
+        for record in terminal_log.records
+        if record.name == "PQEnalyzer"
+    ] == ["Refreshed 10 rows / 2 files."]

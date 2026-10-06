@@ -20,7 +20,7 @@ npm run build
 ```
 
 Commit `PQEnalyzer/web/static` with frontend changes. CI checks that the
-bundle matches its source and installed PQDesign tokens.
+bundle matches its source and the installed PQDesign package.
 For browser and desktop smoke tests, install Chromium first:
 
 ```bash
@@ -40,11 +40,17 @@ On headless Linux, desktop tests require Xvfb; CI uses
 | Methods | `PQEnalyzer/statistics`, `PQEnalyzer/plots` | Numeric calculations and plot conventions |
 | Web server | `PQEnalyzer/web` | Shape JSON, watch files, and serve the bundled interface |
 | Browser | `PQEnalyzer/web/frontend` | Interaction and chart rendering |
+| Terminal adapter | `PQEnalyzer/_terminal.py` | App labels, dataset summaries and lifecycle events |
 
 Extend PQAnalysis parsing and reuse the method layer before adding another
 reader or calculation. Scientific changes need a reproducible input and a
 check against an independent calculation; interface changes need a browser
 check of the affected interaction.
+
+`PQEnalyzer/_design_terminal.py` is vendored byte for byte from PQDesign's
+`python/pq_terminal.py`. CI and release builds compare it with the released
+package. PQDesign owns renderer branch coverage; this repository tests the
+PQEnalyzer adapter, values and application lifecycle.
 
 ## Reproduce the figure
 
