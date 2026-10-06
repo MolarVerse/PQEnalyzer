@@ -7,6 +7,11 @@ break the JSON contract the React app consumes.
 """
 
 import io
+import json
+import queue
+import socket
+import threading
+from http.client import HTTPConnection
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -185,6 +190,70 @@ def test_failed_app_startup_never_announces_success_or_opens_browser(
     assert captured.out == ""
     assert "startup failed" in captured.err
     assert opened == []
+
+
+def test_serve_opens_a_reachable_browser_url_after_startup(monkeypatch):
+    """Automatic browser launch advertises a live public server URL."""
+    import uvicorn
+
+    from PQEnalyzer.web import app as web_app
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+
+    servers = queue.Queue()
+    opened_urls = queue.Queue()
+    errors = queue.Queue()
+    original_run = uvicorn.Server.run
+
+    def run(server, *args, **kwargs):
+        # Retain the real server only so the test can shut it down cleanly.
+        servers.put(server)
+        return original_run(server, *args, **kwargs)
+
+    def run_serve():
+        try:
+            web_app.serve(
+                [MD_01],
+                host="127.0.0.1",
+                port=port,
+                open_browser=True,
+            )
+        except BaseException as error:  # Surface failures from the server thread.
+            errors.put(error)
+
+    monkeypatch.setattr(uvicorn.Server, "run", run)
+    monkeypatch.setattr(
+        web_app.webbrowser,
+        "open",
+        lambda url: opened_urls.put(url),
+    )
+
+    thread = threading.Thread(target=run_serve, daemon=True)
+    thread.start()
+    server = servers.get(timeout=5)
+
+    try:
+        opened_url = opened_urls.get(timeout=10)
+        assert opened_url == f"http://127.0.0.1:{port}"
+
+        connection = HTTPConnection("127.0.0.1", port, timeout=5)
+        connection.request("GET", "/api/status")
+        response = connection.getresponse()
+        body = json.loads(response.read())
+        connection.close()
+
+        assert response.status == 200
+        assert body["stale"] is False
+        assert body["files"][0]["rows"] == 5
+    finally:
+        server.should_exit = True
+        thread.join(timeout=5)
+
+    assert not thread.is_alive()
+    if not errors.empty():
+        raise errors.get()
 
 
 class TerminalBuffer(io.StringIO):
