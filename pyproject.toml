@@ -33,7 +33,18 @@ dependencies = [
     "uvicorn",
 ]
 
+[project.urls]
+Documentation = "https://molarverse.github.io/PQEnalyzer/"
+Repository = "https://github.com/MolarVerse/PQEnalyzer"
+Issues = "https://github.com/MolarVerse/PQEnalyzer/issues"
+
 [project.optional-dependencies]
+docs = [
+    "sphinx>=8,<9",
+    "myst-parser>=4,<5",
+    "furo>=2024.8.6,<2027",
+    "sphinx-copybutton>=0.5,<1",
+]
 test = [
     "pytest",
     "coverage",
