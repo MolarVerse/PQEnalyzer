@@ -1,14 +1,27 @@
 # PQEnalyzer
 
-Inspect simulation output in your browser. All selected files form one ordered dataset.
+Inspect simulation output on the desktop or in your browser.
 
-![Temperature series with its mean and the Analysis controls open](assets/screenshots/series-analysis.png)
+**Desktop (Tkinter) is the default.** The `web` command starts the browser interface.
+
+| Interface | Command |
+| --- | --- |
+| [Desktop — default](getting-started.md#desktop-default) | `pqenalyzer simulation.en` |
+| [Browser](getting-started.md#browser) | `pqenalyzer web simulation.en` |
+
+```{figure} assets/screenshots/desktop.png
+:width: 320px
+:alt: Default Tkinter window with parameter, statistics, refresh and plot controls
+
+Desktop controls. Plot, Histogram and Live Monitor open separate windows.
+```
+
+![Browser temperature series with its mean and the Analysis controls open](assets/screenshots/series-analysis.png)
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install PQEnalyzer
-pqenalyzer web simulation.en
 ```
 
 | Start here | Reference |
