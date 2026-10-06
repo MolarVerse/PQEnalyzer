@@ -10,3 +10,9 @@ https://github.com/MolarVerse/PQDesign/blob/main/docs/_static/pq-docs.css
 Copy changes to all PQ manuals together. Load tokens before this stylesheet.
 Both files are distributed under PQDesign's MIT license.
 Furo retains its dark palette; font, shape, spacing and focus rules are shared.
+
+pq-logo.png: existing PQ family mark from MolarVerse/PQSetup,
+docs/assets/pq-logo.png.
+
+pq-docs.js: shared figure links maintained alongside pq-docs.css in
+MolarVerse/PQDesign. Unlinked article figures open at their original size.

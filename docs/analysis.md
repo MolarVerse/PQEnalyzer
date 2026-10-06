@@ -4,6 +4,11 @@ All selected files form one ordered sequence in the browser. Mean,
 uncertainty, and histogram counts use all observations meeting the rules
 below. The MSER marker proposes an initial cut; it does not apply the cut.
 
+![One temperature sequence as a series with averages, a histogram and autocorrelation](_static/temperature-analysis.svg)
+
+The same 10,000 observations in three views, from `examples/md-01.en` and
+`examples/md-02.en`. [Reproduce this figure](development.md#reproduce-the-figure).
+
 ## Charts and averages
 
 | View or guide | Definition | Interpretation |
