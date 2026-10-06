@@ -1,25 +1,21 @@
 # PQEnalyzer
 
-PQEnalyzer reads simulation output where it is stored and presents one
-ordered dataset in a browser. Inspect observables, distributions, and
-correlation before deciding whether a run needs more sampling.
+Inspect simulation output in your browser. All selected files form one ordered dataset.
 
-| Task | Guide |
-| --- | --- |
-| Open the first dataset | [Getting started](getting-started.md) |
-| Check formats, units, and file order | [Input](input.md) |
-| Interpret charts and uncertainty | [Analysis](analysis.md) |
-| Work on a server from your desktop | [SSH and VPN](remote-access.md) |
-| Build the interface or reproduce figures | [Development](development.md) |
+![Temperature series with its mean and the Analysis controls open](assets/screenshots/series-analysis.png)
 
-```{figure} _static/temperature-analysis.svg
-:alt: One temperature sequence as a series with averages, a count histogram, and normalized autocorrelation by lag.
-
-Three views of the 10,000 temperature observations in the repository's
-`examples/md-01.en` and `examples/md-02.en`, in that order. Definitions are in
-[Analysis](analysis.md); the generating command is in
-[Development](development.md#reproduce-the-figure).
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install PQEnalyzer
+pqenalyzer web simulation.en
 ```
+
+| Start here | Reference |
+| --- | --- |
+| [Use the GUI](getting-started.md) | [Charts and uncertainty](analysis.md) |
+| [Open files](input.md) | [Formats, units and dataset order](input.md#dataset-conventions) |
+| [Connect from a cluster or home VPN](remote-access.md) | [Development](development.md) |
 
 ```{toctree}
 :hidden:

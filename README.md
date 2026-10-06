@@ -1,41 +1,32 @@
-# PQEnalyzer
+# <img src="docs/_static/pq-logo.png" alt="PQ logo" width="48"> PQEnalyzer
 
-Inspect PQ and QMCFC energy output, PQ cell data, and optimizer output in a
-browser or desktop window. Parsing uses
-[PQAnalysis](https://github.com/MolarVerse/PQAnalysis).
+Inspect simulation output in your browser: time series, distributions and autocorrelation.
 
-## Install and open
+![Temperature series with the Analysis controls open](docs/assets/screenshots/series-analysis.png)
 
-Python 3.10 or newer is required. The web interface is included.
+## Open your data
+
+Python 3.10+. Keep each energy file's matching `.info` beside it.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install PQEnalyzer
-pqenalyzer web /path/to/simulation.en
+pqenalyzer web simulation.en
 ```
 
-Keep the matching `.info` file beside each energy file. Select a parameter,
-inspect its series, then switch to Histogram or choose an analysis. Hover or
-focus the chart for values; no data conversion is needed.
-
-| Input | Browser dataset |
+| Do | Use |
 | --- | --- |
-| One file | Its observations and units |
-| Several files | One sequence in command-line order; shared units must match |
-| Restarted or overlapping time | One-based sample axis, retaining every observation |
+| Choose a quantity | Dashboard tile or `Ctrl/Cmd+K` |
+| Inspect or analyze | Hover the chart; open **Analysis** |
+| See the distribution | **Histogram** or `2` |
 
-Use `pqenalyzer gui FILE` for the desktop interface; `pqenalyzer FILE` also
-opens the desktop interface.
+Multiple files form **one dataset in command-line order**, across every chart and analysis.
+Read the original files directly; no conversion is needed.
 
-## Manual
+[Visual guide](https://molarverse.github.io/PQEnalyzer/getting-started.html) ·
+[Methods](https://molarverse.github.io/PQEnalyzer/analysis.html) ·
+[Cluster / home VPN](https://molarverse.github.io/PQEnalyzer/remote-access.html)
 
-- [First analysis](https://molarverse.github.io/PQEnalyzer/getting-started.html)
-- [Input, units, and dataset order](https://molarverse.github.io/PQEnalyzer/input.html)
-- [Charts and statistical methods](https://molarverse.github.io/PQEnalyzer/analysis.html)
-- [Cluster access through SSH and VPN, including from home](https://molarverse.github.io/PQEnalyzer/remote-access.html)
-- [Development and reproducible figures](https://molarverse.github.io/PQEnalyzer/development.html)
-
-The [manual](https://molarverse.github.io/PQEnalyzer/) defines the reported SEM,
-autocorrelation, and MSER cut. These estimates support scientific review;
-they do not establish convergence or sufficient sampling.
+For a desktop window: `pqenalyzer gui simulation.en`.
+Parsing uses [PQAnalysis](https://github.com/MolarVerse/PQAnalysis).

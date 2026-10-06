@@ -52,12 +52,22 @@ body[data-theme="dark"] { color-scheme: dark; }
 .sidebar-logo-container { display: flex; flex: 0 0 3rem; align-items: center; margin: 0; }
 .sidebar-logo { width: 3rem; margin: 0; }
 .sidebar-brand-text { margin: 0; font-size: 1.125rem; line-height: 1.25; }
+.mobile-header .brand { display: flex; align-items: center; gap: 0.75rem; }
+.mobile-header .brand::before {
+  content: "";
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  background: url("pq-logo.png") center / contain no-repeat;
+}
 .content :is(.sd-card, .admonition, pre, code, table, img) { border-radius: var(--radius); }
 .sd-card { box-shadow: var(--shadow); border-color: var(--color-background-border); }
 .sd-card:hover { border-color: var(--color-brand-primary); }
 :focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
 .content figure { margin: calc(2 * var(--space)) 0; }
 .content figure img { max-width: 100%; height: auto; }
+.content img { max-width: 100%; height: auto; }
+.pq-figure-link { display: block; }
 .content table { font-size: 0.875rem; border: 1px solid var(--color-background-border); box-shadow: var(--shadow); }
 .content .admonition { box-shadow: var(--shadow); }
 .pq-workspace img, .pq-shot img { width: 100%; border: 1px solid var(--color-background-border); }
