@@ -31,6 +31,9 @@ allow TCP forwarding. Follow the cluster's policy for login and compute nodes.
 pqenalyzer web --no-open --port 8766 /path/to/simulation.en
 ```
 
+See the [startup output](getting-started.md#server-startup). Leave this terminal
+running; `Ctrl+C` stops the server.
+
 Paths refer to files on the server. Keep each energy file's matching `.info`
 file beside it. Supply multiple files in their dataset order when needed.
 

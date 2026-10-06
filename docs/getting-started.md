@@ -1,12 +1,51 @@
 # Use the GUI
 
-## 1. Choose a quantity
+| Interface | Command |
+| --- | --- |
+| [Desktop (Tkinter) — default](#desktop-default) | `pqenalyzer simulation.en` |
+| [Browser](#browser) | `pqenalyzer web simulation.en` |
+
+## Desktop (default)
+
+```bash
+pqenalyzer simulation.en
+```
+
+`pqenalyzer gui simulation.en` is equivalent. A local graphical display is required.
+
+```{figure} assets/screenshots/desktop.png
+:width: 360px
+:alt: Tkinter temperature selector, statistics, time-series overlays and plot buttons
+
+Choose Parameter, select any overlays, then open a plot window.
+```
+
+| Control | Action |
+| --- | --- |
+| **Parameter** | Choose the quantity to plot |
+| **Plot** / **Histogram** | Open a separate time-series or distribution window |
+| **Statistics** / **Time-series overlays** | Choose guides before plotting, or click an existing plot to edit it |
+| **Live Monitor** | Open the grid; double-click a panel to focus it; `f` fits the grid |
+| **Auto-Refresh** | Reread the last input file and update open plots |
+| **Plot Size** | Scale plot text; drag a plot window's edge to resize it |
+
+Desktop raw series and KDEs keep files separate; statistic overlays pool the
+files. **Difference (1 − 2)** subtracts file 2 from file 1 at matching time or
+step values, with exactly two files and no interpolation.
+
+## Browser
+
+```bash
+pqenalyzer web simulation.en
+```
+
+### 1. Choose a quantity
 
 Click a dashboard tile, or search with `Ctrl+K` (`Cmd+K` on macOS).
 
 ![Dashboard with one tile per observable and units beside each name](assets/screenshots/dashboard.png)
 
-## 2. Inspect the series
+### 2. Inspect the series
 
 Hover for values. Drag to zoom; double-click to reset.
 Open **Analysis** to select a mean, average or autocorrelation.
@@ -18,7 +57,7 @@ Open **Analysis** to select a mean, average or autocorrelation.
 The MSER cut is a proposed transient boundary; summaries still use all data.
 [Method definitions](analysis.md).
 
-## 3. Inspect the distribution
+### 3. Inspect the distribution
 
 Choose **Histogram**. **Options** controls bins, reference lines and KDE.
 
@@ -42,26 +81,34 @@ Python 3.10+. In a new environment:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install PQEnalyzer
-pqenalyzer web simulation.en
 ```
 
-Keep `simulation.info` beside `simulation.en`. The browser opens at
-<http://127.0.0.1:8766>. Multiple files form one dataset in acquisition order:
+Keep `simulation.info` beside `simulation.en`. Browser mode opens
+<http://127.0.0.1:8766>. In the browser, multiple files form one dataset in command-line order:
 
 ```bash
 pqenalyzer web md-01.en md-02.en
 ```
 
-Use `--port 8767` for a different port. On a server, add `--no-open` and use
-the [SSH / VPN guide](remote-access.md). No file conversion is needed.
+No file conversion is needed.
 
-## Desktop windows
+## Server startup
 
 ```bash
-pqenalyzer gui simulation.en
+pqenalyzer web --no-open simulation.en
 ```
 
-`Plot`, `Histogram` and `Live Monitor` open separate windows. Double-click a
-monitor panel to focus it; `f` fits the grid. Auto-refresh watches the files.
-Desktop **Difference** computes file 1 minus file 2 at matching time or step
-values, with exactly two files and no interpolation.
+Example output (the process ID varies):
+
+```text
+INFO: Detected PQ energy input.
+PQEnalyzer Web: http://127.0.0.1:8766
+INFO:     Started server process [78568]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+Open the printed URL; `--no-open` skips opening a browser automatically.
+Keep the terminal running. Press `Ctrl+C` to stop the server.
+Use `--port 8767` for a different port. On a cluster or home VPN, use the
+[SSH / VPN guide](remote-access.md).
