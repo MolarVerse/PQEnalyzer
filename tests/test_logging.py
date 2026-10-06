@@ -75,6 +75,7 @@ def test_configure_logging_delegates_to_standard_logging(monkeypatch):
                         lambda **kwargs: calls.append(kwargs))
     monkeypatch.setattr("sys.stderr", fake_stream)
     monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("TERM", "xterm-256color")
 
     configure_logging(logging.DEBUG)
 

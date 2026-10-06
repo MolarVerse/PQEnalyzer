@@ -9,11 +9,49 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from socket import AF_INET, AF_INET6, create_server
 from threading import Timer
+import sys
 import webbrowser
+
+from .._logging import RESET_COLOR, _should_use_color
+from ..flat_mono import COLORS
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8766
+
+
+def _terminal_foreground(hex_color):
+    """Return a true-color ANSI foreground sequence for a design token."""
+    red, green, blue = (
+        int(hex_color[index:index + 2], 16) for index in (1, 3, 5)
+    )
+    return f"\033[38;2;{red};{green};{blue}m"
+
+
+def _write_startup_banner(url, state):
+    """Write the compact server summary after the application is ready."""
+    files = state.status()["files"]
+    row_count = sum(item["rows"] for item in files)
+    file_count = len(files)
+    rows_label = "row" if row_count == 1 else "rows"
+    files_label = "file" if file_count == 1 else "files"
+
+    accent = ""
+    reset = ""
+    if _should_use_color(sys.stdout):
+        accent = _terminal_foreground(COLORS["accent"])
+        reset = RESET_COLOR
+
+    print(
+        "\n".join((
+            f"{accent}PQEnalyzer  Web{reset}",
+            f"Data   {row_count:,} {rows_label} / {file_count} {files_label}",
+            f"Open   {accent}{url}{reset}",
+            "Stop   Ctrl+C",
+        )),
+        file=sys.stdout,
+        flush=True,
+    )
 
 
 def create_app(filenames, input_format="auto", reader=None):
@@ -176,19 +214,34 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
             "Choose another --port.") from error
     with listener:
         application = create_app(filenames, input_format, reader=reader)
-        print(f"PQEnalyzer Web: {url}", flush=True)
-        if open_browser:
-            _open_browser_later(url)
 
         class StreamingServer(uvicorn.Server):
             """Close live streams before Uvicorn waits for connections."""
+
+            async def startup(self, sockets=None):
+                await super().startup(sockets=sockets)
+                if not self.started:
+                    return
+
+                _write_startup_banner(
+                    url,
+                    application.state.web_state,
+                )
+                if open_browser:
+                    _open_browser_later(url)
 
             async def shutdown(self, sockets=None):
                 application.state.web_state.close()
                 await super().shutdown(sockets=sockets)
 
         config = uvicorn.Config(
-            application, host=host, port=port, reload=False)
+            application,
+            host=host,
+            port=port,
+            reload=False,
+            log_level="warning",
+            access_log=False,
+        )
         StreamingServer(config).run(sockets=[listener])
 
 

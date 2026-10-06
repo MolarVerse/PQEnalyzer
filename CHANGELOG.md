@@ -1,6 +1,19 @@
 # Changelog
 
 <!-- insertion marker -->
+## [v0.10.1](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.1) - 2026-10-06
+
+[Compare with v0.10.0](https://github.com/MolarVerse/PQEnalyzer/compare/v0.10.0...v0.10.1)
+
+### Changes
+
+- Show a compact server startup summary using the shared PQ accent.
+- Announce the URL and open the browser after successful server startup.
+- Keep routine server logs quiet and stop without a traceback on Ctrl+C.
+- Respect NO_COLOR, plain terminals and redirected output.
+- Add visual desktop and browser guides, explain the Tkinter default, and
+  document server startup and SSH/VPN access.
+
 ## [v0.10.0](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.0) - 2026-10-02
 
 [Compare with v0.9.2](https://github.com/MolarVerse/PQEnalyzer/compare/v0.9.2...v0.10.0)

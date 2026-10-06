@@ -1,13 +1,4 @@
-"""
-Web front end for PQEnalyzer.
-
-``python -m PQEnalyzer web`` / ``pqenalyzer web`` serves a browser version of
-the desktop GUI: parameter list, time-series chart with the shared overlay
-math, histogram, sparkline dashboard, and CSV export. Styling follows the
-``@molarverse/pq-design`` flat-mono language; data comes from the same
-readers, ``energy_access`` helpers, and ``plots.features`` evaluators as the
-desktop and terminal front ends, so numbers match everywhere.
-"""
+"""Browser interface over simulation readers and shared statistical methods."""
 
 __all__ = ["create_app", "serve"]
 

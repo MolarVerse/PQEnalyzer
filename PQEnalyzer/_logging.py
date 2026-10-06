@@ -72,5 +72,9 @@ def _should_use_color(stream):
     """
     Return whether ANSI colors should be emitted for the given stream.
     """
-    return ("NO_COLOR" not in os.environ and hasattr(stream, "isatty")
-            and stream.isatty())
+    return (
+        "NO_COLOR" not in os.environ
+        and os.environ.get("TERM", "").lower() != "dumb"
+        and hasattr(stream, "isatty")
+        and stream.isatty()
+    )

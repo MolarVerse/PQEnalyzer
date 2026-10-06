@@ -1,10 +1,12 @@
 import json
 import os
 import re
+import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -27,20 +29,33 @@ def _subprocess_environment():
     return env
 
 
-def _free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
+def _free_port(host="127.0.0.1", family=socket.AF_INET):
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as sock:
+            sock.bind((host, 0))
+            return sock.getsockname()[1]
+    except OSError as error:
+        if family == socket.AF_INET6:
+            pytest.skip(f"IPv6 loopback is unavailable: {error}")
+        raise
 
 
-def _wait_for_status(port, timeout=25.0):
+def _web_url(host, port):
+    url_host = f"[{host}]" if ":" in host else host
+    return f"http://{url_host}:{port}"
+
+
+def _open_url(url, timeout):
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    return opener.open(url, timeout=timeout)
+
+
+def _wait_for_status(port, timeout=25.0, host="127.0.0.1"):
     deadline = time.monotonic() + timeout
     last_error = None
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(
-                f"http://127.0.0.1:{port}/api/status", timeout=2
-            ) as response:
+            with _open_url(f"{_web_url(host, port)}/api/status", timeout=2) as response:
                 return json.load(response)
         except OSError as error:
             last_error = error
@@ -48,11 +63,11 @@ def _wait_for_status(port, timeout=25.0):
     pytest.fail(f"Timed out waiting for web status. Last error: {last_error}")
 
 
-def _wait_for_hello(port, timeout=10.0):
+def _wait_for_hello(port, timeout=10.0, host="127.0.0.1"):
     deadline = time.monotonic() + timeout
     try:
-        with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/api/events", timeout=timeout + 5
+        with _open_url(
+            f"{_web_url(host, port)}/api/events", timeout=timeout + 5
         ) as response:
             while time.monotonic() < deadline:
                 line = response.fp.readline().decode(errors="replace")
@@ -75,9 +90,31 @@ def _terminate_process(process):
         process.wait(timeout=5)
 
 
+def _read_lines(stream, count, timeout=5.0):
+    lines = []
+
+    def read():
+        for _ in range(count):
+            lines.append(stream.readline().rstrip("\n"))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    reader.join(timeout)
+    if reader.is_alive():
+        pytest.fail("Timed out waiting for Web startup output.")
+    return lines
+
+
 @pytest.mark.e2e
-def test_web_mode_serves_status_and_events():
-    port = _free_port()
+@pytest.mark.parametrize(
+    ("host", "family"),
+    [
+        pytest.param("127.0.0.1", socket.AF_INET, id="ipv4-loopback"),
+        pytest.param("::1", socket.AF_INET6, id="ipv6-loopback"),
+    ],
+)
+def test_web_mode_announces_usable_url_after_startup(host, family):
+    port = _free_port(host, family)
     process = subprocess.Popen(
         [
             sys.executable,
@@ -85,6 +122,8 @@ def test_web_mode_serves_status_and_events():
             "PQEnalyzer",
             "web",
             "--no-open",
+            "--host",
+            host,
             "--port",
             str(port),
             str(EXAMPLE_FILE),
@@ -97,20 +136,36 @@ def test_web_mode_serves_status_and_events():
     )
 
     try:
-        status = _wait_for_status(port)
+        status = _wait_for_status(port, host=host)
         assert status["stale"] is False
         assert sum(item["rows"] for item in status["files"]) > 0
-        assert _wait_for_hello(port)
         assert process.stdout is not None
-        assert process.stdout.readline().strip() == (
-            f"PQEnalyzer Web: http://127.0.0.1:{port}"
-        )
-        with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/api/events", timeout=5
-        ) as stream:
+        output = _read_lines(process.stdout, 4)
+        expected_url = _web_url(host, port)
+        assert output == [
+            "PQEnalyzer  Web",
+            "Data   5,000 rows / 1 file",
+            f"Open   {expected_url}",
+            "Stop   Ctrl+C",
+        ]
+        assert "\033[" not in "\n".join(output)
+
+        emitted_url = output[2].removeprefix("Open   ")
+        with _open_url(f"{emitted_url}/api/status", timeout=5) as response:
+            assert json.load(response)["stale"] is False
+        assert _wait_for_hello(port, host=host)
+        with _open_url(f"{emitted_url}/api/events", timeout=5) as stream:
             assert stream.readline().startswith(b"retry:")
-            process.terminate()
-            process.wait(timeout=5)
+            process.send_signal(signal.SIGINT)
+            stdout_tail, stderr = process.communicate(timeout=5)
+        assert stdout_tail == ""
+        assert process.returncode == 130
+        assert "INFO:" not in stderr
+        assert "Detected PQ energy input" not in stderr
+        assert "Uvicorn running" not in stderr
+        assert "Traceback" not in stderr
+        assert "CancelledError" not in stderr
+        assert "KeyboardInterrupt" not in stderr
     finally:
         _terminate_process(process)
 
