@@ -98,17 +98,18 @@ No file conversion is needed.
 pqenalyzer web --no-open simulation.en
 ```
 
-Example output (the process ID varies):
+Once the server is ready:
 
 ```text
-INFO: Detected PQ energy input.
-PQEnalyzer Web: http://127.0.0.1:8766
-INFO:     Started server process [78568]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
+PQEnalyzer  Web
+Data   5,000 rows / 1 file
+Open   http://127.0.0.1:8766
+Stop   Ctrl+C
 ```
 
 Open the printed URL; `--no-open` skips opening a browser automatically.
 Keep the terminal running. Press `Ctrl+C` to stop the server.
+The heading and URL use the PQ accent in a terminal. `NO_COLOR=1` disables
+color; redirected output and `TERM=dumb` are plain.
 Use `--port 8767` for a different port. On a cluster or home VPN, use the
 [SSH / VPN guide](remote-access.md).
