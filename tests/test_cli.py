@@ -1,8 +1,26 @@
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+
+
+def test_desktop_startup_summarizes_all_loaded_files(capsys):
+    """Desktop startup reports the complete reader dataset."""
+    from PQEnalyzer._terminal import print_desktop_startup
+
+    reader = SimpleNamespace(
+        filenames=["run-01.en", "run-02.en"],
+        energies=[
+            SimpleNamespace(simulation_time=[0, 1]),
+            SimpleNamespace(simulation_time=[2, 3, 4]),
+        ],
+    )
+
+    print_desktop_startup(reader)
+
+    assert "Data   5 rows / 2 files" in capsys.readouterr().out
 
 
 def test_cli_version_from_source_checkout():

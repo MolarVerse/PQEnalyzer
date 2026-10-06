@@ -67,6 +67,7 @@ markers = [
 
 [tool.coverage.run]
 omit = [
+    "PQEnalyzer/_design_terminal.py",
     "PQEnalyzer/__main__.py",
     "PQEnalyzer/__version__.py",
     "PQEnalyzer/apps/*",

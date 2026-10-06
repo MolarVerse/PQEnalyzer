@@ -1,7 +1,7 @@
 Shared documentation assets
 
-pq-tokens.css: exact copy of @molarverse/pq-design 0.1.2 tokens.css.
-Archive: https://github.com/MolarVerse/PQDesign/releases/download/v0.1.2/molarverse-pq-design-0.1.2.tgz
+pq-tokens.css: exact copy of @molarverse/pq-design 0.1.3 tokens.css.
+Archive: https://github.com/MolarVerse/PQDesign/releases/download/v0.1.3/molarverse-pq-design-0.1.3.tgz
 Archive SHA256: 584f9a1bb5e22f74dde567e65f900dbeb3990818484dd37d20c4e20fb3e52256
 Token SHA256: 459ba0c2d6b016e586d1635d653eda2355ff91488604dafb5a42abf73299a66f
 
