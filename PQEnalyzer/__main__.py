@@ -1,7 +1,8 @@
 """Command-line entry point for the web and desktop interfaces."""
 
-import sys
 import argparse
+import logging
+import sys
 
 from . import __version__
 from ._logging import configure_logging, get_logger
@@ -136,7 +137,8 @@ def main():
     )
 
     args = parser.parse_args(_argv_with_default_mode(sys.argv[1:]))
-    configure_logging()
+    configure_logging(
+        logging.WARNING if args.mode == "web" else logging.INFO)
 
     from .readers import create_reader
 
@@ -169,6 +171,8 @@ def main():
             )
         except ValueError as error:
             parser.error(str(error))
+        except KeyboardInterrupt:
+            raise SystemExit(130) from None
     else:
         from .apps import App
 

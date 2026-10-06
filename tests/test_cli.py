@@ -85,7 +85,8 @@ def test_web_mode_reports_an_occupied_port_without_announcing_startup():
     assert "address already in use" in result.stderr.lower()
     assert "--port" in result.stderr
     assert "Traceback" not in result.stderr
-    assert "PQEnalyzer Web:" not in result.stdout
+    assert "PQEnalyzer  Web" not in result.stdout
+    assert "Open   http" not in result.stdout
 
 
 def test_gui_help_mentions_optimizer_input():

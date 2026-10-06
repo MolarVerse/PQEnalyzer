@@ -6,6 +6,7 @@ plot math: every endpoint is exercised here so refactors cannot silently
 break the JSON contract the React app consumes.
 """
 
+import io
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -155,28 +156,93 @@ def test_missing_web_bundle_has_a_clear_error(monkeypatch, tmp_path):
     assert "frontend not built" in response.json()["detail"]
 
 
-def test_serve_prints_and_opens_a_browser_safe_ipv6_url(monkeypatch, capsys):
-    """Server startup exposes the bracketed URL needed for IPv6 hosts."""
-    from contextlib import nullcontext
+def test_failed_app_startup_never_announces_success_or_opens_browser(
+        monkeypatch, capsys):
+    """A bound socket is not a successful, browser-ready application."""
+    from contextlib import asynccontextmanager
+
+    from fastapi import FastAPI
 
     from PQEnalyzer.web import app as web_app
 
+    @asynccontextmanager
+    async def failing_lifespan(_application):
+        raise RuntimeError("startup failed")
+        yield
+
+    application = FastAPI(lifespan=failing_lifespan)
     monkeypatch.setattr(
-        web_app, "create_app", lambda *_args, **_kwargs: object())
-    monkeypatch.setattr(
-        web_app, "create_server", lambda *_args, **_kwargs: nullcontext(object()))
+        web_app, "create_app", lambda *_args, **_kwargs: application)
     opened = []
-    monkeypatch.setattr(
-        web_app, "_open_browser_later", opened.append)
-    monkeypatch.setattr(
-        "uvicorn.Server.run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(web_app, "_open_browser_later", opened.append)
 
-    web_app.serve(
-        ["source.en"], host="::1", port=4321, reader=object())
+    try:
+        web_app.serve(["source.en"], port=0, reader=object())
+    except Exception as error:  # PQAnalysis can replace logging.Logger globally.
+        assert str(error) == "Application startup failed. Exiting."
 
-    url = "http://[::1]:4321"
-    assert capsys.readouterr().out == f"PQEnalyzer Web: {url}\n"
-    assert opened == [url]
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "startup failed" in captured.err
+    assert opened == []
+
+
+class TerminalBuffer(io.StringIO):
+
+    def isatty(self):
+        return True
+
+
+def test_startup_banner_uses_pqdesign_accent_for_heading_and_url(
+        monkeypatch):
+    """A capable terminal receives the shared accent on the useful anchors."""
+    from PQEnalyzer.web import app as web_app
+
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    stream = TerminalBuffer()
+    monkeypatch.setattr(web_app.sys, "stdout", stream)
+    state = SimpleNamespace(status=lambda: {
+        "files": [{"rows": 5000}],
+    })
+
+    web_app._write_startup_banner("http://127.0.0.1:8766", state)
+
+    accent = "\033[38;2;15;98;254m"
+    reset = "\033[0m"
+    lines = stream.getvalue().splitlines()
+    assert lines[0] == f"{accent}PQEnalyzer  Web{reset}"
+    assert lines[2] == f"Open   {accent}http://127.0.0.1:8766{reset}"
+    assert "\033[" not in lines[1]
+    assert "\033[" not in lines[3]
+
+
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        pytest.param("NO_COLOR", "1", id="no-color"),
+        pytest.param("TERM", "dumb", id="dumb-terminal"),
+    ],
+)
+def test_startup_banner_respects_disabled_color(monkeypatch, variable, value):
+    """Explicit and capability-based color opt-outs keep output plain."""
+    from PQEnalyzer.web import app as web_app
+
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setenv(variable, value)
+    stream = TerminalBuffer()
+    monkeypatch.setattr(web_app.sys, "stdout", stream)
+    state = SimpleNamespace(status=lambda: {
+        "files": [{"rows": 1}, {"rows": 1}],
+    })
+
+    web_app._write_startup_banner("http://127.0.0.1:8766", state)
+
+    output = stream.getvalue()
+    assert "PQEnalyzer  Web" in output
+    assert "http://127.0.0.1:8766" in output
+    assert "\033[" not in output
 
 
 def test_overlays_use_shared_feature_math(client):
