@@ -1,0 +1,63 @@
+/* Shared Furo mapping. Source: MolarVerse/PQDesign, docs/_static/pq-docs.css. */
+body {
+  --font-stack: var(--mono);
+  --font-stack--monospace: var(--mono);
+  --font-size--normal: calc(var(--type-base-size) + 2px);
+  line-height: var(--type-line-height);
+}
+
+body[data-theme="light"] {
+  color-scheme: light;
+  --color-foreground-primary: var(--ink);
+  --color-foreground-secondary: var(--ink-soft);
+  --color-foreground-muted: var(--muted);
+  --color-foreground-border: var(--border-strong);
+  --color-background-primary: var(--surface);
+  --color-background-secondary: var(--surface-subtle);
+  --color-background-hover: var(--accent-soft);
+  --color-background-border: var(--border);
+  --color-brand-primary: var(--accent);
+  --color-brand-content: var(--accent-dark);
+  --color-highlight-on-target: var(--accent-soft);
+  --color-code-background: var(--surface-subtle);
+}
+
+body[data-theme="dark"] { color-scheme: dark; }
+
+@media (prefers-color-scheme: light) {
+  body:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-foreground-primary: var(--ink);
+    --color-foreground-secondary: var(--ink-soft);
+    --color-foreground-muted: var(--muted);
+    --color-foreground-border: var(--border-strong);
+    --color-background-primary: var(--surface);
+    --color-background-secondary: var(--surface-subtle);
+    --color-background-hover: var(--accent-soft);
+    --color-background-border: var(--border);
+    --color-brand-primary: var(--accent);
+    --color-brand-content: var(--accent-dark);
+    --color-highlight-on-target: var(--accent-soft);
+    --color-code-background: var(--surface-subtle);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+.sidebar-brand { flex-direction: row; align-items: center; gap: var(--space); padding-block: var(--pad); }
+.sidebar-logo-container { display: flex; flex: 0 0 3rem; align-items: center; margin: 0; }
+.sidebar-logo { width: 3rem; margin: 0; }
+.sidebar-brand-text { margin: 0; font-size: 1.125rem; line-height: 1.25; }
+.content :is(.sd-card, .admonition, pre, code, table, img) { border-radius: var(--radius); }
+.sd-card { box-shadow: var(--shadow); border-color: var(--color-background-border); }
+.sd-card:hover { border-color: var(--color-brand-primary); }
+:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
+.content figure { margin: calc(2 * var(--space)) 0; }
+.content figure img { max-width: 100%; height: auto; }
+.content table { font-size: 0.875rem; border: 1px solid var(--color-background-border); box-shadow: var(--shadow); }
+.content .admonition { box-shadow: var(--shadow); }
+.pq-workspace img, .pq-shot img { width: 100%; border: 1px solid var(--color-background-border); }
