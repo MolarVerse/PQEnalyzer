@@ -76,11 +76,9 @@ def test_parameter_access_normalizes_missing_qmcfc_units():
     assert series(energy, "TEMPERATURE").unit == ""
 
 
-def test_concatenate_helpers_join_series_from_multiple_energy_files():
-    energies = [
-        read_energy("tests/data/md-01.en"),
-        read_energy("tests/data/md-02.en"),
-    ]
+def test_concatenate_helpers_join_series_from_multiple_energy_files(
+        timed_md_files):
+    energies = [read_energy(filename) for filename in timed_md_files]
 
     np.testing.assert_array_equal(concatenate_time(energies),
                                   np.arange(1, 11))
@@ -255,3 +253,15 @@ def test_axis_label_distinguishes_time_and_step_units():
 
     box_data = BoxReader(["examples/box-01.box"]).energies[0]
     assert axis_label(box_data) == "Simulation Step"
+
+
+def test_pq_time_axis_follows_timestep_metadata(timed_md_files,
+                                                untimed_time_unit):
+    timed = read_energy(timed_md_files[0])
+    assert parameter_unit(timed, "SIMULATION-TIME") == "ps"
+    assert axis_label(timed) == "Simulation Time"
+
+    untimed = read_energy("tests/data/md-01.en")
+    assert parameter_unit(untimed, "SIMULATION-TIME") == untimed_time_unit
+    assert axis_label(untimed) == ("Simulation Step" if untimed_time_unit
+                                   == "step" else "Simulation Time")
