@@ -1,8 +1,8 @@
 """
 Column names and units from the PQ ``.en`` header.
 
-PQ energy files may start with ``# PQ energy file <version>`` followed by one
-``NAME[unit]`` token per column. Released PQAnalysis versions skip these
+PQ energy files may start with ``# PQ energy file <version>``; the last ``#``
+line before the data lists one ``NAME[unit]`` token per column. Released PQAnalysis versions skip these
 comment lines but still take names only from ``.info``; this module fills that
 gap until PQAnalysis reads the header itself.
 """
@@ -38,15 +38,12 @@ def read_pq_header(filename):
     to its unit, matching the dictionaries PQAnalysis builds from ``.info``.
     """
 
-    lines = _read_header_lines(filename, 2)
+    lines = _read_comment_block(filename)
     if len(lines) < 2 or not lines[0].startswith(PQ_HEADER_PREFIX):
         raise EnergyHeaderError(
             f"{filename} does not start with a PQ energy file header.")
 
-    column_line = lines[1].strip()
-    if not column_line.startswith("#"):
-        raise EnergyHeaderError(
-            f"{filename}: the second header line must list the columns.")
+    column_line = lines[-1].strip()
 
     info = {}
     units = {}
@@ -69,6 +66,19 @@ def read_pq_header(filename):
         raise EnergyHeaderError(f"{filename}: the header lists no columns.")
 
     return info, units
+
+
+def _read_comment_block(filename, limit=16):
+    """
+    Return the leading ``#`` lines of a file, at most ``limit``.
+    """
+
+    lines = []
+    for line in _read_header_lines(filename, limit):
+        if not line.startswith("#"):
+            break
+        lines.append(line)
+    return lines
 
 
 def _read_header_lines(filename, count):

@@ -17,11 +17,11 @@ from PQEnalyzer.readers.factory import create_reader
 
 PQ_HEADER = (
     "# PQ energy file 1\n"
-    "#STEP[-] SIMULATION-TIME[ps] TEMPERATURE[K] E(TOT)[kcal/mol]\n"
+    "#SIMULATION-TIME[step] TEMPERATURE[K] E(TOT)[kcal/mol]\n"
 )
 DATA = (
-    "1 0.002 300.0 -10.5\n"
-    "2 0.004 301.0 -10.7\n"
+    "1 300.0 -10.5\n"
+    "2 301.0 -10.7\n"
 )
 
 
@@ -42,13 +42,19 @@ def test_read_pq_header_returns_names_and_units(tmp_path):
     info, units = read_pq_header(write_energy(tmp_path, PQ_HEADER + DATA))
 
     assert info == {
-        "STEP": 0,
-        "SIMULATION-TIME": 1,
-        "TEMPERATURE": 2,
-        "E(TOT)": 3,
+        "SIMULATION-TIME": 0,
+        "TEMPERATURE": 1,
+        "E(TOT)": 2,
     }
-    assert units["STEP"] == "-"
+    assert units["SIMULATION-TIME"] == "step"
     assert units["E(TOT)"] == "kcal/mol"
+
+
+def test_read_pq_header_skips_metadata_lines(tmp_path):
+    text = PQ_HEADER.replace("\n#SIM", "\n# timestep = 0.5 fs\n#SIM") + DATA
+    info, _ = read_pq_header(write_energy(tmp_path, text))
+
+    assert list(info) == ["SIMULATION-TIME", "TEMPERATURE", "E(TOT)"]
 
 
 @pytest.mark.parametrize(
@@ -56,7 +62,8 @@ def test_read_pq_header_returns_names_and_units(tmp_path):
     [
         (DATA, "does not start"),
         ("# PQ energy file 1\n", "does not start"),
-        ("# PQ energy file 1\n1 0.002\n", "must list the columns"),
+        ("# PQ energy file 1\n1 0.002\n", "does not start"),
+        ("# PQ energy file 1\n# timestep = 0.5 fs\n", "invalid header"),
         ("# PQ energy file 1\n#STEP[-] TIME\n", "invalid header column"),
         ("# PQ energy file 1\n#STEP[-] STEP[-]\n", "duplicate"),
         ("# PQ energy file 1\n#\n", "no columns"),
@@ -73,15 +80,12 @@ def test_reader_takes_names_from_header_without_info_file(tmp_path):
     energy = Reader([energy_file], MDEngineFormat.PQ).energies[0]
 
     assert available_parameters([energy]) == [
-        "STEP",
         "SIMULATION-TIME",
         "TEMPERATURE",
         "E(TOT)",
     ]
     assert parameter_values(energy, "TEMPERATURE").tolist() == [300.0, 301.0]
-    assert parameter_values(energy, "SIMULATION-TIME").tolist() == [
-        0.002, 0.004
-    ]
+    assert parameter_values(energy, "SIMULATION-TIME").tolist() == [1, 2]
     assert parameter_unit(energy, "E(TOT)") == "kcal/mol"
 
 
@@ -92,18 +96,18 @@ def test_reader_prefers_info_file_over_header(tmp_path):
         "| PQ info file |\n"
         "-----\n"
         "|   A   1 x   B   2 y |\n"
-        "|   C   1 z   D   2 w |\n"
+        "|   C   1 z |\n"
         "-----\n")
 
     energy = Reader([energy_file], MDEngineFormat.PQ).energies[0]
 
-    assert list(energy.info) == ["A", "B", "C", "D"]
+    assert list(energy.info) == ["A", "B", "C"]
 
 
 def test_reader_rejects_header_column_count_mismatch(tmp_path):
-    energy_file = write_energy(tmp_path, PQ_HEADER + "1 0.002 300.0\n")
+    energy_file = write_energy(tmp_path, PQ_HEADER + "1 300.0\n")
 
-    with pytest.raises(EnergyHeaderError, match="lists 4 columns.*has 3"):
+    with pytest.raises(EnergyHeaderError, match="lists 3 columns.*has 2"):
         Reader([energy_file], MDEngineFormat.PQ)
 
 

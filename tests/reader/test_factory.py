@@ -269,13 +269,13 @@ def test_probe_energy_format_rejects_missing_or_invalid_info_file(tmp_path):
 
 PQ_HEADER = (
     "# PQ energy file 1\n"
-    "#STEP[-] SIMULATION-TIME[ps] TEMPERATURE[K]\n"
+    "#SIMULATION-TIME[step] TEMPERATURE[K]\n"
 )
 
 
 def test_probe_energy_format_detects_pq_header_without_info_file(tmp_path):
     energy_file = tmp_path / "header.en"
-    energy_file.write_text(PQ_HEADER + "1 0.002 300.0\n")
+    energy_file.write_text(PQ_HEADER + "1 300.0\n")
 
     assert factory._probe_energy_format([energy_file],
                                         MDEngineFormat.PQ) is True
@@ -285,7 +285,7 @@ def test_probe_energy_format_detects_pq_header_without_info_file(tmp_path):
 
 def test_pq_header_wins_over_qmcfc_info_file(tmp_path):
     energy_file = tmp_path / "header.en"
-    energy_file.write_text(PQ_HEADER + "1 0.002 300.0\n")
+    energy_file.write_text(PQ_HEADER + "1 300.0\n")
     energy_file.with_suffix(".info").write_text(
         "header\n"
         "header\n"
@@ -307,7 +307,7 @@ def test_other_comment_header_falls_back_to_info_file(tmp_path):
 
 def test_auto_detects_mixed_header_and_info_pq_files(tmp_path):
     header_file = tmp_path / "header.en"
-    header_file.write_text(PQ_HEADER + "1 0.002 300.0\n")
+    header_file.write_text(PQ_HEADER + "1 300.0\n")
 
     reader = create_reader([header_file, "tests/data/md-01.en"])
 
@@ -316,7 +316,7 @@ def test_auto_detects_mixed_header_and_info_pq_files(tmp_path):
 
 def test_auto_rejects_header_file_mixed_with_qmcfc_file(tmp_path):
     header_file = tmp_path / "header.en"
-    header_file.write_text(PQ_HEADER + "1 0.002 300.0\n")
+    header_file.write_text(PQ_HEADER + "1 300.0\n")
     qmcfc_file = tmp_path / "qmcfc.en"
     qmcfc_file.write_text("1 2 3 4\n")
     qmcfc_file.with_suffix(".info").write_text(
