@@ -1,6 +1,13 @@
 # Changelog
 
 <!-- insertion marker -->
+## Unreleased
+
+### Changes
+
+- Open PQ energy files that start with the `# PQ energy file` header
+  without a `.info` file; column names and units come from the header (#122).
+
 ## [v0.10.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.2) - 2026-10-06
 
 [Compare with v0.10.1](https://github.com/MolarVerse/PQEnalyzer/compare/v0.10.1...v0.10.2)
