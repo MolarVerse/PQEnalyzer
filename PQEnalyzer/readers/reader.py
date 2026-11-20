@@ -7,7 +7,10 @@ can compare multiple files.
 """
 
 from PQAnalysis.io import EnergyFileReader
+from PQAnalysis.physical_data import Energy
 from PQAnalysis.traj import MDEngineFormat
+
+from .energy_header import EnergyHeaderError, has_pq_header, read_pq_header
 
 
 class Reader:
@@ -104,10 +107,25 @@ class Reader:
     def __read_energy_file(self, filename):
         """
         Read one energy file with PQAnalysis using this Reader's MD format.
+
+        Without ``.info``, column names come from the PQ ``.en`` header when
+        the installed PQAnalysis did not already read them.
         """
 
-        return EnergyFileReader(filename,
-                                engine_format=self.md_format).read()
+        energy = EnergyFileReader(filename,
+                                  engine_format=self.md_format).read()
+
+        if energy.info_given or not has_pq_header(filename):
+            return energy
+
+        info, units = read_pq_header(filename)
+        data_columns = len(energy.data) if energy.data.size else 0
+        if len(info) != data_columns:
+            raise EnergyHeaderError(
+                f"{filename}: the header lists {len(info)} columns, "
+                f"but the data has {data_columns}.")
+
+        return Energy(energy.data, info, units)
 
     def __validate_filenames(self):
         """

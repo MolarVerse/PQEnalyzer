@@ -11,6 +11,7 @@ from PQAnalysis.traj import MDEngineFormat
 
 from .._logging import get_logger
 from .box_reader import BoxReader
+from .energy_header import has_pq_header
 from .optimizer_reader import OptimizerReader
 from .reader import Reader
 
@@ -125,8 +126,11 @@ def _probe_energy_format(filenames, md_format):
 
 def _detect_energy_format(filename):
     """
-    Detect an energy file format from the matching PQAnalysis info file.
+    Detect an energy file format from its PQ header or its info file.
     """
+
+    if has_pq_header(filename):
+        return MDEngineFormat.PQ
 
     info_filename = os.path.splitext(str(filename))[0] + ".info"
     try:
