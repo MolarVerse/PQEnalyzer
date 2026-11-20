@@ -7,6 +7,7 @@
 
 - Open PQ energy files that start with the `# PQ energy file` header
   without a `.info` file; column names and units come from the header (#122).
+- Tests cover the `step` time unit PQAnalysis 1.9 gives PQ files without a timestep (#124).
 
 ## [v0.10.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.2) - 2026-10-06
 

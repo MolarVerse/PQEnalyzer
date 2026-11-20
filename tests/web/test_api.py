@@ -38,11 +38,23 @@ def client_fixture():
         yield client
 
 
-def test_meta_lists_files_and_axis(client):
+@pytest.fixture(name="timed_client")
+def timed_client_fixture(timed_md_files):
+    """
+    Return a test client serving two energy files with a known timestep.
+    """
+    from fastapi.testclient import TestClient
+
+    application = create_app(timed_md_files, "auto")
+    with TestClient(application) as client:
+        yield client
+
+
+def test_meta_lists_files_and_axis(timed_client):
     """
     Meta reports the reader kind, time axis, and per-file rows.
     """
-    body = client.get("/api/meta").json()
+    body = timed_client.get("/api/meta").json()
     assert body["reader"] == "Reader"
     assert body["time_label"] == "Simulation Time"
     assert [item["rows"] for item in body["files"]] == [5, 5]
@@ -62,11 +74,26 @@ def test_parameters_expose_units_and_coverage(client):
     assert parameters["TEMPERATURE"]["rows"] == 10
 
 
-def test_series_combines_files_in_input_order(client):
+def test_untimed_pq_files_label_the_axis_from_pqanalysis(
+        client, untimed_time_unit):
+    """
+    Without a timestep the axis follows the unit PQAnalysis reports.
+    """
+    label = ("Simulation Step"
+             if untimed_time_unit == "step" else "Simulation Time")
+    assert client.get("/api/meta").json()["time_label"] == label
+    body = client.get(
+        "/api/series", params={"parameter": "TEMPERATURE"}).json()
+    assert body["time_label"] == label
+    assert body["time_unit"] == untimed_time_unit
+    assert body["series"][0]["time"] == list(range(1, 11))
+
+
+def test_series_combines_files_in_input_order(timed_client):
     """
     Short series arrive whole; transport metadata stays consistent.
     """
-    body = client.get(
+    body = timed_client.get(
         "/api/series", params={"parameter": "TEMPERATURE"}).json()
     assert body["unit"] == "K"
     assert body["time_unit"] == "ps"
