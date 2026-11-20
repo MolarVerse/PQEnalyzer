@@ -1,6 +1,10 @@
 # Changelog
 
 <!-- insertion marker -->
+## Unreleased
+
+- Tests cover the `step` time unit PQAnalysis 1.9 gives PQ files without a timestep (#124).
+
 ## [v0.10.2](https://github.com/MolarVerse/PQEnalyzer/releases/tag/v0.10.2) - 2026-10-06
 
 [Compare with v0.10.1](https://github.com/MolarVerse/PQEnalyzer/compare/v0.10.1...v0.10.2)
