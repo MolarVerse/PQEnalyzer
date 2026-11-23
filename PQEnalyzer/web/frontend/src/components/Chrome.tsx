@@ -1,3 +1,4 @@
+import { ChartColumn, ChartLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { MODE_LABEL, MODES, type Mode } from "../mode";
 
@@ -9,11 +10,30 @@ export function ModeSeg({ mode, onSelect }: { mode: Mode; onSelect: (next: Mode)
           key={key}
           type="button"
           role="tab"
+          aria-label={MODE_LABEL[key]}
           aria-selected={mode === key}
+          tabIndex={mode === key ? 0 : -1}
+          onKeyDown={(event) => {
+            const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+            if (!tabs?.length) return;
+            const index = MODES.indexOf(key);
+            const next = event.key === "Home" ? 0
+              : event.key === "End" ? MODES.length - 1
+              : event.key === "ArrowLeft" ? (index + MODES.length - 1) % MODES.length
+              : event.key === "ArrowRight" ? (index + 1) % MODES.length
+              : null;
+            if (next === null) return;
+            event.preventDefault();
+            onSelect(MODES[next]);
+            tabs[next]?.focus();
+          }}
           className={mode === key ? "selected" : ""}
           onClick={() => onSelect(key)}
         >
-          {MODE_LABEL[key]}
+          <span className="seg-label">{MODE_LABEL[key]}</span>
+          <span className="seg-icon" aria-hidden="true">
+            {key === "series" ? <ChartLine size={16} /> : <ChartColumn size={16} />}
+          </span>
         </button>
       ))}
     </div>
