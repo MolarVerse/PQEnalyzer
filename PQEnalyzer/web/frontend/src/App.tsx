@@ -1,8 +1,8 @@
+import { AppHeader, AutoRefreshButton, HeaderStatus, HelpButton, HelpPanels, type HelpPage, SearchTrigger, useHealthProbe } from "@molarverse/pq-design";
 /* PQEnalyzer Web shell. */
 
 import {
   CommandPalette,
-  Modal,
   type Command,
 } from "@molarverse/pq-design";
 import { useEffect, useMemo, useState } from "react";
@@ -12,7 +12,6 @@ import {
   type OverlayFlags,
 } from "./api";
 import { AnalysisPicker, HistogramBlock, NO_OVERLAYS, OVERLAY_DEFS, toggleOverlay } from "./components/RailBlocks";
-import { ShortcutHelp } from "./components/ShortcutHelp";
 import { ModeSeg } from "./components/Chrome";
 import { MODES, MODE_LABEL } from "./mode";
 import { useFocus } from "./hooks/useFocus";
@@ -26,18 +25,9 @@ import {
   loadSettings,
   saveSettings,
 } from "./settings";
-/** Track a CSS media query so rail blocks render in exactly one place. */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => window.matchMedia(query).matches,
-  );
-  useEffect(() => {
-    const list = window.matchMedia(query);
-    const onChange = () => setMatches(list.matches);
-    list.addEventListener("change", onChange);
-    return () => list.removeEventListener("change", onChange);
-  }, [query]);
-  return matches;
+function isAnalysisHealth(value: unknown): value is { files: { rows: number; stale: boolean }[]; stale: boolean } {
+  return Boolean(value && typeof value === "object" && "files" in value && Array.isArray(value.files)
+    && "stale" in value && typeof value.stale === "boolean");
 }
 
 export default function App() {
@@ -55,9 +45,10 @@ export default function App() {
   );
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showKde, setShowKde] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const narrow = useMediaQuery("(max-width: 1100px)");
+  const [helpPage, setHelpPage] = useState<HelpPage | null>(null);
+  const searchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K";
 
+  const health = useHealthProbe("/api/status", isAnalysisHealth);
   const session = useSession();
   const { focus, mode, selectMode, focusParameter } = useFocus(session.parameters, !session.loading);
   const paramData = useParameterData(focus, flags, windowSize, bins, mode, session.generation);
@@ -81,6 +72,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || helpPage !== null) return;
       const mod = event.metaKey || event.ctrlKey;
       if (mod && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -103,12 +95,8 @@ export default function App() {
       ) {
         return;
       }
-      if (event.key === "Escape" && helpOpen) {
-        setHelpOpen(false);
-        return;
-      }
       if (event.key === "?") {
-        setHelpOpen(true);
+        setHelpPage("shortcuts");
         return;
       }
       if (event.key === "Escape" && toolsOpen) {
@@ -135,7 +123,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focus, focusParameter, helpOpen, paletteOpen, selectMode, toolsOpen]);
+  }, [focus, focusParameter, helpPage, paletteOpen, selectMode, toolsOpen]);
 
   /** Largest valid manual window in the combined sequence. */
   const maxWindow = useMemo(
@@ -168,11 +156,17 @@ export default function App() {
     }));
     const helpCommands: Command[] = [
       {
+        id: "help",
+        label: "Help",
+        group: "Help",
+        run: () => setHelpPage("help"),
+      },
+      {
         id: "help-shortcuts",
         label: "Keyboard shortcuts",
         group: "Help",
         hint: "?",
-        run: () => setHelpOpen(true),
+        run: () => setHelpPage("shortcuts"),
       },
     ];
     return [...paramCommands, ...modeCommands, ...helpCommands];
@@ -180,61 +174,59 @@ export default function App() {
 
 
 
+  const currentFiles = session.meta?.files.map(
+    ({ label, path }) => path.split(/[\\/]/).at(-1) || label,
+  );
+
   return (
     <div className={`web-shell${toolsOpen && focus !== null ? " tools-open" : ""}`}>
-      <header className="web-header">
-        <div className="brand">
-          <img src="/icon.png" alt="" />
-          <strong>PQEnalyzer Web</strong>
-        </div>
-        <div className="header-center">
-          <button
-            type="button"
-            className="command-search"
-            onClick={() => setPaletteOpen(true)}
-          >
-            <span>{focus ?? "Search parameters…"}</span>
-            <kbd>Ctrl K</kbd>
-          </button>
-        </div>
-        <div className="header-status">
-          {!narrow && <ModeSeg mode={mode} onSelect={selectMode} />}
-          <button
-            type="button"
-            className={`pq-tag ${session.connection === "offline" ? "pending" : session.meta?.stale ? "missing" : "ok"}`}
-            title={
-              session.connection === "offline"
-                ? "Connection lost — retrying in the background; data stays put"
-                : session.meta?.stale
-                  ? "Files changed on disk — activate to refresh"
-                  : session.autoRefresh
-                    ? `Watching files${session.updatedAt ? ` · updated ${session.updatedAt}` : ""} — activate to pause`
-                    : "Paused — activate to resume watching"
-            }
-            aria-pressed={session.autoRefresh}
-            aria-label={
-              session.connection === "offline"
-                ? "Offline — retrying in the background"
-                : session.autoRefresh ? "Pause auto-refresh" : "Resume auto-refresh"
-            }
-            onClick={() => session.setAutoRefresh((value) => !value)}
-          >
-            <span className="pq-tag-value">
-              {session.connection === "offline"
-                ? "offline"
-                : session.meta?.stale ? "stale" : session.autoRefresh ? "watching" : "paused"}
-            </span>
-          </button>
-        </div>
-      </header>
+      <AppHeader
+          className="web-header"
+          name="PQEnalyzer"
+          context={currentFiles?.[0]}
+          files={currentFiles}
+          actions={<HelpButton open={helpPage !== null} onClick={() => setHelpPage("help")} />}
+          logo="/icon.png"
+          search={<SearchTrigger
+            label="Search…"
+            accessibleName="Search parameters"
+            shortcut={searchShortcut}
+            open={paletteOpen}
+            onOpen={() => setPaletteOpen(true)}
+          />}
+          status={<HeaderStatus
+            checks={[
+              { label: "Server connection", state: health.state },
+              {
+                label: "Simulation output",
+                state: session.error || (session.meta && (!session.fileCount || session.meta.stale || health.data?.stale))
+                  ? "fail" : session.meta ? "pass" : health.state === "fail" ? "skipped" : "pending",
+                detail: session.error ? "The output files could not be loaded."
+                  : session.meta?.stale || health.data?.stale ? "Files changed on disk; the displayed data is out of date." : undefined,
+              },
+              {
+                label: "Analysis data",
+                state: paramData.error ? "fail" : session.parameters.length ? "pass"
+                  : session.loading ? "pending" : session.meta ? "fail" : "skipped",
+                detail: paramData.error ? "The current analysis could not be loaded." : undefined,
+              },
+              {
+                label: "Live updates",
+                state: !session.autoRefresh ? "skipped" : session.connection === "offline" || health.state === "fail" ? "fail"
+                  : health.state,
+                detail: !session.autoRefresh ? "Paused by you." : session.connection === "polling" ? "Checking periodically." : undefined,
+              },
+            ]}
+          />}
+        />
 
       <div className="web-body">
+        <div className="chart-toolbar pq-data-tools" role="group" aria-label="Chart controls">
+          <ModeSeg mode={mode} onSelect={selectMode} />
+          <AutoRefreshButton active={session.autoRefresh}
+            onToggle={() => session.setAutoRefresh((value) => !value)} />
+        </div>
         <main className={`web-main${focus === null ? "" : " focused"}`}>
-          {narrow && (
-            <div className="narrow-views">
-              <ModeSeg mode={mode} onSelect={selectMode} />
-            </div>
-          )}
           {session.loading && <p className="output-empty">Loading session…</p>}
           {error && (
             <p className="notice error" role="alert">
@@ -365,14 +357,19 @@ export default function App() {
         placeholder="Search parameters or modes…"
         onClose={() => setPaletteOpen(false)}
       />
-      <Modal
-        open={helpOpen}
-        title="Keyboard shortcuts"
-        subtitle="Every shortcut the shell offers"
-        onClose={() => setHelpOpen(false)}
-      >
-        <ShortcutHelp />
-      </Modal>
+      <HelpPanels page={helpPage} onPage={setHelpPage} docs="https://molarverse.github.io/PQEnalyzer/"
+        intro={<p>Search for a simulation parameter. Switch between Series and Histogram to inspect how it changes or how it is distributed.</p>}
+        groups={[
+          { title: "Workspace", items: [
+            [searchShortcut, "Search parameters and modes"],
+            ["1 / 2", "Series / histogram mode"],
+            ["O", "Analysis / histogram options"],
+            ["?", "Keyboard shortcuts"],
+            ["Esc", "Close a panel or return to the dashboard"],
+          ] },
+          { title: "Plot overlays", items: OVERLAY_DEFS.map(({ shortcut, label }) => [shortcut, label]) },
+        ]} />
+
     </div>
   );
 }

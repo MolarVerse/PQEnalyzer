@@ -9,3 +9,5 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+import "@molarverse/pq-design/app-header.css";
