@@ -1,3 +1,4 @@
+import { appApi } from "./runEmbed";
 import { AppHeader, AutoRefreshButton, HeaderStatus, HelpButton, HelpPanels, type HelpPage, SearchTrigger, useHealthProbe } from "@molarverse/pq-design";
 /* PQEnalyzer Web shell. */
 
@@ -12,6 +13,7 @@ import {
   type OverlayFlags,
 } from "./api";
 import { AnalysisPicker, HistogramBlock, NO_OVERLAYS, OVERLAY_DEFS, toggleOverlay } from "./components/RailBlocks";
+import { RunProgress } from "./components/RunProgress";
 import { ModeSeg } from "./components/Chrome";
 import { MODES, MODE_LABEL } from "./mode";
 import { useFocus } from "./hooks/useFocus";
@@ -48,7 +50,7 @@ export default function App() {
   const [helpPage, setHelpPage] = useState<HelpPage | null>(null);
   const searchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K";
 
-  const health = useHealthProbe("/api/status", isAnalysisHealth);
+  const health = useHealthProbe(appApi("/api/status"), isAnalysisHealth);
   const session = useSession();
   const { focus, mode, selectMode, focusParameter } = useFocus(session.parameters, !session.loading);
   const paramData = useParameterData(focus, flags, windowSize, bins, mode, session.generation);
@@ -226,6 +228,7 @@ export default function App() {
           <AutoRefreshButton active={session.autoRefresh}
             onToggle={() => session.setAutoRefresh((value) => !value)} />
         </div>
+        <RunProgress autoRefresh={session.autoRefresh} />
         <main className={`web-main${focus === null ? "" : " focused"}`}>
           {session.loading && <p className="output-empty">Loading session…</p>}
           {error && (

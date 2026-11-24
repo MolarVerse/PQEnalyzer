@@ -561,3 +561,31 @@ def test_status_and_refresh_roundtrip(client, terminal_log):
         for record in terminal_log.records
         if record.name == "PQEnalyzer"
     ] == ["Refreshed 10 rows / 2 files."]
+
+
+def test_run_progress_reads_current_snapshot(client, tmp_path):
+    from fastapi.testclient import TestClient
+
+    assert client.get("/api/run-progress").json() is None
+    path = tmp_path / "progress.json"
+    snapshot = {"state": "running", "stage": 2, "total": 2, "steps": 12, "target": 20}
+    with TestClient(create_app([MD_01], run_progress=path)) as managed:
+        assert managed.get("/api/run-progress").status_code == 503
+        path.write_text(json.dumps(snapshot), encoding="utf-8")
+        response = managed.get("/api/run-progress")
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.json() == snapshot
+        snapshot.update(state="completed", steps=20)
+        path.write_text(json.dumps(snapshot), encoding="utf-8")
+        assert managed.get("/api/run-progress").json() == snapshot
+
+
+@pytest.mark.parametrize("invalid", [{"state": "idle"}, {"steps": 21}])
+def test_run_progress_rejects_invalid_snapshot(tmp_path, invalid):
+    from fastapi.testclient import TestClient
+
+    path = tmp_path / "progress.json"
+    snapshot = {"state": "running", "stage": 1, "total": 2, "steps": 12, "target": 20}
+    path.write_text(json.dumps(snapshot | invalid), encoding="utf-8")
+    with TestClient(create_app([MD_01], run_progress=path)) as managed:
+        assert managed.get("/api/run-progress").status_code == 503

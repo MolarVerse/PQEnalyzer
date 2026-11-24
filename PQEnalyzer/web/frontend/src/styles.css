@@ -1229,3 +1229,24 @@ button.pq-tag:focus-visible {
     min-height: 44px;
   }
 }
+
+.simulation-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+
+.simulation-progress { justify-content: space-between; }
+.simulation-summary { display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; }
+.simulation-details {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.simulation-timing { flex-basis: 100%; }

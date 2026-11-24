@@ -142,6 +142,7 @@ def main():
         action="store_true",
         help="Do not open a browser.",
     )
+    web_parser.add_argument("--run-progress", help="Read live progress from a PQSetup run snapshot.")
     _add_log_level_argument(web_parser)
 
     args = parser.parse_args(_argv_with_default_mode(sys.argv[1:]))
@@ -179,6 +180,7 @@ def main():
                 open_browser=not args.no_open,
                 reader=reader,
                 log_level=args.log_level,
+                run_progress=args.run_progress,
             )
         except ValueError as error:
             parser.error(str(error))
