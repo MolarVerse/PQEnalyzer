@@ -578,3 +578,14 @@ def test_run_progress_reads_current_snapshot(client, tmp_path):
         snapshot.update(state="completed", steps=20)
         path.write_text(json.dumps(snapshot), encoding="utf-8")
         assert managed.get("/api/run-progress").json() == snapshot
+
+
+@pytest.mark.parametrize("invalid", [{"state": "idle"}, {"steps": 21}])
+def test_run_progress_rejects_invalid_snapshot(tmp_path, invalid):
+    from fastapi.testclient import TestClient
+
+    path = tmp_path / "progress.json"
+    snapshot = {"state": "running", "stage": 1, "total": 2, "steps": 12, "target": 20}
+    path.write_text(json.dumps(snapshot | invalid), encoding="utf-8")
+    with TestClient(create_app([MD_01], run_progress=path)) as managed:
+        assert managed.get("/api/run-progress").status_code == 503
