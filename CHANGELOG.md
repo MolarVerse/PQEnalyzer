@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Show compact status check symbols and one optional Details control.
+
+
 <!-- insertion marker -->
 ## [Unreleased]
 
