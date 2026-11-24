@@ -273,3 +273,22 @@ def test_default_gui_mode_accepts_input_format_flags():
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
     assert "not allowed with argument" in result.stderr
+
+
+def test_web_mode_passes_run_progress_to_server(monkeypatch, tmp_path):
+    from PQEnalyzer import web
+    from PQEnalyzer.__main__ import main
+
+    progress = tmp_path / "progress.json"
+    calls = []
+
+    def serve(*args, **kwargs):
+        calls.append(kwargs["run_progress"])
+
+    monkeypatch.setattr(web, "serve", serve)
+    monkeypatch.setattr(sys, "argv", [
+        "pqenalyzer", "web", "--no-open", "--run-progress", str(progress),
+        str(Path(__file__).parent / "data" / "md-01.en"),
+    ])
+    main()
+    assert calls == [str(progress)]
