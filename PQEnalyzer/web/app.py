@@ -6,6 +6,7 @@ PQViewer: no authentication, do not expose to untrusted networks.
 """
 
 from contextlib import asynccontextmanager
+import json
 from pathlib import Path
 from socket import AF_INET, AF_INET6, create_server
 from threading import Timer
@@ -24,7 +25,7 @@ def _write_startup_banner(url, state):
     print_web_startup(url, sum(item["rows"] for item in files), len(files))
 
 
-def create_app(filenames, input_format="auto", reader=None):
+def create_app(filenames, input_format="auto", reader=None, run_progress=None):
     """
     Build the FastAPI application for already-validated input files.
     """
@@ -58,6 +59,28 @@ def create_app(filenames, input_format="auto", reader=None):
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    progress_path = Path(run_progress).resolve() if run_progress is not None else None
+
+    @application.get("/api/run-progress")
+    def get_run_progress():
+        if progress_path is None:
+            return None
+        try:
+            with progress_path.open(encoding="utf-8") as snapshot:
+                progress = json.load(snapshot)
+            keys = ("state", "stage", "total", "steps", "target")
+            if progress["state"] not in {"running", "completed", "failed"}:
+                raise ValueError("Invalid run state")
+            if not (0 <= progress["steps"] <= progress["target"]
+                    and 0 <= progress["stage"] <= progress["total"]):
+                raise ValueError("Invalid run counts")
+            return {key: progress[key] for key in keys} | {
+                key: progress[key] for key in ("elapsed_seconds", "eta_seconds", "steps_per_second")
+                if key in progress
+            }
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            raise HTTPException(503, "Run progress is unavailable.") from error
 
     @application.get("/api/meta")
     def get_meta():
@@ -160,7 +183,7 @@ def create_app(filenames, input_format="auto", reader=None):
 
 
 def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
-          open_browser=True, reader=None, log_level="info"):
+          open_browser=True, reader=None, log_level="info", run_progress=None):
     """
     Validate inputs, then serve the web front end on loopback.
     """
@@ -184,7 +207,7 @@ def serve(filenames, input_format="auto", host=DEFAULT_HOST, port=DEFAULT_PORT,
             f"Could not start Web server at {url}: {error}. "
             "Choose another --port.") from error
     with listener:
-        application = create_app(filenames, input_format, reader=reader)
+        application = create_app(filenames, input_format, reader=reader, run_progress=run_progress)
 
         class StreamingServer(uvicorn.Server):
             """Close live streams before Uvicorn waits for connections."""

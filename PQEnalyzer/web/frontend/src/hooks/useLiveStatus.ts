@@ -1,3 +1,4 @@
+import { appApi } from "../runEmbed";
 import { useEffect, useRef, useState } from "react";
 import { fetchStatus } from "../api";
 
@@ -33,7 +34,7 @@ export function useLiveStatus(callbacks: {
       }, POLL_FALLBACK_MS);
       return () => window.clearInterval(interval);
     }
-    const source = new EventSource("/api/events");
+    const source = new EventSource(appApi("/api/events"));
     const onStaleEvent = () => refs.current.onStale();
     const onOpen = () => {
       setConnection("live");

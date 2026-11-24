@@ -1,3 +1,4 @@
+import { appApi } from "./runEmbed";
 /*
  * Typed client for the PQEnalyzer web API.
  * All math stays server-side; the browser only renders.
@@ -142,16 +143,16 @@ export interface StatusResponse {
   stale: boolean;
 }
 
-export const fetchMeta = () => get<Meta>("/api/meta");
-export const fetchStatus = () => get<StatusResponse>("/api/status");
+export const fetchMeta = () => get<Meta>(appApi("/api/meta"));
+export const fetchStatus = () => get<StatusResponse>(appApi("/api/status"));
 export const fetchParameters = () =>
-  get<{ parameters: Parameter[] }>("/api/parameters").then((r) => r.parameters);
+  get<{ parameters: Parameter[] }>(appApi("/api/parameters")).then((r) => r.parameters);
 export const fetchSeries = (parameter: string) =>
-  get<SeriesResponse>(`/api/series?parameter=${encodeURIComponent(parameter)}`);
+  get<SeriesResponse>(appApi(`/api/series?parameter=${encodeURIComponent(parameter)}`));
 export const fetchSummary = (parameter: string) =>
-  get<SummaryResponse>(`/api/summary?parameter=${encodeURIComponent(parameter)}`);
+  get<SummaryResponse>(appApi(`/api/summary?parameter=${encodeURIComponent(parameter)}`));
 export const fetchSummaries = () =>
-  get<{ summaries: SummaryEntry[] }>("/api/summaries").then((r) => r.summaries);
+  get<{ summaries: SummaryEntry[] }>(appApi("/api/summaries")).then((r) => r.summaries);
 export function histogramBinSelection(raw: string): string {
   if (!raw.trim()) return "auto";
   const value = Number(raw);
@@ -162,7 +163,7 @@ export function histogramBinSelection(raw: string): string {
 
 export const fetchHistogram = (parameter: string, bins: string) =>
   get<HistogramResponse>(
-    `/api/histogram?parameter=${encodeURIComponent(parameter)}&bins=${histogramBinSelection(bins)}`,
+    appApi(`/api/histogram?parameter=${encodeURIComponent(parameter)}&bins=${histogramBinSelection(bins)}`),
   );
 
 export function fetchOverlays(
@@ -175,11 +176,11 @@ export function fetchOverlays(
     if (flags[key]) query.set(key, "true");
   });
   if (windowSize.trim()) query.set("window_size", windowSize.trim());
-  return get(`/api/overlays?${query.toString()}`);
+  return get(appApi(`/api/overlays?${query.toString()}`));
 }
 
 export async function postRefresh(): Promise<StatusResponse> {
-  const response = await fetch("/api/refresh", {
+  const response = await fetch(appApi("/api/refresh"), {
     method: "POST",
     cache: "no-store",
   });
